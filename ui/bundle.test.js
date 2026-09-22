@@ -4056,6 +4056,30 @@ test("card menu quick list is derived once per store value and rebuilt when the 
   assertStructural.deepEqual(rebuilt.map((item) => item.id), ["more", "tag-old", "tag-new"]);
 });
 
+test("card menu quick list is derived per card, not per workspace", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems } = plugin.__internal;
+  const carried = appliedTag("tag-carried", "Carried", "2026-01-01T00:00:02Z");
+  const free = appliedTag("tag-free", "Free", "2026-01-01T00:00:01Z");
+  const payload = {
+    tags: [carried.tag, free.tag],
+    // task-1 already carries the newest tag; task-2 carries nothing.
+    tasks: { "task-1": [carried.application], "task-peer": [carried.application, free.application] },
+  };
+  const { host } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+
+  const first = quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
+  const second = quickTagItems(host, { taskId: "task-2", workspaceId: "ws-1" });
+
+  assertStructural.deepEqual(first.map((item) => item.id), ["more", "tag-free"]);
+  assertStructural.deepEqual(
+    second.map((item) => item.id),
+    ["more", "tag-carried", "tag-free"],
+    "one card's applied tags do not leak into another card's list",
+  );
+});
+
 test("card menu quick list never fetches from the menu-build path", async () => {
   const plugin = loadBundle();
   const { quickTagItems } = plugin.__internal;
