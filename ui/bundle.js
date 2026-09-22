@@ -812,10 +812,10 @@
   var sharedTagLoadErrorLogged = false;
   // "workspaceId|taskId" -> { shared, private, items }: quickTagItems'
   // derived card-menu list, keyed by the two store values it was derived
-  // from. The host builds a card's menu entries on every render (both the
-  // dropdown and the context variant, whether or not a menu is open), so the
-  // scan plus sort behind this list would otherwise run several times per
-  // card per board render. Dropped with the stores (see resetSharedStores).
+  // from. The host builds a card's menu entries on every render, menus open or
+  // closed, so without this the scan plus sort behind each list would run for
+  // every card on every board render. Dropped with the stores
+  // (see resetSharedStores).
   var quickTagCaches = {};
   // Incremented whenever initialize()/destroy() drops the shared stores. A
   // request cannot be cancelled once invokeAction has started, so its later
@@ -1736,12 +1736,13 @@
   }
 
   /**
-   * The quick list's run callbacks are created by these factories rather than
-   * inline. A closure created directly inside quickTagItems would share that
-   * call's variable context -- which holds the workspace-wide application map
-   * it just scanned -- and the host keeps these callbacks alive inside the
-   * menu entries it holds, so the payload the memo released would stay
-   * reachable through them. Each factory closes over its own arguments only.
+   * The quick list's entries are created by these factories rather than inline.
+   * A closure created directly inside quickTagItems would share that call's
+   * variable context -- which holds the workspace-wide application map it just
+   * scanned -- and the host keeps these callbacks alive inside the menu entries
+   * it holds, so the payload the memo released would stay reachable through
+   * them. Each factory closes over its own arguments only, and the head entry
+   * is only built when there is a list to head (see quickTagItems).
    */
   function quickTagRun(host, workspaceId, taskId, tagId) {
     return function () {
@@ -1749,9 +1750,13 @@
     };
   }
 
-  function moreTagsRun(host, workspaceId, taskId) {
-    return function () {
-      return openTagPicker(host, taskId, workspaceId);
+  function moreTagsEntry(host, workspaceId, taskId) {
+    return {
+      id: "more",
+      label: "More tags\u2026",
+      run: function () {
+        return openTagPicker(host, taskId, workspaceId);
+      },
     };
   }
 
@@ -1767,9 +1772,11 @@
    * already in memory. A tag nothing has ever been applied with has no place
    * in a most-recently-used list and is left to the picker.
    *
-   * This runs on the host's menu-build path -- at least twice per card per
-   * board render, menus open or closed -- so it must stay synchronous and
-   * read-only (the host's own `items` contract), and its result is cached
+   * This runs on the host's menu-build path -- once per card per board render
+   * with this feature's host half (twice before its perf commit, which shares
+   * one evaluation between a card's dropdown and context variants), menus open
+   * or closed -- so it must stay synchronous and read-only (the host's own
+   * `items` contract), and its result is cached
    * until one of the two stores it reads replaces its value (see
    * quickTagCaches), empty results included. A store that has not loaded yet
    * therefore yields an empty list -- the host's signal for "no usable
@@ -1783,11 +1790,6 @@
   function quickTagItems(host, context) {
     var workspaceId = resolveWorkspaceId(host, context.workspaceId);
     if (!workspaceId || !sharedTagsEnabled(host, workspaceId)) return [];
-    var more = {
-      id: "more",
-      label: "More tags\u2026",
-      run: moreTagsRun(host, workspaceId, context.taskId),
-    };
 
     var store = getSharedTagStore(workspaceId);
     var taskStore = getTaskTagStore(context.taskId);
@@ -1852,8 +1854,13 @@
     // lone "More tags..." child would nest that picker one level deeper for
     // nothing.
     // An empty list is cached like any other: "nothing to offer" is a stable
-    // state on this hot path, not a transient one.
-    var items = quick.length === 0 ? [] : [more].concat(quick);
+    // state on this hot path, not a transient one. The head entry is built only
+    // on the branch that needs it, so a cache hit builds no entry at all -- the
+    // composite cache key above is still built, on every call.
+    var items =
+      quick.length === 0
+        ? []
+        : [moreTagsEntry(host, workspaceId, context.taskId)].concat(quick);
     quickTagCaches[cacheKey] = { shared: store.value, private: taskStore.value, items: items };
     return items;
   }
