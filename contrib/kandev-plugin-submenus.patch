@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 1/3] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 1/4] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 2/3] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 2/4] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 3/3] fix(plugins): keep a plugin submenu reachable in command
+Subject: [PATCH 3/4] fix(plugins): keep a plugin submenu reachable in command
  lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -898,6 +898,369 @@ index c051f311a..fea317306 100644
 +expensive behind it should be memoized on the state it reads. A child's `disabled` (or the
  action's own host-level disabled state, e.g. while a row-local move is
  running) still renders the entry, unlike `visible()`, which filters.
+ 
+-- 
+2.53.0
+
+
+From dcb29b5eb598cab6872c4eb2e100e81ef153acd3 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Tue, 22 Sep 2026 22:21:12 +0000
+Subject: [PATCH 4/4] fix(plugins): validate submenu children at the host
+ boundary
+
+`pluginSubItems` accepted whatever `items()` returned as long as it was a
+non-empty array. A bundle is plain JavaScript, so the registration types
+are not enforced at run time: `[null]` crashed the whole menu render while
+building its icon and label, an entry without an id or label produced an
+undefined label and a key React cannot distinguish, duplicate ids produced
+duplicate keys, a child without a callable run failed only after the user
+picked it, and an async callback (out of contract) left its rejection
+unobserved, surfacing as an unhandled rejection out of the host's menu
+build.
+
+Children are now validated: `id` and `label` must be non-empty strings and
+`run` must be a function, duplicate ids keep their first occurrence, and
+unusable entries are dropped. A result with nothing usable left -- an
+empty list, a throw, a promise, a non-array, or only invalid children --
+falls back to the action's flat `run` item, which is what the docs already
+promised. A promise is observed (never awaited) so its rejection cannot
+escape. Each defect is logged once per action instead of on every menu
+build, since `items()` runs on every render.
+
+Also carries the icons doc note: task menu entries render a ready-made
+element unchanged for plugins registered before icons were resolved that
+way, while every other surface still maps an element to the fallback glyph
+-- that shim is menu-only and deliberately not part of `PluginIcon`, since
+widening the public type would promise a shape no other surface honours.
+
+Command palette children now carry their trigger label as `context`, so a
+bare tag name is identifiable in a listing of every task action.
+---
+ .../plugins/task-menu-actions.test.tsx        | 82 ++++++++++++++++
+ .../components/plugins/task-menu-actions.ts   | 97 +++++++++++++++++--
+ .../components/task-command-choices.test.tsx  |  1 +
+ apps/web/components/task-command-choices.tsx  | 13 ++-
+ docs/plans/plugins/PLUGIN-API.md              | 29 ++++--
+ 5 files changed, 204 insertions(+), 18 deletions(-)
+
+diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
+index 28a6b0188..c302fa516 100644
+--- a/apps/web/components/plugins/task-menu-actions.test.tsx
++++ b/apps/web/components/plugins/task-menu-actions.test.tsx
+@@ -201,6 +201,88 @@ describe("buildPrimaryPluginEntries — action declaring items", () => {
+   });
+ });
+ 
++describe("buildPrimaryPluginEntries — malformed plugin results", () => {
++  // Plugin bundles are plain JavaScript: the registration types are a promise,
++  // not a guarantee. Every shape a broken plugin can produce must degrade to
++  // the flat fallback (or drop just the unusable child) instead of crashing the
++  // card render or handing React children it cannot key. Each case registers a
++  // distinct action id, since one broken action is reported once -- the host
++  // rebuilds entries on every render, so a per-build log would spam.
++  const fallbackCases: [string, () => unknown][] = [
++    ["a null child", () => [null]],
++    ["a child without an id or label", () => [{ run: vi.fn() }]],
++    ["a child without a run", () => [{ id: "x", label: "X" }]],
++    ["a non-array result", () => "nope"],
++    ["a promise", () => Promise.resolve([{ id: "x", label: "X", run: vi.fn() }])],
++  ];
++
++  for (const [index, [label, items]] of fallbackCases.entries()) {
++    it(`falls back to the flat item and reports ${label} once`, async () => {
++      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
++      registerAction({ id: `broken-${index}`, items: items as never });
++
++      expect(buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.kind)).toEqual([
++        "item",
++      ]);
++      // A second build must not log again: the defect is permanent for a
++      // loaded bundle, and this callback runs on every render.
++      expect(buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.kind)).toEqual([
++        "item",
++      ]);
++      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
++
++      consoleErrorSpy.mockRestore();
++      // A rejected promise must not escape as an unhandled rejection; one
++      // macrotask is enough for vitest to surface it if it were unobserved.
++      await new Promise((resolve) => setTimeout(resolve, 0));
++    });
++  }
++
++  it("falls back when a child cannot be read at all", () => {
++    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
++    const hostile = { id: "x", label: "X", run: vi.fn() };
++    Object.defineProperty(hostile, "icon", {
++      enumerable: true,
++      get() {
++        throw new Error("getter blew up");
++      },
++    });
++    registerAction({ id: "hostile-child", items: () => [hostile] });
++
++    let entries: KanbanCardMenuEntry[] = [];
++    expect(() => {
++      entries = buildPrimaryPluginEntries({ context: CONTEXT });
++    }).not.toThrow();
++    expect(entries.map((entry) => entry.kind)).toEqual(["item"]);
++    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
++    consoleErrorSpy.mockRestore();
++  });
++
++  it("keeps the usable children and drops only the broken ones", () => {
++    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
++    registerAction({
++      id: "partly-broken",
++      items: () => [
++        { id: "gone", label: "Gone", run: vi.fn() },
++        { id: "", label: "No id", run: vi.fn() },
++        { id: "ok", label: "Ok", run: vi.fn() },
++        { id: "gone", label: "Duplicate id", run: vi.fn() },
++      ],
++    });
++
++    const entries = buildPrimaryPluginEntries({ context: CONTEXT });
++
++    expect(entries.map((entry) => entry.kind)).toEqual(["submenu"]);
++    const entry = entries[0];
++    if (entry.kind !== "submenu") return;
++    expect(entry.children.map((child) => child.key)).toEqual([
++      `plugin-primary-${PLUGIN_ID}-partly-broken-gone`,
++      `plugin-primary-${PLUGIN_ID}-partly-broken-ok`,
++    ]);
++    consoleErrorSpy.mockRestore();
++  });
++});
++
+ describe("buildPrimaryPluginEntries — mixed registrations", () => {
+   it("renders a submenu action as one entry and keeps the rest flat", () => {
+     registerAction({ id: "add-tag", items: () => [{ id: "more", label: "More", run: vi.fn() }] });
+diff --git a/apps/web/components/plugins/task-menu-actions.ts b/apps/web/components/plugins/task-menu-actions.ts
+index 33b129c44..c3d1d6f92 100644
+--- a/apps/web/components/plugins/task-menu-actions.ts
++++ b/apps/web/components/plugins/task-menu-actions.ts
+@@ -45,28 +45,105 @@ function pluginMenuIcon(icon?: PluginIcon): ReactNode {
+   return createElement(resolvePluginIcon(icon), { className: "mr-2 h-4 w-4" });
+ }
+ 
++/**
++ * Plugin bundles are plain JavaScript, so the registration types are a
++ * promise, not a guarantee. One log per action is enough: `items()` runs on
++ * every menu build, and a malformed registration fails identically every time.
++ */
++const loggedSubItemDefects = new Set<string>();
++
++function logSubItemDefect(
++  action: PluginTaskMenuActionRegistration,
++  what: string,
++  detail?: unknown,
++): void {
++  const key = `${action.pluginId}:${action.id}`;
++  if (loggedSubItemDefects.has(key)) return;
++  loggedSubItemDefects.add(key);
++  console.error(`[plugins] task menu action "${key}" ${what}`, detail);
++}
++
++/** A child the menu can actually render: a non-empty id and label, and a run. */
++function isUsableSubItem(item: unknown): item is TaskMenuSubItemRegistration {
++  if (!item || typeof item !== "object") return false;
++  try {
++    const candidate = item as Partial<TaskMenuSubItemRegistration>;
++    // Read the optional fields too, and check their shapes: a child whose
++    // `icon` getter throws (a Proxy, an exotic bundle) must fail here -- where
++    // the action falls back to its flat item -- rather than inside the render
++    // that would otherwise read it.
++    const { icon, disabled } = candidate;
++    return (
++      typeof candidate.id === "string" &&
++      candidate.id.length > 0 &&
++      typeof candidate.label === "string" &&
++      candidate.label.length > 0 &&
++      typeof candidate.run === "function" &&
++      (disabled === undefined || typeof disabled === "boolean") &&
++      (icon === undefined ||
++        typeof icon === "string" ||
++        typeof icon === "function" ||
++        typeof icon === "object")
++    );
++  } catch {
++    return false;
++  }
++}
++
+ /**
+  * The children of an action that declares `items`, or null when the action
+- * has no usable submenu — leaving `run` as the entry's behavior. `items()` is
+- * a plugin callback running inside the host's menu build, so an empty or
+- * malformed result and a throw all degrade to the flat fallback rather than
+- * rendering a submenu trigger nothing can open; a throw is logged.
++ * has no usable submenu — leaving `run` as the entry's behavior.
++ *
++ * That fallback is the whole defensive boundary, because `items()` is a
++ * plugin callback running inside the host's menu build: a throw, a thenable
++ * (the contract is synchronous), a non-array result, and an array whose
++ * entries cannot be rendered (no id/label/run) all degrade to the flat item
++ * rather than crashing the card's render, producing a trigger nothing can
++ * open, or handing React children it cannot key. Duplicate ids keep their
++ * first occurrence, so the host never builds two children with one key.
+  */
+ function pluginSubItems(
+   action: PluginTaskMenuActionRegistration,
+   context: PluginTaskMenuContext,
+ ): readonly TaskMenuSubItemRegistration[] | null {
+   if (typeof action.items !== "function") return null;
++
++  let result: unknown;
+   try {
+-    const items = action.items(context);
+-    return Array.isArray(items) && items.length > 0 ? items : null;
++    result = action.items(context);
+   } catch (error: unknown) {
+-    console.error(
+-      `[plugins] task menu action "${action.pluginId}:${action.id}" items() threw`,
+-      error,
+-    );
++    logSubItemDefect(action, "items() threw", error);
++    return null;
++  }
++
++  if (result && typeof (result as { then?: unknown }).then === "function") {
++    logSubItemDefect(action, "items() returned a promise; it must be synchronous");
++    // Observe the rejection so an out-of-contract async callback cannot
++    // surface as an unhandled rejection out of the host's menu build.
++    void Promise.resolve(result).catch((error: unknown) => {
++      logSubItemDefect(action, "items() rejected", error);
++    });
++    return null;
++  }
++
++  if (!Array.isArray(result)) {
++    // null/undefined means "no children"; anything else is out of contract.
++    if (result !== null && result !== undefined) {
++      logSubItemDefect(action, "items() must return an array");
++    }
+     return null;
+   }
++  const seen = new Set<string>();
++  const usable = result.filter((item): item is TaskMenuSubItemRegistration => {
++    if (!isUsableSubItem(item)) {
++      logSubItemDefect(action, "items() returned an unusable child", item);
++      return false;
++    }
++    if (seen.has(item.id)) return false;
++    seen.add(item.id);
++    return true;
++  });
++  return usable.length > 0 ? usable : null;
+ }
+ 
+ /**
+diff --git a/apps/web/components/task-command-choices.test.tsx b/apps/web/components/task-command-choices.test.tsx
+index a7c28c2df..63e857a49 100644
+--- a/apps/web/components/task-command-choices.test.tsx
++++ b/apps/web/components/task-command-choices.test.tsx
+@@ -76,6 +76,7 @@ describe("pluginCommandChoices", () => {
+     more.action?.();
+     expect(first.onSelect).toHaveBeenCalledTimes(1);
+     expect(urgent.disabled).toBe(true);
++    expect(more.context).toBe("Add tag...");
+   });
+ 
+   it("ignores a label the palette cannot render", () => {
+diff --git a/apps/web/components/task-command-choices.tsx b/apps/web/components/task-command-choices.tsx
+index aa22d9244..7906f40d4 100644
+--- a/apps/web/components/task-command-choices.tsx
++++ b/apps/web/components/task-command-choices.tsx
+@@ -43,9 +43,14 @@ type ChoiceOptions = {
+  * dropping the whole contribution, and mirrors what the search surface shows
+  * for every other card action.
+  */
+-export function pluginCommandChoices(entry: KanbanCardMenuEntry, group: string): CommandItem[] {
++export function pluginCommandChoices(
++  entry: KanbanCardMenuEntry,
++  group: string,
++  parentLabel?: string,
++): CommandItem[] {
+   if (entry.kind === "submenu") {
+-    return entry.children.flatMap((child) => pluginCommandChoices(child, group));
++    const label = typeof entry.label === "string" ? entry.label : parentLabel;
++    return entry.children.flatMap((child) => pluginCommandChoices(child, group, label));
+   }
+   if (entry.kind !== "item" || typeof entry.label !== "string") return [];
+   return [
+@@ -53,6 +58,10 @@ export function pluginCommandChoices(entry: KanbanCardMenuEntry, group: string):
+       id: entry.key,
+       label: entry.label,
+       group,
++      // A child's own label ("Blocked") is meaningless on its own in a palette
++      // listing every action, so the trigger it came from is the entry's
++      // context -- the same field the sidebar task commands use for the title.
++      context: parentLabel,
+       action: entry.onSelect,
+       disabled: entry.disabled,
+       icon: entry.icon,
+diff --git a/docs/plans/plugins/PLUGIN-API.md b/docs/plans/plugins/PLUGIN-API.md
+index fea317306..4139809d2 100644
+--- a/docs/plans/plugins/PLUGIN-API.md
++++ b/docs/plans/plugins/PLUGIN-API.md
+@@ -900,6 +900,7 @@ The continuation-renew endpoint from the predecessor transport is not part of
+ the source contract. Load-more and retry use a current source read and preserve
+ the public state until that read succeeds. No browser code imports a persistence
+ store or writes conversation history.
++
+ ## `registry: PluginRegistry`
+ 
+ ```ts
+@@ -916,6 +917,11 @@ store or writes conversation history.
+ // renders on no surface. Hosts predating a section value, or seeing an
+ // unrecognised one, simply degrade to "main"'s placement — nothing is ever
+ // silently dropped.
++// A curated name (`PLUGIN_ICONS` in the host) or a plugin-owned component.
++// Task menu entries additionally render a ready-made React element unchanged,
++// for plugins that registered one before icons were resolved this way; that
++// tolerance is menu-only (other surfaces map an element to the fallback glyph)
++// and is not part of the type.
+ type PluginIcon = string | React.ComponentType<{ className?: string }>;
+ export type PluginNavSection =
+   | "main"
+@@ -1431,9 +1437,14 @@ interface TaskMenuActionRegistration {
+   visible?(context: PluginTaskMenuContext): boolean; // default: always visible
+   // Declaring this renders the action as a submenu instead of a flat item:
+   // `label` becomes an unselectable trigger and these are its children, in
+-  // order. Synchronous and evaluated once per menu build. Nesting stops at
+-  // this one level.
+-  items?(context: PluginTaskMenuContext): readonly TaskMenuSubItemRegistration[];
++  // order. Must be synchronous, and is evaluated on every menu build (see
++  // "Kanban card contributions"). Nesting stops at this one level. A child
++  // needs a non-empty id and label and a run, and ids must be unique: entries
++  // the host cannot render are dropped, and a result with nothing usable left
++  // falls back to `run`.
++  items?(
++    context: PluginTaskMenuContext,
++  ): readonly TaskMenuSubItemRegistration[];
+   // Flat behavior, and the fallback whenever `items` is absent, yields no
+   // entries, or throws (caught and logged) -- so a host that predates
+   // `items` still renders a working flat item.
+@@ -1569,9 +1580,15 @@ running) still renders the entry, unlike `visible()`, which filters.
+ `run` is not a second action for a submenu: it stays the flat behavior for a
+ host that predates `items` — such a host ignores the unknown field and renders
+ the item it has always rendered — and the fallback whenever `items` yields no
+-usable children, meaning an empty list or a throw (caught and logged, the same
+-defensive handling as `visible`). An action can therefore ship both: a quick
+-child list on a host that supports it, and its existing flat behavior
++usable children. That boundary is deliberately runtime-defensive, because a
++bundle is plain JavaScript and these types are not enforced at run time: an
++empty list, a throw, a promise (the contract is synchronous), a non-array, and
++an array whose entries lack a non-empty `id` or `label` or a callable `run`
++all fall back to the flat item instead of crashing the render or producing a
++trigger nothing can open; unusable children are dropped when others remain,
++duplicate ids keep their first occurrence, and the defect is logged once per
++action rather than on every menu build. An action can therefore ship both: a
++quick child list on a host that supports it, and its existing flat behavior
+ elsewhere. Submenu nesting stops at this one level; a `run` rejection is
+ caught and logged, and the menu closes either way.
  
 -- 
 2.53.0
