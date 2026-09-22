@@ -1011,12 +1011,38 @@
     }, delay);
   }
 
+  /**
+   * Replaces a shared store's payload and releases every memoized quick list
+   * built from the one it had. The memo's own identity check is only an
+   * invalidation trigger -- this is what stops the old payload (every task's
+   * applications, its tag objects, the run closures) from staying reachable
+   * through a card whose menu is never built again.
+   */
+  function setSharedValue(store, value) {
+    store.value = value;
+    pruneQuickTagCaches(store);
+  }
+
+  /**
+   * Drops every memoized quick list built from a payload the shared store has
+   * since replaced. Without this, an entry for a card whose menu is not built
+   * again would keep that whole-workspace payload reachable for the life of
+   * the page -- one refresh every 30 seconds is enough for the cache to pin a
+   * generation that nothing else references. Entries derived from the current
+   * payload stay, so a board that keeps re-deriving costs nothing here.
+   */
+  function pruneQuickTagCaches(store) {
+    Object.keys(quickTagCaches).forEach(function (key) {
+      if (quickTagCaches[key].shared !== store.value) delete quickTagCaches[key];
+    });
+  }
+
   function fetchSharedTags(host, workspaceId) {
     var store = getSharedTagStore(workspaceId);
     var lifecycleGeneration = sharedTagLifecycleGeneration;
     if (!host.api || typeof host.api.invokeAction !== "function") {
       clearSharedTagRetry(store, true);
-      store.unavailable = true; store.value = { tags: [], tasks: {} }; store.loaded = true; store.error = null; store.hasValue = false; notifyStoreListeners(store);
+      store.unavailable = true; setSharedValue(store, { tags: [], tasks: {} }); store.loaded = true; store.error = null; store.hasValue = false; notifyStoreListeners(store);
       return Promise.resolve();
     }
     if (store.inFlight) {
@@ -1046,11 +1072,10 @@
         settle(function () {
           clearSharedTagRetry(store, true);
           store.unavailable = false;
-          store.value = sanitizeSharedTags(payload);
+          setSharedValue(store, sanitizeSharedTags(payload));
           store.error = null;
           store.hasValue = true;
           sharedTagLoadErrorLogged = false;
-          pruneQuickTagCaches(store);
         }, false);
       },
       function (err) {
@@ -1060,7 +1085,7 @@
           if (unsupported) {
             clearSharedTagRetry(store, true);
             store.unavailable = true;
-            store.value = { tags: [], tasks: {} };
+            setSharedValue(store, { tags: [], tasks: {} });
             store.error = null;
             store.hasValue = false;
           } else {
@@ -1690,20 +1715,6 @@
   }
 
   /**
-   * Drops every memoized quick list built from a payload the shared store has
-   * since replaced. Without this, an entry for a card whose menu is not built
-   * again would keep that whole-workspace payload reachable for the life of
-   * the page -- one refresh every 30 seconds is enough for the cache to pin a
-   * generation that nothing else references. Entries derived from the current
-   * payload stay, so a board that keeps re-deriving costs nothing here.
-   */
-  function pruneQuickTagCaches(store) {
-    Object.keys(quickTagCaches).forEach(function (key) {
-      if (quickTagCaches[key].shared !== store.value) delete quickTagCaches[key];
-    });
-  }
-
-  /**
    * The last time a tag was applied anywhere in the workspace, in
    * milliseconds, from one application's `updatedAt`.
    *
@@ -1739,8 +1750,10 @@
    * board render, menus open or closed -- so it must stay synchronous and
    * read-only (the host's own `items` contract), and its result is cached
    * until one of the two stores it reads replaces its value (see
-   * quickTagCaches). A store that has not loaded yet therefore yields just
-   * the picker entry: this path never fetches.
+   * quickTagCaches), empty results included. A store that has not loaded yet
+   * therefore yields an empty list -- the host's signal for "no usable
+   * children", which renders the action's flat item -- and this path never
+   * fetches.
    *
    * Only tags the card does not already carry are offered, so every child
    * adds exactly the tag it names: removal stays where it has always been, on
@@ -1821,9 +1834,9 @@
     // picker): one click, and the command palette keeps its entry. Returning a
     // lone "More tags..." child would nest that picker one level deeper for
     // nothing.
-    if (quick.length === 0) return [];
-
-    var items = [more].concat(quick);
+    // An empty list is cached like any other: "nothing to offer" is a stable
+    // state on this hot path, not a transient one.
+    var items = quick.length === 0 ? [] : [more].concat(quick);
     quickTagCaches[cacheKey] = { shared: store.value, private: taskStore.value, items: items };
     return items;
   }

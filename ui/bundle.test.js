@@ -4143,8 +4143,6 @@ test("card menu quick list ignores a timestamp it cannot parse", async () => {
 });
 
 test("card menu quick list stays in order on an engine that only parses millisecond fractions", async () => {
-  const plugin = loadBundle();
-  const { quickTagItems } = plugin.__internal;
   const entries = [
     appliedTag("tag-early", "Early", "2026-01-01T00:00:00.000000001Z"),
     appliedTag("tag-late", "Late", "2026-01-01T00:00:01.000000002Z"),
@@ -4176,7 +4174,51 @@ test("card menu quick list stays in order on an engine that only parses millisec
     ["more", "tag-late", "tag-early"],
     "each nanosecond time still parses once truncated, and the later wins",
   );
-  void plugin;
+});
+
+test("card menu quick list memoizes a card with nothing to offer", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems, quickTagCacheSize } = plugin.__internal;
+  const carried = appliedTag("tag-carried", "Carried", "2026-01-01T00:00:01Z");
+  const payload = {
+    tags: [carried.tag],
+    // This card already carries the only recent tag, so it has nothing to
+    // offer -- a stable state that must not rescan the workspace on every
+    // build of its menu.
+    tasks: { "task-1": [carried.application], "task-peer": [carried.application] },
+  };
+  const { host } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+  const context = { taskId: "task-1", workspaceId: "ws-1" };
+
+  const first = quickTagItems(host, context);
+
+  assertStructural.deepEqual(first, []);
+  assert.equal(quickTagCacheSize(), 1, "the empty result is cached like any other");
+  assert.equal(quickTagItems(host, context), first, "and reused rather than recomputed");
+});
+
+test("a host that rejects the shared-tags action releases the memoized payload", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems, quickTagCacheSize } = plugin.__internal;
+  const entry = appliedTag("tag-a", "Blocked", "2026-01-01T00:00:01Z");
+  const payload = { tags: [entry.tag], tasks: { "task-peer": [entry.application] } };
+  const { host } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+  quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
+  assert.equal(quickTagCacheSize(), 1);
+
+  // The installed plugin is observed as not declaring the action at all; the
+  // store then holds an empty payload, which must not keep the previous
+  // workspace-wide one reachable through the memo.
+  host.api.invokeAction = (key) => {
+    if (key === "shared-tags") return Promise.reject(apiError(404, "plugin action not found", { error: "plugin action not found" }));
+    return Promise.resolve({ tags: [] });
+  };
+  await plugin.__internal.fetchSharedTags(host, "ws-1");
+  await flush();
+
+  assert.equal(quickTagCacheSize(), 0, "the unsupported-action path prunes too");
 });
 
 test("the memoized quick list never pins a superseded shared payload", async () => {
