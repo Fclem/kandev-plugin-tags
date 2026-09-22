@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 1/7] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 1/8] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 2/7] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 2/8] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 3/7] fix(plugins): keep a plugin submenu reachable in command
+Subject: [PATCH 3/8] fix(plugins): keep a plugin submenu reachable in command
  lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -903,10 +903,10 @@ index c051f311a..fea317306 100644
 2.53.0
 
 
-From dcb29b5eb598cab6872c4eb2e100e81ef153acd3 Mon Sep 17 00:00:00 2001
+From 6fc7f07c6443aad63e8a5edcb4167bb6e8c0eecf Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 4/7] fix(plugins): validate submenu children at the host
+Subject: [PATCH 4/8] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -937,18 +937,36 @@ widening the public type would promise a shape no other surface honours.
 Command palette children now carry their trigger label as `context`, so a
 bare tag name is identifiable in a listing of every task action.
 ---
- .../plugins/task-menu-actions.test.tsx        | 82 ++++++++++++++++
- .../components/plugins/task-menu-actions.ts   | 97 +++++++++++++++++--
- .../components/task-command-choices.test.tsx  |  1 +
- apps/web/components/task-command-choices.tsx  | 13 ++-
- docs/plans/plugins/PLUGIN-API.md              | 29 ++++--
- 5 files changed, 204 insertions(+), 18 deletions(-)
+ apps/packages/plugin-sdk/src/index.ts         |   6 +-
+ .../plugins/task-menu-actions.test.tsx        | 163 ++++++++++++++++++
+ .../components/plugins/task-menu-actions.ts   | 127 ++++++++++++--
+ .../components/task-command-choices.test.tsx  |   1 +
+ apps/web/components/task-command-choices.tsx  |  13 +-
+ docs/plans/plugins/PLUGIN-API.md              |  36 +++-
+ 6 files changed, 322 insertions(+), 24 deletions(-)
 
+diff --git a/apps/packages/plugin-sdk/src/index.ts b/apps/packages/plugin-sdk/src/index.ts
+index 4d55b5b04..072a53dd4 100644
+--- a/apps/packages/plugin-sdk/src/index.ts
++++ b/apps/packages/plugin-sdk/src/index.ts
+@@ -429,9 +429,9 @@ export interface TaskMenuActionRegistration {
+    * as an unselectable submenu trigger and calls `items(context)` to get its
+    * children, in the returned order. It must be synchronous and cheap: the
+    * host cannot await a menu item, and it builds a card's or row's entries on
+-   * every render — both the dropdown and the context variant, whether or not a
+-   * menu is open — so an implementation that scans or sorts should memoize on
+-   * the state it reads.
++   * every render — a card's dropdown and context variants are built from one
++   * evaluation, whether or not a menu is open — so an implementation that
++   * scans or sorts should memoize on the state it reads.
+    *
+    * `run` then serves as the fallback for a host that predates submenus (it
+    * ignores this field and renders the flat item) and for a build where
 diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
-index 28a6b0188..c302fa516 100644
+index 28a6b0188..e92bad55a 100644
 --- a/apps/web/components/plugins/task-menu-actions.test.tsx
 +++ b/apps/web/components/plugins/task-menu-actions.test.tsx
-@@ -201,6 +201,88 @@ describe("buildPrimaryPluginEntries — action declaring items", () => {
+@@ -201,6 +201,169 @@ describe("buildPrimaryPluginEntries — action declaring items", () => {
    });
  });
  
@@ -962,9 +980,29 @@ index 28a6b0188..c302fa516 100644
 +  const fallbackCases: [string, () => unknown][] = [
 +    ["a null child", () => [null]],
 +    ["a child without an id or label", () => [{ run: vi.fn() }]],
++    ["a child with a blank id", () => [{ id: "   ", label: "X", run: vi.fn() }]],
 +    ["a child without a run", () => [{ id: "x", label: "X" }]],
++    ["a child with an unusable icon", () => [{ id: "x", label: "X", icon: {}, run: vi.fn() }]],
 +    ["a non-array result", () => "nope"],
 +    ["a promise", () => Promise.resolve([{ id: "x", label: "X", run: vi.fn() }])],
++    [
++      "an array whose methods were replaced",
++      () =>
++        new Proxy([{ id: "x", label: "X", run: vi.fn() }], {
++          get() {
++            throw new Error("trap");
++          },
++        }),
++    ],
++    [
++      "a thenable that throws on lookup",
++      () =>
++        Object.defineProperty({}, "then", {
++          get() {
++            throw new Error("then getter");
++          },
++        }),
++    ],
 +  ];
 +
 +  for (const [index, [label, items]] of fallbackCases.entries()) {
@@ -988,6 +1026,67 @@ index 28a6b0188..c302fa516 100644
 +      await new Promise((resolve) => setTimeout(resolve, 0));
 +    });
 +  }
++
++  it("observes a rejected promise, so it cannot escape as an unhandled rejection", async () => {
++    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
++    registerAction({ id: "rejecting", items: () => Promise.reject(new Error("boom")) });
++
++    expect(buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.kind)).toEqual([
++      "item",
++    ]);
++    // Vitest fails the file on an unhandled rejection, so reaching the end of
++    // this test at all proves the rejection was observed -- but the log has to
++    // say so too, which the deleted-observation mutation otherwise hides.
++    await vi.waitFor(() =>
++      expect(consoleErrorSpy).toHaveBeenCalledWith(
++        expect.stringContaining("items() rejected"),
++        expect.any(Error),
++      ),
++    );
++    consoleErrorSpy.mockRestore();
++  });
++});
++
++describe("buildPrimaryPluginEntries — unreadable and repeated children", () => {
++  it("reports a repeated child id and keeps the first entry", () => {
++    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
++    const first = { id: "dup", label: "First", run: vi.fn() };
++    registerAction({
++      id: "duplicated",
++      items: () => [first, { id: "dup", label: "Second", run: vi.fn() }],
++    });
++
++    const entry = buildPrimaryPluginEntries({ context: CONTEXT })[0];
++
++    expect(entry.kind).toBe("submenu");
++    if (entry.kind !== "submenu") return;
++    expect(entry.children.map((child) => child.key)).toEqual([
++      `plugin-primary-${PLUGIN_ID}-duplicated-dup`,
++    ]);
++    expect(consoleErrorSpy).toHaveBeenCalledWith(
++      expect.stringContaining("repeated a child id"),
++      "dup",
++    );
++    consoleErrorSpy.mockRestore();
++  });
++
++  it("reports a later defect of a different kind on the same action", () => {
++    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
++    let impl: () => unknown = () => [null];
++    registerAction({ id: "varies", items: () => impl() });
++
++    buildPrimaryPluginEntries({ context: CONTEXT });
++    impl = () => {
++      throw new Error("now it throws");
++    };
++    buildPrimaryPluginEntries({ context: CONTEXT });
++
++    expect(consoleErrorSpy.mock.calls.map((call) => String(call[0]))).toEqual([
++      expect.stringContaining("unusable child"),
++      expect.stringContaining("could not be read"),
++    ]);
++    consoleErrorSpy.mockRestore();
++  });
 +
 +  it("falls back when a child cannot be read at all", () => {
 +    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -1038,55 +1137,70 @@ index 28a6b0188..c302fa516 100644
    it("renders a submenu action as one entry and keeps the rest flat", () => {
      registerAction({ id: "add-tag", items: () => [{ id: "more", label: "More", run: vi.fn() }] });
 diff --git a/apps/web/components/plugins/task-menu-actions.ts b/apps/web/components/plugins/task-menu-actions.ts
-index 33b129c44..c3d1d6f92 100644
+index 33b129c44..b0ba10a18 100644
 --- a/apps/web/components/plugins/task-menu-actions.ts
 +++ b/apps/web/components/plugins/task-menu-actions.ts
-@@ -45,28 +45,105 @@ function pluginMenuIcon(icon?: PluginIcon): ReactNode {
+@@ -45,26 +45,131 @@ function pluginMenuIcon(icon?: PluginIcon): ReactNode {
    return createElement(resolvePluginIcon(icon), { className: "mr-2 h-4 w-4" });
  }
  
 +/**
 + * Plugin bundles are plain JavaScript, so the registration types are a
-+ * promise, not a guarantee. One log per action is enough: `items()` runs on
-+ * every menu build, and a malformed registration fails identically every time.
++ * promise, not a guarantee. One log per action *and kind* is enough: `items()`
++ * runs on every menu build, so a permanently malformed registration would
++ * otherwise log on every render, while a later defect of a different kind on
++ * the same action still reports.
 + */
 +const loggedSubItemDefects = new Set<string>();
 +
 +function logSubItemDefect(
 +  action: PluginTaskMenuActionRegistration,
-+  what: string,
++  kind: string,
 +  detail?: unknown,
 +): void {
-+  const key = `${action.pluginId}:${action.id}`;
++  const key = `${action.pluginId}:${action.id}:${kind}`;
 +  if (loggedSubItemDefects.has(key)) return;
 +  loggedSubItemDefects.add(key);
-+  console.error(`[plugins] task menu action "${key}" ${what}`, detail);
++  console.error(`[plugins] task menu action "${action.pluginId}:${action.id}" ${kind}`, detail);
 +}
 +
-+/** A child the menu can actually render: a non-empty id and label, and a run. */
-+function isUsableSubItem(item: unknown): item is TaskMenuSubItemRegistration {
-+  if (!item || typeof item !== "object") return false;
++/** One child, read once into the plain values the menu actually renders. */
++type SubItemSnapshot = {
++  id: string;
++  label: string;
++  icon?: PluginIcon;
++  disabled?: boolean;
++  run: (context: PluginTaskMenuContext) => void | Promise<void>;
++};
++
++/**
++ * Reads one plugin-supplied child into a snapshot the render can trust: a
++ * non-blank id and label, a callable run, and optional fields of the shapes
++ * the entry builder understands (a curated name, a component, or a ready-made
++ * element -- never an arbitrary object, which the icon resolver would coerce
++ * into a key). Everything the render will read is read here, inside the
++ * catch, so a throwing getter or a Proxy fails this child instead of the
++ * card's render, and nothing is read twice.
++ */
++function readSubItem(item: unknown): SubItemSnapshot | null {
++  if (!item || typeof item !== "object") return null;
 +  try {
-+    const candidate = item as Partial<TaskMenuSubItemRegistration>;
-+    // Read the optional fields too, and check their shapes: a child whose
-+    // `icon` getter throws (a Proxy, an exotic bundle) must fail here -- where
-+    // the action falls back to its flat item -- rather than inside the render
-+    // that would otherwise read it.
-+    const { icon, disabled } = candidate;
-+    return (
-+      typeof candidate.id === "string" &&
-+      candidate.id.length > 0 &&
-+      typeof candidate.label === "string" &&
-+      candidate.label.length > 0 &&
-+      typeof candidate.run === "function" &&
-+      (disabled === undefined || typeof disabled === "boolean") &&
-+      (icon === undefined ||
-+        typeof icon === "string" ||
-+        typeof icon === "function" ||
-+        typeof icon === "object")
-+    );
++    const { id, label, icon, disabled, run } = item as Partial<TaskMenuSubItemRegistration>;
++    if (typeof id !== "string" || id.trim().length === 0) return null;
++    if (typeof label !== "string" || label.trim().length === 0) return null;
++    if (typeof run !== "function") return null;
++    if (disabled !== undefined && typeof disabled !== "boolean") return null;
++    if (
++      icon !== undefined &&
++      typeof icon !== "string" &&
++      typeof icon !== "function" &&
++      !isValidElement(icon)
++    ) {
++      return null;
++    }
++    return { id, label, icon, disabled, run };
 +  } catch {
-+    return false;
++    return null;
 +  }
 +}
 +
@@ -1099,64 +1213,76 @@ index 33b129c44..c3d1d6f92 100644
 + * has no usable submenu — leaving `run` as the entry's behavior.
 + *
 + * That fallback is the whole defensive boundary, because `items()` is a
-+ * plugin callback running inside the host's menu build: a throw, a thenable
-+ * (the contract is synchronous), a non-array result, and an array whose
-+ * entries cannot be rendered (no id/label/run) all degrade to the flat item
-+ * rather than crashing the card's render, producing a trigger nothing can
-+ * open, or handing React children it cannot key. Duplicate ids keep their
-+ * first occurrence, so the host never builds two children with one key.
++ * plugin callback running inside the host's menu build, and every way its
++ * result can be unreadable is the same answer: a throw, a thenable (the
++ * contract is synchronous), a non-array, a result whose entries cannot be
++ * rendered (blank/absent id or label, no callable run, an icon of the wrong
++ * shape), a child that cannot even be read (a throwing getter, a Proxy), and
++ * a repeated id all degrade to the flat item — or drop just that child —
++ * instead of crashing the card's render, producing a trigger nothing can
++ * open, or handing React children it cannot key. The body is one `try` on
++ * purpose: a plugin object is free to throw from any property access,
++ * including the array methods and the `then` lookup this function would
++ * otherwise perform on it.
   */
  function pluginSubItems(
    action: PluginTaskMenuActionRegistration,
    context: PluginTaskMenuContext,
- ): readonly TaskMenuSubItemRegistration[] | null {
+-): readonly TaskMenuSubItemRegistration[] | null {
++): readonly SubItemSnapshot[] | null {
    if (typeof action.items !== "function") return null;
 +
-+  let result: unknown;
    try {
 -    const items = action.items(context);
 -    return Array.isArray(items) && items.length > 0 ? items : null;
-+    result = action.items(context);
++    const result: unknown = action.items(context);
++
++    if (result && typeof (result as { then?: unknown }).then === "function") {
++      logSubItemDefect(action, "items() returned a promise; it must be synchronous");
++      // Observe the rejection so an out-of-contract async callback cannot
++      // surface as an unhandled rejection out of the host's menu build.
++      void Promise.resolve(result).catch((error: unknown) => {
++        logSubItemDefect(action, "items() rejected", error);
++      });
++      return null;
++    }
++
++    if (!Array.isArray(result)) {
++      // null/undefined means "no children"; anything else is out of contract.
++      if (result !== null && result !== undefined) {
++        logSubItemDefect(action, "items() must return an array");
++      }
++      return null;
++    }
++
++    // Array.from copies through the array's own length and indices, so no
++    // array method is looked up on the plugin's object.
++    const list = Array.from(result as readonly unknown[]);
++    const seen = new Set<string>();
++    const usable: SubItemSnapshot[] = [];
++    list.forEach((item) => {
++      const child = readSubItem(item);
++      if (!child) {
++        logSubItemDefect(action, "items() returned an unusable child", item);
++        return;
++      }
++      if (seen.has(child.id)) {
++        logSubItemDefect(action, "items() repeated a child id", child.id);
++        return;
++      }
++      seen.add(child.id);
++      usable.push(child);
++    });
++    return usable.length > 0 ? usable : null;
    } catch (error: unknown) {
 -    console.error(
 -      `[plugins] task menu action "${action.pluginId}:${action.id}" items() threw`,
 -      error,
 -    );
-+    logSubItemDefect(action, "items() threw", error);
-+    return null;
-+  }
-+
-+  if (result && typeof (result as { then?: unknown }).then === "function") {
-+    logSubItemDefect(action, "items() returned a promise; it must be synchronous");
-+    // Observe the rejection so an out-of-contract async callback cannot
-+    // surface as an unhandled rejection out of the host's menu build.
-+    void Promise.resolve(result).catch((error: unknown) => {
-+      logSubItemDefect(action, "items() rejected", error);
-+    });
-+    return null;
-+  }
-+
-+  if (!Array.isArray(result)) {
-+    // null/undefined means "no children"; anything else is out of contract.
-+    if (result !== null && result !== undefined) {
-+      logSubItemDefect(action, "items() must return an array");
-+    }
++    logSubItemDefect(action, "items() could not be read", error);
      return null;
    }
-+  const seen = new Set<string>();
-+  const usable = result.filter((item): item is TaskMenuSubItemRegistration => {
-+    if (!isUsableSubItem(item)) {
-+      logSubItemDefect(action, "items() returned an unusable child", item);
-+      return false;
-+    }
-+    if (seen.has(item.id)) return false;
-+    seen.add(item.id);
-+    return true;
-+  });
-+  return usable.length > 0 ? usable : null;
  }
- 
- /**
 diff --git a/apps/web/components/task-command-choices.test.tsx b/apps/web/components/task-command-choices.test.tsx
 index a7c28c2df..63e857a49 100644
 --- a/apps/web/components/task-command-choices.test.tsx
@@ -1202,7 +1328,7 @@ index aa22d9244..7906f40d4 100644
        disabled: entry.disabled,
        icon: entry.icon,
 diff --git a/docs/plans/plugins/PLUGIN-API.md b/docs/plans/plugins/PLUGIN-API.md
-index fea317306..4139809d2 100644
+index fea317306..c8621f177 100644
 --- a/docs/plans/plugins/PLUGIN-API.md
 +++ b/docs/plans/plugins/PLUGIN-API.md
 @@ -900,6 +900,7 @@ The continuation-renew endpoint from the predecessor transport is not part of
@@ -1225,25 +1351,35 @@ index fea317306..4139809d2 100644
  type PluginIcon = string | React.ComponentType<{ className?: string }>;
  export type PluginNavSection =
    | "main"
-@@ -1431,9 +1437,14 @@ interface TaskMenuActionRegistration {
+@@ -1431,8 +1437,12 @@ interface TaskMenuActionRegistration {
    visible?(context: PluginTaskMenuContext): boolean; // default: always visible
    // Declaring this renders the action as a submenu instead of a flat item:
    // `label` becomes an unselectable trigger and these are its children, in
 -  // order. Synchronous and evaluated once per menu build. Nesting stops at
 -  // this one level.
--  items?(context: PluginTaskMenuContext): readonly TaskMenuSubItemRegistration[];
 +  // order. Must be synchronous, and is evaluated on every menu build (see
 +  // "Kanban card contributions"). Nesting stops at this one level. A child
-+  // needs a non-empty id and label and a run, and ids must be unique: entries
-+  // the host cannot render are dropped, and a result with nothing usable left
-+  // falls back to `run`.
-+  items?(
-+    context: PluginTaskMenuContext,
-+  ): readonly TaskMenuSubItemRegistration[];
++  // needs a non-blank id and label and a run, and ids must be unique within the
++  // action: children the host cannot read or render are dropped (and reported),
++  // duplicate ids keep their first occurrence, and a result with nothing usable
++  // left falls back to `run`.
+   items?(context: PluginTaskMenuContext): readonly TaskMenuSubItemRegistration[];
    // Flat behavior, and the fallback whenever `items` is absent, yields no
    // entries, or throws (caught and logged) -- so a host that predates
-   // `items` still renders a working flat item.
-@@ -1569,9 +1580,15 @@ running) still renders the entry, unlike `visible()`, which filters.
+@@ -1560,18 +1570,28 @@ submenu instead of a flat item: `label` is the trigger (there is nothing to
+ run on the trigger itself), and the returned items are its children in order,
+ each invoked with the same `PluginTaskMenuContext` as the action. `items()` is
+ called synchronously while the host builds that card's or row's menu entries —
+-on every render, for both the dropdown and the context variant, whether or not
+-a menu is open — so it must read cached state rather than fetch, and anything
+-expensive behind it should be memoized on the state it reads. A child's `disabled` (or the
++on every render, with a card's dropdown and context variants sharing one
++evaluation, whether or not a menu is open — so it must read cached state rather
++than fetch, and anything expensive behind it should be memoized on the state it
++reads. A child's `disabled` (or the
+ action's own host-level disabled state, e.g. while a row-local move is
+ running) still renders the entry, unlike `visible()`, which filters.
+ 
  `run` is not a second action for a submenu: it stays the flat behavior for a
  host that predates `items` — such a host ignores the unknown field and renders
  the item it has always rendered — and the fallback whenever `items` yields no
@@ -1252,12 +1388,15 @@ index fea317306..4139809d2 100644
 -child list on a host that supports it, and its existing flat behavior
 +usable children. That boundary is deliberately runtime-defensive, because a
 +bundle is plain JavaScript and these types are not enforced at run time: an
-+empty list, a throw, a promise (the contract is synchronous), a non-array, and
-+an array whose entries lack a non-empty `id` or `label` or a callable `run`
-+all fall back to the flat item instead of crashing the render or producing a
-+trigger nothing can open; unusable children are dropped when others remain,
-+duplicate ids keep their first occurrence, and the defect is logged once per
-+action rather than on every menu build. An action can therefore ship both: a
++empty list, a throw, a promise (the contract is synchronous, and its rejection
++is observed so it cannot escape as an unhandled rejection), a non-array, and an
++array whose entries lack a non-blank `id` or `label` or a callable `run` all
++fall back to the flat item instead of crashing the render or producing a
++trigger nothing can open. Children are read once, inside the same guard, so a
++throwing getter or a Proxy fails that child rather than the card's render;
++unusable children are dropped when others remain, duplicate ids keep their
++first occurrence, and each defect is logged once per action and kind rather
++than on every menu build. An action can therefore ship both: a
 +quick child list on a host that supports it, and its existing flat behavior
  elsewhere. Submenu nesting stops at this one level; a `run` rejection is
  caught and logged, and the menu closes either way.
@@ -1266,10 +1405,10 @@ index fea317306..4139809d2 100644
 2.53.0
 
 
-From 9d8f3b00aac3fc748c1b8b32ad5aa1728b0f1be8 Mon Sep 17 00:00:00 2001
+From fe4ffdd45de0af8e384aab4312bb6b7ddfc66a15 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 5/7] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 5/8] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1361,10 +1500,10 @@ index 79d27dba0..8d5c33a90 100644
 2.53.0
 
 
-From d36f8a61021030be1e8273058593b46e66a9ed11 Mon Sep 17 00:00:00 2001
+From 68672d798fb91e760002595fe57792dd71292e84 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 6/7] docs(plugins): align the task menu icon type with the SDK
+Subject: [PATCH 6/8] docs(plugins): align the task menu icon type with the SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
 typing `icon` as React.ReactNode, while the SDK, the web re-export and the
@@ -1379,7 +1518,7 @@ type is now spelled consistently.
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/docs/plans/plugins/PLUGIN-API.md b/docs/plans/plugins/PLUGIN-API.md
-index 4139809d2..71fbfe81b 100644
+index c8621f177..a5bc78639 100644
 --- a/docs/plans/plugins/PLUGIN-API.md
 +++ b/docs/plans/plugins/PLUGIN-API.md
 @@ -1421,7 +1421,7 @@ interface PluginTaskMenuContext {
@@ -1404,10 +1543,10 @@ index 4139809d2..71fbfe81b 100644
 2.53.0
 
 
-From 0857f718f13effbe56f56040f87f6b58d279bdc9 Mon Sep 17 00:00:00 2001
+From 34ab4f8525a80837692b7842824748ce461dd193 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 7/7] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 7/8] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1499,6 +1638,291 @@ index 26af63b36..0a5d2e256 100644
 +    expect(submenuTaskMenuAction.items).toBeTypeOf("function");
 +  });
 +});
+-- 
+2.53.0
+
+
+From a17cf58c48c24548f018f83555aaeaa73d929b43 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Tue, 22 Sep 2026 22:49:35 +0000
+Subject: [PATCH 8/8] perf(plugins): build a card's plugin menu entries once
+ per render
+
+`useKanbanCardMenus` builds the dropdown and the context variant of the
+same card in one render, and both call `buildKanbanCardMenuEntries` with
+the same processing flags, edit handler and plugin context. Every plugin
+contribution was therefore built twice -- each plugin action's `items()`
+ran twice per card per render for identical children, on a call the API
+tells plugins to keep cheap and memoize.
+
+`buildCardPluginEntries` now builds the two plugin-derived entries
+(group "primary" and the `Edit` entry, which carries group "edit" actions)
+from exactly the inputs they depend on, and `BuildKanbanCardMenuEntriesArgs`
+takes them as an optional `pluginEntries` field: the card hook builds them
+once and passes the same result to both variants, other callers keep the
+internal build. The field is documented as valid only for a call whose
+inputs match the ones the entries were built from.
+---
+ .../kanban-card-menu-items.test.tsx           | 77 +++++++++++++++++++
+ .../web/components/kanban-card-menu-items.tsx | 65 ++++++++++++----
+ apps/web/components/kanban-card-menu.tsx      | 15 ++++
+ 3 files changed, 144 insertions(+), 13 deletions(-)
+
+diff --git a/apps/web/components/kanban-card-menu-items.test.tsx b/apps/web/components/kanban-card-menu-items.test.tsx
+index 334b4823d..fc2d8e06d 100644
+--- a/apps/web/components/kanban-card-menu-items.test.tsx
++++ b/apps/web/components/kanban-card-menu-items.test.tsx
+@@ -5,9 +5,11 @@ import { IconFlag } from "@tabler/icons-react";
+ import type { StoreApi } from "zustand";
+ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@kandev/ui/dropdown-menu";
+ import { pluginRegistry } from "@/lib/plugins/registry";
++import type { PluginTaskMenuContext, TaskMenuSubItemRegistration } from "@/lib/plugins/types";
+ import { StateProvider, useAppStoreApi } from "@/components/state-provider";
+ import type { AppState } from "@/lib/state/store";
+ import {
++  buildCardPluginEntries,
+   buildKanbanCardMenuEntries,
+   KanbanCardDropdownMenuItems,
+   useKanbanCardMoveTargets,
+@@ -22,6 +24,81 @@ const PluginBitbucketIcon = () => null;
+ const WORKFLOW_ONE_NAME = "Workflow 1";
+ 
+ // Regression: React synthetic events bubble through the fiber tree from a Radix portal; without stopPropagation the parent Card's onClick fires instead of the confirm dialog.
++/**
++ * A card builds its dropdown and context variants from one render with the
++ * same plugin inputs, so the plugin contributions must be built once: each
++ * plugin's `items()` is a callback into a foreign bundle, and evaluating it
++ * twice per render for identical children is the API's own documented
++ * anti-pattern ("memoize anything expensive").
++ */
++describe("buildCardPluginEntries", () => {
++  const PLUGIN_ID = "kandev-plugin-tags";
++  const CONTEXT: PluginTaskMenuContext = {
++    workspaceId: "ws-1",
++    taskId: "task-1",
++    taskTitle: "Fix the bug",
++    workflowStepId: "step-1",
++    presentation: "desktop",
++  };
++
++  afterEach(() => {
++    pluginRegistry.unregisterPlugin(PLUGIN_ID);
++  });
++
++  function registerItemsAction(items: () => readonly TaskMenuSubItemRegistration[]) {
++    pluginRegistry.forPlugin(PLUGIN_ID).registerTaskMenuAction({
++      id: "add-tag",
++      label: "Add tag",
++      group: "primary",
++      items,
++      run: vi.fn(),
++    });
++  }
++
++  it("evaluates a plugin action's items() once when both variants share the result", () => {
++    const items = vi.fn(() => [{ id: "more", label: "More tags", run: vi.fn() }]);
++    registerItemsAction(items);
++
++    const pluginEntries = buildCardPluginEntries({ pluginMenuContext: CONTEXT });
++    const dropdown = buildKanbanCardMenuEntries({
++      workflows: [],
++      stepsByWorkflowId: {},
++      pluginMenuContext: CONTEXT,
++      pluginEntries,
++    });
++    const contextMenu = buildKanbanCardMenuEntries({
++      workflows: [],
++      stepsByWorkflowId: {},
++      pluginMenuContext: CONTEXT,
++      pluginEntries,
++    });
++
++    expect(items).toHaveBeenCalledTimes(1);
++    const fromDropdown = dropdown.find(
++      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}-add-tag`,
++    );
++    const fromContext = contextMenu.find(
++      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}-add-tag`,
++    );
++    expect(fromDropdown).toBeDefined();
++    expect(fromContext).toBe(fromDropdown);
++  });
++
++  it("still builds its own contributions when a caller passes none", () => {
++    const items = vi.fn(() => [{ id: "more", label: "More tags", run: vi.fn() }]);
++    registerItemsAction(items);
++
++    const entries = buildKanbanCardMenuEntries({
++      workflows: [],
++      stepsByWorkflowId: {},
++      pluginMenuContext: CONTEXT,
++    });
++
++    expect(items).toHaveBeenCalledTimes(1);
++    expect(entries.some((entry) => entry.key === `plugin-primary-${PLUGIN_ID}-add-tag`)).toBe(true);
++  });
++});
++
+ describe("KanbanCardDropdownMenuItems — click propagation", () => {
+   function renderWithParent(entries: KanbanCardMenuEntry[], parentOnClick: () => void) {
+     return render(
+diff --git a/apps/web/components/kanban-card-menu-items.tsx b/apps/web/components/kanban-card-menu-items.tsx
+index 80ac12e38..4de278393 100644
+--- a/apps/web/components/kanban-card-menu-items.tsx
++++ b/apps/web/components/kanban-card-menu-items.tsx
+@@ -138,6 +138,8 @@ export type BuildKanbanCardMenuEntriesArgs = {
+   onSendToWorkflow?: (workflowId: string, stepId: string) => void;
+   /** Defaults to an empty-id context (no visible plugin actions match it in practice). */
+   pluginMenuContext?: PluginTaskMenuContext;
++  /** Plugin contributions already built from this call's `PluginEntryInputs`. */
++  pluginEntries?: CardPluginEntries;
+   /**
+    * Forces the flat Edit item regardless of registered plugin `edit`-group
+    * actions. Group `edit` is a card-only plugin contract; surfaces outside
+@@ -158,6 +160,43 @@ export function resolvePluginMenuContext(context?: PluginTaskMenuContext): Plugi
+   return context ?? EMPTY_PLUGIN_MENU_CONTEXT;
+ }
+ 
++/** The two plugin-derived pieces of a card menu: group "primary", and `Edit`. */
++export type CardPluginEntries = { primary: KanbanCardMenuEntry[]; edit: KanbanCardMenuEntry };
++
++/** The card-menu inputs that decide those two entries. */
++export type PluginEntryInputs = Pick<
++  BuildKanbanCardMenuEntriesArgs,
++  | "disabled"
++  | "isDeleting"
++  | "isArchiving"
++  | "isDetaching"
++  | "onEdit"
++  | "forceFlatEdit"
++  | "pluginMenuContext"
++>;
++
++/**
++ * Builds both plugin-derived card menu entries. `useKanbanCardMenus` builds one
++ * card's dropdown and context variants in a single render and they share every
++ * input here, so it calls this once and passes the result to both -- otherwise
++ * each plugin action's `items()` runs twice per render for the same children.
++ */
++export function buildCardPluginEntries(args: PluginEntryInputs): CardPluginEntries {
++  const isProcessing = Boolean(
++    args.disabled || args.isDeleting || args.isArchiving || args.isDetaching,
++  );
++  const context = resolvePluginMenuContext(args.pluginMenuContext);
++  return {
++    primary: buildPrimaryPluginEntries({ disabled: isProcessing, context }),
++    edit: buildEditMenuEntry({
++      onEdit: args.onEdit,
++      disabled: isProcessing,
++      context,
++      forceFlat: args.forceFlatEdit,
++    }),
++  };
++}
++
+ function StepBadges({ step, isCurrent }: { step: TaskMoveStep; isCurrent: boolean }) {
+   const { t } = useTranslation();
+   const hasAutoStart = stepHasAutoStart(step);
+@@ -371,6 +410,7 @@ export function buildKanbanCardMenuEntries({
+   onMoveToStep,
+   onSendToWorkflow,
+   pluginMenuContext,
++  pluginEntries,
+   forceFlatEdit,
+ }: BuildKanbanCardMenuEntriesArgs): KanbanCardMenuEntry[] {
+   const visibleWorkflows = workflows.filter((workflow) => !workflow.hidden);
+@@ -396,10 +436,16 @@ export function buildKanbanCardMenuEntries({
+     onSendToWorkflow,
+   });
+ 
+-  const pluginEntries = buildPrimaryPluginEntries({
+-    disabled: isProcessing,
+-    context: resolvePluginMenuContext(pluginMenuContext),
+-  });
++  const pluginInputs = {
++    disabled,
++    isDeleting,
++    isArchiving,
++    isDetaching,
++    onEdit,
++    forceFlatEdit,
++    pluginMenuContext,
++  };
++  const pluginContributions = pluginEntries ?? buildCardPluginEntries(pluginInputs);
+ 
+   const linkEntry = buildLinkSubmenu({
+     disabled: isProcessing,
+@@ -418,14 +464,7 @@ export function buildKanbanCardMenuEntries({
+     { key: "priority", entries: priorityEntry ? [priorityEntry] : [] },
+     {
+       key: "edit",
+-      entries: [
+-        buildEditMenuEntry({
+-          onEdit,
+-          disabled: isProcessing,
+-          context: resolvePluginMenuContext(pluginMenuContext),
+-          forceFlat: forceFlatEdit,
+-        }),
+-      ],
++      entries: [pluginContributions.edit],
+     },
+     {
+       key: "relationships",
+@@ -439,7 +478,7 @@ export function buildKanbanCardMenuEntries({
+         (entry): entry is KanbanCardMenuEntry => entry !== null,
+       ),
+     },
+-    { key: "plugins", entries: pluginEntries },
++    { key: "plugins", entries: pluginContributions.primary },
+     {
+       key: "remove",
+       entries: [
+diff --git a/apps/web/components/kanban-card-menu.tsx b/apps/web/components/kanban-card-menu.tsx
+index 8b8ab15e2..48ce473a6 100644
+--- a/apps/web/components/kanban-card-menu.tsx
++++ b/apps/web/components/kanban-card-menu.tsx
+@@ -2,6 +2,7 @@
+ 
+ import { useRef } from "react";
+ import {
++  buildCardPluginEntries,
+   buildKanbanCardMenuEntries,
+   useKanbanCardMoveTargets,
+ } from "@/components/kanban-card-menu-items";
+@@ -219,6 +220,18 @@ export function useKanbanCardMenus({
+   };
+ 
+   const pluginMenuContext = buildPluginMenuContext(task, workspaceId, presentation);
++  // Both variants below share every input the plugin entries depend on -- the
++  // processing flags, the edit handler and the context -- so build them once:
++  // passing one result to both keeps each plugin action's items() to a single
++  // evaluation per card per render (see buildCardPluginEntries).
++  const pluginEntries = buildCardPluginEntries({
++    disabled: menuBase.disabled,
++    isDeleting: menuBase.isDeleting,
++    isArchiving: menuBase.isArchiving,
++    isDetaching: menuBase.isDetaching,
++    onEdit: menuBase.onEdit,
++    pluginMenuContext,
++  });
+ 
+   return {
+     ...dialogs,
+@@ -227,12 +240,14 @@ export function useKanbanCardMenus({
+       onMoveToStep: moveMenu.moveToStepFromDropdown,
+       onSendToWorkflow: moveMenu.sendTaskToWorkflow,
+       pluginMenuContext,
++      pluginEntries,
+     }),
+     contextMenuEntries: buildKanbanCardMenuEntries({
+       ...menuBase,
+       onMoveToStep: moveMenu.moveSelectedToStep,
+       onSendToWorkflow: moveMenu.sendSelectionToWorkflow,
+       pluginMenuContext,
++      pluginEntries,
+     }),
+     isDetaching,
+     detachAnchorRef,
 -- 
 2.53.0
 
