@@ -1028,8 +1028,9 @@
    * since replaced. Without this, an entry for a card whose menu is not built
    * again would keep that whole-workspace payload reachable for the life of
    * the page -- one refresh every 30 seconds is enough for the cache to pin a
-   * generation that nothing else references. Entries derived from the current
-   * payload stay, so a board that keeps re-deriving costs nothing here.
+   * generation that nothing else references. Entries this store's current
+   * payload still backs stay (another workspace's refresh drops them early,
+   * which costs one recompute and is the safe direction).
    */
   function pruneQuickTagCaches(store) {
     Object.keys(quickTagCaches).forEach(function (key) {
@@ -1735,6 +1736,26 @@
   }
 
   /**
+   * The quick list's run callbacks are created by these factories rather than
+   * inline. A closure created directly inside quickTagItems would share that
+   * call's variable context -- which holds the workspace-wide application map
+   * it just scanned -- and the host keeps these callbacks alive inside the
+   * menu entries it holds, so the payload the memo released would stay
+   * reachable through them. Each factory closes over its own arguments only.
+   */
+  function quickTagRun(host, workspaceId, taskId, tagId) {
+    return function () {
+      return applyQuickTag(host, workspaceId, taskId, tagId);
+    };
+  }
+
+  function moreTagsRun(host, workspaceId, taskId) {
+    return function () {
+      return openTagPicker(host, taskId, workspaceId);
+    };
+  }
+
+  /**
    * The children of the card menu's "Add tag..." entry on a host that renders
    * plugin submenus: "More tags..." first (the picker modal), then the tags
    * this workspace applied most recently, newest first, capped at
@@ -1765,9 +1786,7 @@
     var more = {
       id: "more",
       label: "More tags\u2026",
-      run: function () {
-        return openTagPicker(host, context.taskId, workspaceId);
-      },
+      run: moreTagsRun(host, workspaceId, context.taskId),
     };
 
     var store = getSharedTagStore(workspaceId);
@@ -1821,9 +1840,7 @@
         return {
           id: tagId,
           label: candidate.tag.name,
-          run: function () {
-            return applyQuickTag(host, workspaceId, context.taskId, tagId);
-          },
+          run: quickTagRun(host, workspaceId, context.taskId, tagId),
         };
       });
 
