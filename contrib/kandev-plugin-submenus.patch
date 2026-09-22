@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/12] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/13] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/12] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/13] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/12] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/13] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/12] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/13] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/12] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/13] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/12] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/13] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/12] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/13] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/12] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/13] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/12] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/13] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/12] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/13] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/12] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/13] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/12] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/13] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2888,6 +2888,369 @@ index 8d5c33a90..c1d6a5849 100644
  
  ```js
  registry.registerTaskMenuAction({
+-- 
+2.53.0
+
+
+From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Tue, 22 Sep 2026 23:58:04 +0000
+Subject: [PATCH 13/13] fix(plugins): recognise component-object icons and
+ escape child keys
+
+Two defects the PR owner found by rebuilding against this patch, both real:
+
+- a valid child icon was dropped. `isUsableIconShape` accepted only
+  `undefined`, a string or `typeof icon === "function"`, but React wraps
+  `forwardRef`, `memo` and `lazy` components in an object carrying a
+  `$$typeof` tag -- and `@tabler/icons-react`, the set PLUGIN_ICONS maps
+  names onto and the icons plugins copy, builds every icon that way. A new
+  `isPluginIconComponent` guard in `lib/plugins/icons.ts` recognises those
+  shapes for both the child filter and `lookupPluginIcon`, so the plugin's
+  own component renders instead of the puzzle glyph, and the icon-shape
+  test now covers a `forwardRef` child.
+- the `::child` palette suffix added in commit 10 did not make ids unique:
+  a child id can still concatenate with a different action's key (`quick` +
+  `pick-x` versus `quick-pick` + `x`). The child's menu key now delimits
+  and escapes its id (`${parentKey}#${encodeURIComponent(item.id)}`), which
+  an id cannot forge because a raw `#` in it is percent-encoded, and the
+  palette passes that key through again as the command id. Four child-key
+  assertions moved to the new format, plus a test for the colliding pair.
+
+Also folds in what the owner reported as already-fixed on their branch
+(`icon: null` accepted, the test helper's `items` typing): both landed here
+in commits 12 and 11, so applying this patch supersedes those two commits
+rather than duplicating them.
+---
+ .../plugins/task-menu-actions.test.tsx        | 64 +++++++++++++++----
+ .../components/plugins/task-menu-actions.ts   | 10 ++-
+ .../components/task-command-choices.test.tsx  | 33 +++++-----
+ apps/web/components/task-command-choices.tsx  |  5 +-
+ apps/web/lib/plugins/icons.test.ts            | 22 ++++++-
+ apps/web/lib/plugins/icons.ts                 | 29 +++++++--
+ 6 files changed, 122 insertions(+), 41 deletions(-)
+
+diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
+index 46c87cbb5..f364ba261 100644
+--- a/apps/web/components/plugins/task-menu-actions.test.tsx
++++ b/apps/web/components/plugins/task-menu-actions.test.tsx
+@@ -1,5 +1,5 @@
+ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+-import { createElement } from "react";
++import { createElement, forwardRef } from "react";
+ import { afterEach, describe, expect, it, vi } from "vitest";
+ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@kandev/ui/dropdown-menu";
+ import { pluginRegistry } from "@/lib/plugins/registry";
+@@ -110,8 +110,8 @@ describe("buildPrimaryPluginEntries — action declaring items", () => {
+     expect(entry.key).toBe(ACTION_KEY);
+     expect(entry.label).toBe(ACTION_LABEL);
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `${ACTION_KEY}-more`,
+-      `${ACTION_KEY}-blocked`,
++      `${ACTION_KEY}#more`,
++      `${ACTION_KEY}#blocked`,
+     ]);
+     // Every child is a selectable item, not a separator or a nested submenu.
+     expect(
+@@ -310,7 +310,7 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-duplicated-dup`,
++      `plugin-primary-${PLUGIN_ID}-duplicated#dup`,
+     ]);
+     expect(consoleErrorSpy).toHaveBeenCalledWith(
+       expect.stringContaining("repeated a child id"),
+@@ -354,15 +354,58 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-icon-shapes-null-icon`,
+-      `plugin-primary-${PLUGIN_ID}-icon-shapes-no-icon`,
++      `plugin-primary-${PLUGIN_ID}-icon-shapes#null-icon`,
++      `plugin-primary-${PLUGIN_ID}-icon-shapes#no-icon`,
+     ]);
+     // The two unusable shapes are one defect of the same kind: one report.
+     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+     consoleErrorSpy.mockRestore();
+   });
++});
++
++describe("buildPrimaryPluginEntries — component icons and child keys", () => {
++  it("keeps a child whose icon is a forwardRef component", () => {
++    // @tabler/icons-react builds every icon with forwardRef, so a component
++    // icon is an object carrying a $$typeof tag, not a function.
++    const ForwardIcon = forwardRef<SVGSVGElement>((props, ref) =>
++      createElement("svg", { ref, ...props }),
++    );
++    registerAction({
++      id: "component-icon",
++      items: () => [{ id: "child", label: "Child", icon: ForwardIcon as never, run: vi.fn() }],
++    });
++
++    const entry = buildPrimaryPluginEntries({ context: CONTEXT })[0];
++
++    expect(entry.kind).toBe("submenu");
++    if (entry.kind !== "submenu") return;
++    const child = entry.children[0];
++    expect(child.key).toBe(`plugin-primary-${PLUGIN_ID}-component-icon#child`);
++    expect(child.kind).toBe("item");
++    if (child.kind !== "item") return;
++    expect((child.icon as { type?: unknown } | undefined)?.type).toBe(ForwardIcon);
++  });
++
++  it("keeps two actions' child keys distinct when their ids concatenate alike", () => {
++    // Without the escaping, action `quick`'s child `pick-x` and action
++    // `quick-pick`'s child `x` both spell `plugin-primary-<id>-quick-pick-x`.
++    // A menu key is also the command id the palette uses, so a repeat makes
++    // selection and filtering ambiguous.
++    registerAction({ id: "quick", items: () => [{ id: "pick-x", label: "Pick X", run: vi.fn() }] });
++    registerAction({ id: "quick-pick", items: () => [{ id: "x", label: "X", run: vi.fn() }] });
++
++    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).flatMap((entry) =>
++      entry.kind === "submenu" ? entry.children.map((child) => child.key) : [],
++    );
+ 
+-  it("falls back when a child cannot be read at all", () => {
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}-quick#pick-x`,
++      `plugin-primary-${PLUGIN_ID}-quick-pick#x`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length);
++  });
++
++  it("ignores a label the palette cannot render", () => {
+     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+     const hostile = { id: "x", label: "X", run: vi.fn() };
+     Object.defineProperty(hostile, "icon", {
+@@ -400,13 +443,12 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+     const entry = entries[0];
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-partly-broken-gone`,
+-      `plugin-primary-${PLUGIN_ID}-partly-broken-ok`,
++      `plugin-primary-${PLUGIN_ID}-partly-broken#gone`,
++      `plugin-primary-${PLUGIN_ID}-partly-broken#ok`,
+     ]);
+     consoleErrorSpy.mockRestore();
+   });
+ });
+-
+ describe("buildPrimaryPluginEntries — unusable registrations and array-likes", () => {
+   // A registration is plugin-authored data as much as its `items()` result: an
+   // action whose own fields cannot be read degrades to no entry instead of
+@@ -474,7 +516,7 @@ describe("buildPrimaryPluginEntries — unusable registrations and array-likes",
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-hostile-array-child`,
++      `plugin-primary-${PLUGIN_ID}-hostile-array#child`,
+     ]);
+   });
+ 
+diff --git a/apps/web/components/plugins/task-menu-actions.ts b/apps/web/components/plugins/task-menu-actions.ts
+index fb02554fc..91b4f7539 100644
+--- a/apps/web/components/plugins/task-menu-actions.ts
++++ b/apps/web/components/plugins/task-menu-actions.ts
+@@ -1,6 +1,6 @@
+ import { createElement, isValidElement, type ReactNode } from "react";
+ import { pluginRegistry } from "@/lib/plugins/registry";
+-import { resolvePluginIcon } from "@/lib/plugins/icons";
++import { isPluginIconComponent, resolvePluginIcon } from "@/lib/plugins/icons";
+ import type { PluginTaskMenuActionRegistration } from "@/lib/plugins/registry-registration-types";
+ import type {
+   PluginIcon,
+@@ -108,7 +108,7 @@ function readActionIcon(action: PluginTaskMenuActionRegistration): ReactNode {
+  */
+ function isUsableIconShape(icon: unknown): boolean {
+   return (
+-    icon == null || typeof icon === "string" || typeof icon === "function" || isValidElement(icon)
++    icon == null || typeof icon === "string" || isPluginIconComponent(icon) || isValidElement(icon)
+   );
+ }
+ 
+@@ -268,7 +268,11 @@ export function pluginMenuEntry(
+       disabled,
+       children: items.map((item) => ({
+         kind: "item",
+-        key: `${key}-${item.id}`,
++        // The child's id is escaped and delimited: a plugin can pick ids that
++        // concatenate exactly like another action's key plus its own id, and a
++        // menu key -- and the command id the palette derives from it -- has to
++        // stay unique.
++        key: `${key}#${encodeURIComponent(item.id)}`,
+         icon: pluginMenuIcon(item.icon),
+         label: item.label,
+         disabled: disabled || item.disabled,
+diff --git a/apps/web/components/task-command-choices.test.tsx b/apps/web/components/task-command-choices.test.tsx
+index 96f225160..2c771e17d 100644
+--- a/apps/web/components/task-command-choices.test.tsx
++++ b/apps/web/components/task-command-choices.test.tsx
+@@ -69,8 +69,8 @@ describe("pluginCommandChoices", () => {
+     };
+ 
+     expect(pluginCommandChoices(entry, "Tasks").map((command) => command.id)).toEqual([
+-      "plugin-primary-tags-add-tag-more::child",
+-      "Urgent::child",
++      "plugin-primary-tags-add-tag-more",
++      "Urgent",
+     ]);
+     const [more, urgent] = pluginCommandChoices(entry, "Tasks");
+     more.action?.();
+@@ -79,31 +79,28 @@ describe("pluginCommandChoices", () => {
+     expect(more.context).toBe("Add tag...");
+   });
+ 
+-  it("keeps a child's command id distinct from a sibling action's key", () => {
+-    // A child key is its parent's key plus its own id, joined by a dash, so a
+-    // plugin can name an action such that its key equals another action's child
+-    // key. A palette row's id is also cmdk's value, where a duplicate makes
+-    // filtering and selection ambiguous.
+-    const flat = {
++  it("passes a child's menu key through as its command id", () => {
++    // Uniqueness is the key builder's job -- a child's id is escaped after a
++    // `#` there -- so the palette must not invent a second id scheme. A suffix
++    // here did not fix the collision it was added for: two children of
++    // different actions could still spell one id (`quick` + `pick-x` versus
++    // `quick-pick` + `x`), which the escaped key rules out at the source.
++    const child = {
+       kind: "item" as const,
+-      key: "plugin-primary-p-quick-pick",
+-      label: "Quick pick",
++      key: "plugin-primary-p-quick#pick-x",
++      label: "Pick X",
+       onSelect: vi.fn(),
+     };
+     const submenu = {
+       kind: "submenu" as const,
+       key: "plugin-primary-p-quick",
+       label: "Quick",
+-      children: [{ ...flat, label: "Pick" }],
++      children: [child],
+     };
+ 
+-    const ids = [
+-      ...pluginCommandChoices(submenu, "Tasks"),
+-      ...pluginCommandChoices(flat, "Tasks"),
+-    ].map((command) => command.id);
+-
+-    expect(ids).toEqual(["plugin-primary-p-quick-pick::child", "plugin-primary-p-quick-pick"]);
+-    expect(new Set(ids).size).toBe(ids.length);
++    expect(pluginCommandChoices(submenu, "Tasks").map((command) => command.id)).toEqual([
++      "plugin-primary-p-quick#pick-x",
++    ]);
+   });
+ 
+   it("ignores a label the palette cannot render", () => {
+diff --git a/apps/web/components/task-command-choices.tsx b/apps/web/components/task-command-choices.tsx
+index 0d4933367..8e58208ce 100644
+--- a/apps/web/components/task-command-choices.tsx
++++ b/apps/web/components/task-command-choices.tsx
+@@ -47,11 +47,10 @@ export function pluginCommandChoices(
+   entry: KanbanCardMenuEntry,
+   group: string,
+   parentLabel?: string,
+-  parentKey?: string,
+ ): CommandItem[] {
+   if (entry.kind === "submenu") {
+     const label = typeof entry.label === "string" ? entry.label : parentLabel;
+-    return entry.children.flatMap((child) => pluginCommandChoices(child, group, label, entry.key));
++    return entry.children.flatMap((child) => pluginCommandChoices(child, group, label));
+   }
+   if (entry.kind !== "item" || typeof entry.label !== "string") return [];
+   return [
+@@ -60,7 +59,7 @@ export function pluginCommandChoices(
+       // dash, so it can spell a *different* action's key; a palette row's id is
+       // also cmdk's value, where duplicates make filtering and selection
+       // ambiguous. The suffix is therefore unforgeable by an action id.
+-      id: parentKey ? `${entry.key}::child` : entry.key,
++      id: entry.key,
+       label: entry.label,
+       group,
+       // A child's own label ("Blocked") is meaningless on its own in a palette
+diff --git a/apps/web/lib/plugins/icons.test.ts b/apps/web/lib/plugins/icons.test.ts
+index 2557e0a72..3cb86f313 100644
+--- a/apps/web/lib/plugins/icons.test.ts
++++ b/apps/web/lib/plugins/icons.test.ts
+@@ -1,6 +1,7 @@
++import { createElement, forwardRef, memo } from "react";
+ import { describe, expect, it } from "vitest";
+ import { IconPuzzle, IconTicket } from "@tabler/icons-react";
+-import { lookupPluginIcon, resolvePluginIcon } from "./icons";
++import { isPluginIconComponent, lookupPluginIcon, resolvePluginIcon } from "./icons";
+ 
+ describe("plugin icons", () => {
+   it("looks up a known icon name", () => {
+@@ -20,6 +21,25 @@ describe("plugin icons", () => {
+     expect(resolvePluginIcon(PluginIcon as unknown as string)).toBe(PluginIcon);
+   });
+ 
++  it("recognises a component object, not only a function", () => {
++    // @tabler/icons-react builds every icon with forwardRef, so the components
++    // plugins copy are objects carrying a $$typeof tag.
++    const ForwardIcon = forwardRef<SVGSVGElement>((props, ref) =>
++      createElement("svg", { ref, ...props }),
++    );
++    const MemoIcon = memo(() => createElement("svg"));
++
++    expect(isPluginIconComponent(ForwardIcon)).toBe(true);
++    expect(isPluginIconComponent(MemoIcon)).toBe(true);
++    expect(isPluginIconComponent(() => null)).toBe(true);
++    expect(lookupPluginIcon(ForwardIcon as unknown as string)).toBe(ForwardIcon);
++    expect(resolvePluginIcon(ForwardIcon as unknown as string)).toBe(ForwardIcon);
++    expect(lookupPluginIcon(MemoIcon as unknown as string)).toBe(MemoIcon);
++    expect(isPluginIconComponent({})).toBe(false);
++    expect(isPluginIconComponent(null)).toBe(false);
++    expect(isPluginIconComponent("ticket")).toBe(false);
++  });
++
+   it("returns undefined from lookupPluginIcon for unknown or missing names", () => {
+     expect(lookupPluginIcon("not-an-icon")).toBeUndefined();
+     expect(lookupPluginIcon(undefined)).toBeUndefined();
+diff --git a/apps/web/lib/plugins/icons.ts b/apps/web/lib/plugins/icons.ts
+index acaa9883b..8b82f0aaa 100644
+--- a/apps/web/lib/plugins/icons.ts
++++ b/apps/web/lib/plugins/icons.ts
+@@ -54,15 +54,34 @@ export const PLUGIN_ICONS: Record<string, TablerIcon> = {
+   users: IconUsers,
+ };
+ 
++/**
++ * Whether a registration's icon is a plugin-owned component. React wraps
++ * `forwardRef`, `memo` and `lazy` components in an object carrying a `$$typeof`
++ * tag rather than a plain function, and `@tabler/icons-react` -- the set
++ * `PLUGIN_ICONS` maps names onto, and the icons plugins copy -- builds every
++ * icon that way, so a guard that only tests `typeof icon === "function"`
++ * rejects the most common component shape a bundle can send.
++ */
++export function isPluginIconComponent(icon: unknown): icon is PluginIconComponent {
++  if (typeof icon === "function") return true;
++  if (!icon || typeof icon !== "object") return false;
++  const tag = (icon as { $$typeof?: unknown }).$$typeof;
++  return (
++    tag === Symbol.for("react.forward_ref") ||
++    tag === Symbol.for("react.memo") ||
++    tag === Symbol.for("react.lazy")
++  );
++}
++
+ /**
+  * Strict lookup: the named icon, or undefined when the name is unknown/missing.
+- * Only a string names a curated icon: any other value (a stray object or a
+- * ready-made element from a JavaScript bundle) has no name to look up, and
+- * indexing the map with it would coerce it to a key -- which a hostile
+- * `toString` turns into a throw out of whatever is rendering.
++ * Only a string names a curated icon: any other value (a ready-made element, a
++ * stray object from a JavaScript bundle) has no name to look up, and indexing
++ * the map with it would coerce it to a key -- which a hostile `toString` turns
++ * into a throw out of whatever is rendering.
+  */
+ export function lookupPluginIcon(icon?: PluginIcon): ResolvedPluginIcon | undefined {
+-  if (typeof icon === "function") return icon;
++  if (isPluginIconComponent(icon)) return icon;
+   return typeof icon === "string" ? PLUGIN_ICONS[icon] : undefined;
+ }
+ 
 -- 
 2.53.0
 
