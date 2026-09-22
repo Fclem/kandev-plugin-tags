@@ -138,8 +138,10 @@ that card. The target must be a task in this workspace.
   picked, and removing a tag stays on the card's chips and in the modal.
   Recency is workspace-wide (an agent's application counts too) and comes
   from the application timestamps the shared read already returns; the plugin
-  stores no extra history. On a host predating plugin submenus the item stays
-  flat and opens the modal, exactly as before.
+  stores no extra history, and the menu build itself never fetches -- it reads
+  the store the chips keep warm, so right after load the submenu may offer
+  only **More tags...** until that first read lands. On a host predating
+  plugin submenus the item stays flat and opens the modal, exactly as before.
 - **Filter and manage from one place**: an icon-lg filter-icon button in
   the app's top bar opens the Tags box, a 380px-wide dropdown listing your
   whole tag catalog as grid-aligned rows (color swatch, name pill, delete
@@ -174,10 +176,13 @@ that card. The target must be a task in this workspace.
 - **Remove a tag from a card**: click the `x` on a chip on the card itself,
   or click it off in the Add tag modal.
 - Tag names are trimmed, capped at 22 characters, deduplicated
-  case-insensitively within your catalog; each card is capped at 12 applied
-  tags. Deleting a tag leaves any card that still carried it (a rare race
-  with the cascade removal above) showing no chip for it at all, rather
-  than a chip labeled with the raw id.
+  case-insensitively within your catalog. The 12-applied-tags cap covers the
+  plugin's own private per-card list (the pre-0.8 layer, and what an older
+  host stores): the shared catalog layer has no per-card cap, so on a shared
+  host neither the Add tag modal nor the quick pick refuses a 13th tag.
+  Deleting a tag leaves any card that still carried it (a rare race with the
+  cascade removal above) showing no chip for it at all, rather than a chip
+  labeled with the raw id.
 
 ## Install
 

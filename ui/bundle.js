@@ -810,6 +810,13 @@
   var sharedTagStores = {};
   var sharedTagRefreshTimer = null;
   var sharedTagLoadErrorLogged = false;
+  // "workspaceId|taskId" -> { shared, private, items }: quickTagItems'
+  // derived card-menu list, keyed by the two store values it was derived
+  // from. The host builds a card's menu entries on every render (both the
+  // dropdown and the context variant, whether or not a menu is open), so the
+  // scan plus sort behind this list would otherwise run several times per
+  // card per board render. Dropped with the stores (see resetSharedStores).
+  var quickTagCaches = {};
   // Incremented whenever initialize()/destroy() drops the shared stores. A
   // request cannot be cancelled once invokeAction has started, so its later
   // settlement must prove it still belongs to the live store generation
@@ -1225,6 +1232,7 @@
     sharedTagStores = {};
     sharedTagRefreshTimer = null;
     sharedTagLoadErrorLogged = false;
+    quickTagCaches = {};
   }
 
   // ---------------------------------------------------------------------
@@ -1678,16 +1686,43 @@
   }
 
   /**
+   * The last time a tag was applied anywhere in the workspace, in
+   * milliseconds, from one application's `updatedAt`.
+   *
+   * The writer is Go's `time.RFC3339Nano`, which trims trailing zeros and may
+   * carry more than three fractional digits, so the raw strings are not
+   * comparable: as strings `...T00:00:00Z` sorts *after* `...T00:00:00.5Z`,
+   * which is backwards. Truncating the fraction to milliseconds makes every
+   * value a spec-shaped date string for `Date.parse` (engines are only
+   * required to accept three fractional digits) that is still far finer than
+   * the ordering a five-entry list needs; equal milliseconds fall back to
+   * catalog order. Null for a missing or unparseable value, which the caller
+   * treats as "never used".
+   */
+  function lastUsedMillis(at) {
+    if (typeof at !== "string" || at === "") return null;
+    var parsed = Date.parse(at.replace(/\.(\d{3})\d+/, ".$1"));
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  /**
    * The children of the card menu's "Add tag..." entry on a host that renders
    * plugin submenus: "More tags..." first (the picker modal), then the tags
    * this workspace applied most recently, newest first, capped at
    * QUICK_TAG_LIMIT.
    *
-   * Recency needs no bookkeeping of its own: the shared store already holds
-   * every task's applications, each carrying the timestamp of its last add by
-   * an agent or a person, so "latest used" is a scan of data the chip rows
-   * have already loaded. A tag nothing has ever been applied with has no place
+   * Everything here is derived from state the chip rows already keep warm:
+   * the shared store holds every task's applications with the timestamp of
+   * each last add by an agent or a person, so "latest used" is a scan of data
+   * already in memory. A tag nothing has ever been applied with has no place
    * in a most-recently-used list and is left to the picker.
+   *
+   * This runs on the host's menu-build path -- at least twice per card per
+   * board render, menus open or closed -- so it must stay synchronous and
+   * read-only (the host's own `items` contract), and its result is cached
+   * until one of the two stores it reads replaces its value (see
+   * quickTagCaches). A store that has not loaded yet therefore yields just
+   * the picker entry: this path never fetches.
    *
    * Only tags the card does not already carry are offered, so every child
    * adds exactly the tag it names: removal stays where it has always been, on
@@ -1705,18 +1740,21 @@
     if (!workspaceId || !sharedTagsEnabled(host, workspaceId)) return [more];
 
     var store = getSharedTagStore(workspaceId);
-    var tasks = store.value.tasks || {};
-    // Warm the store for a surface with no chip row of its own (the task
-    // preview/detail menu). Coalesced with any fetch already in flight, it
-    // does not populate this list -- the menu is being built right now -- but
-    // it makes the next open carry real tags instead of "More tags..." alone.
-    if (!store.hasValue && !store.inFlight) fetchSharedTags(host, workspaceId);
+    var taskStore = getTaskTagStore(context.taskId);
+    var cacheKey = workspaceId + "|" + context.taskId;
+    var cached = quickTagCaches[cacheKey];
+    // Both stores replace their value wholesale on every fetch, so identity
+    // is a sound invalidation key for everything derived below.
+    if (cached && cached.shared === store.value && cached.private === taskStore.value) {
+      return cached.items;
+    }
 
+    var tasks = store.value.tasks || {};
     var applied = {};
     (tasks[context.taskId] || []).forEach(function (entry) {
       if (entry && typeof entry.id === "string") applied[entry.id] = true;
     });
-    (getTaskTagStore(context.taskId).value || []).forEach(function (id) {
+    (taskStore.value || []).forEach(function (id) {
       applied[id] = true;
     });
 
@@ -1724,22 +1762,27 @@
     Object.keys(tasks).forEach(function (taskId) {
       (tasks[taskId] || []).forEach(function (entry) {
         if (!entry || typeof entry.id !== "string") return;
-        var at = typeof entry.updatedAt === "string" ? entry.updatedAt : "";
-        // RFC3339 strings from the same writer compare in order; the
-        // sub-second tie this could misjudge is not a tie worth another pass.
-        if (!lastUsedAt[entry.id] || at > lastUsedAt[entry.id]) lastUsedAt[entry.id] = at;
+        var at = lastUsedMillis(entry.updatedAt);
+        if (at === null) return;
+        if (lastUsedAt[entry.id] === undefined || at > lastUsedAt[entry.id]) lastUsedAt[entry.id] = at;
       });
     });
 
+    // A catalog payload carrying the same id twice would otherwise produce
+    // two children with one host React key -- the server's own ids are 80
+    // random bits, so this is defence in depth, not a reachable state.
+    var seen = {};
     var quick = (store.value.tags || [])
       .filter(function (tag) {
-        return !applied[tag.id] && lastUsedAt[tag.id];
+        if (applied[tag.id] || lastUsedAt[tag.id] === undefined || seen[tag.id]) return false;
+        seen[tag.id] = true;
+        return true;
       })
       .map(function (tag, order) {
         return { tag: tag, at: lastUsedAt[tag.id], order: order };
       })
       .sort(function (a, b) {
-        return a.at === b.at ? a.order - b.order : a.at < b.at ? 1 : -1;
+        return a.at === b.at ? a.order - b.order : b.at - a.at;
       })
       .slice(0, QUICK_TAG_LIMIT)
       .map(function (candidate) {
@@ -1753,7 +1796,9 @@
         };
       });
 
-    return [more].concat(quick);
+    var items = [more].concat(quick);
+    quickTagCaches[cacheKey] = { shared: store.value, private: taskStore.value, items: items };
+    return items;
   }
 
   /**

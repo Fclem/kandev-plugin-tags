@@ -3900,76 +3900,99 @@ function makeQuickPickHost(payload, overrides) {
   return { host, calls };
 }
 
-/**
- * The first call warms an empty shared store and offers only the picker; the
- * second is what a user opening the menu against a loaded store sees.
- */
-async function openQuickList(quickTagItems, host, context) {
-  const warming = quickTagItems(host, context);
+/** Loads the shared store the chip rows keep warm; the quick list never fetches itself. */
+async function primeSharedStore(plugin, host) {
+  await plugin.__internal.fetchSharedTags(host, "ws-1");
   await flush();
-  return { warming, items: quickTagItems(host, context) };
 }
 
-/** One catalog tag plus the peer application that gives it a recency. */
-function sharedTagFixture(index) {
-  const id = "tag-" + index;
-  const name = "Tag " + index;
+/** One catalog tag plus the peer application that gives it a last-used time. */
+function appliedTag(id, name, updatedAt) {
   const color = "#3b82f6";
   return {
     tag: { id, name, color },
-    application: { id, name, color, updatedAt: "2026-01-01T00:00:0" + index + "Z" },
+    application: { id, name, color, updatedAt },
   };
 }
 
-test("card menu quick list puts More tags first and the workspace's latest-used tags after it", async () => {
+test("card menu quick list puts More tags first, newest first, and hides never-applied tags", async () => {
   const plugin = loadBundle();
   const { quickTagItems } = plugin.__internal;
-  const fixture = [0, 1, 2, 3].map(sharedTagFixture);
+  const entries = [
+    // An exact second: time.RFC3339Nano trims trailing zeros, so this string
+    // is shorter than "…:00.5Z" yet earlier, which raw string order gets wrong.
+    appliedTag("tag-a", "Blocked", "2026-01-01T00:00:00Z"),
+    appliedTag("tag-b", "Needs review", "2026-01-01T00:00:00.5Z"),
+    appliedTag("tag-c", "Customer", "2026-01-01T00:00:03Z"),
+    appliedTag("tag-d", "Urgent", "2026-01-01T00:00:01Z"),
+    // Nanosecond precision, which Date.parse only accepts once truncated.
+    appliedTag("tag-f", "Long fraction", "2026-01-01T00:00:04.123456789Z"),
+  ];
   const payload = {
-    tags: fixture.map((entry) => entry.tag),
-    tasks: {
-      "task-1": [fixture[2].application],
-      "task-peer": fixture.map((entry) => entry.application),
-    },
+    tags: entries.map((entry) => entry.tag),
+    tasks: { "task-peer": entries.map((entry) => entry.application) },
   };
-  const { host } = makeQuickPickHost(payload);
-  const context = { taskId: "task-2", workspaceId: "ws-1" };
+  const { host, calls } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+  calls.length = 0;
 
-  const { warming, items } = await openQuickList(quickTagItems, host, context);
+  const items = quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
 
-  assert.equal(warming.length, 1, "an unloaded store offers only the picker until the warm read lands");
   assertStructural.deepEqual(
     items.map((item) => [item.id, item.label]),
     [
       ["more", "More tags\u2026"],
-      ["tag-3", "Tag 3"],
-      ["tag-2", "Tag 2"],
-      ["tag-1", "Tag 1"],
-      ["tag-0", "Tag 0"],
+      ["tag-f", "Long fraction"],
+      ["tag-c", "Customer"],
+      ["tag-d", "Urgent"],
+      ["tag-b", "Needs review"],
+      ["tag-a", "Blocked"],
     ],
   );
+  assertStructural.deepEqual(calls, [], "the list is derived from cached state, never fetched");
+});
+
+test("card menu quick list never offers a tag nothing has applied", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems } = plugin.__internal;
+  const newer = appliedTag("tag-new", "Newer", "2026-01-01T00:00:02Z");
+  const older = appliedTag("tag-old", "Older", "2026-01-01T00:00:01Z");
+  // The never-applied tag sits first in the catalog and the list stays under
+  // QUICK_TAG_LIMIT, so catalog order is what a missing last-used check would
+  // fall back to here -- the cap cannot hide it.
+  const payload = {
+    tags: [{ id: "tag-never", name: "Never used", color: "#6b7280" }, newer.tag, older.tag],
+    tasks: { "task-peer": [newer.application, older.application] },
+  };
+  const { host } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+
+  const items = quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
+
+  assertStructural.deepEqual(items.map((item) => item.id), ["more", "tag-new", "tag-old"]);
 });
 
 test("card menu quick list caps the list and skips tags this card already carries", async () => {
   const plugin = loadBundle();
   const { quickTagItems, QUICK_TAG_LIMIT, setTaskTagCache } = plugin.__internal;
-  const fixture = [0, 1, 2, 3, 4, 5, 6, 7].map(sharedTagFixture);
+  const entries = [];
+  for (let i = 0; i < QUICK_TAG_LIMIT + 3; i += 1) {
+    entries.push(appliedTag("tag-" + i, "Tag " + i, "2026-01-01T00:00:0" + i + "Z"));
+  }
   const payload = {
-    tags: fixture.map((entry) => entry.tag),
+    tags: entries.map((entry) => entry.tag),
     tasks: {
-      // The peer applications carry the recency; this card carries tag-1
-      // through the shared layer and tag-6 through the legacy private one.
-      "task-1": [fixture[1].application],
-      "task-peer": fixture.map((entry) => entry.application),
+      // This card carries tag-1 through the shared layer and tag-6 through the
+      // legacy private one; the peer applications carry the recency.
+      "task-1": [entries[1].application],
+      "task-peer": entries.map((entry) => entry.application),
     },
   };
   const { host } = makeQuickPickHost(payload);
-  const context = { taskId: "task-1", workspaceId: "ws-1" };
-  quickTagItems(host, context);
-  await flush();
+  await primeSharedStore(plugin, host);
   setTaskTagCache("task-1", ["tag-6"]);
 
-  const items = quickTagItems(host, context);
+  const items = quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
 
   assert.equal(
     items.length,
@@ -3979,30 +4002,99 @@ test("card menu quick list caps the list and skips tags this card already carrie
   assertStructural.deepEqual(
     items.map((item) => item.id),
     ["more", "tag-7", "tag-5", "tag-4", "tag-3", "tag-2"],
-    "newest first, minus the tag this card already shows and capped at the limit",
+    "newest first, minus the tags this card already shows and capped at the limit",
   );
+});
+
+test("card menu quick list offers a catalog entry with a duplicated id once", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems } = plugin.__internal;
+  const duplicate = appliedTag("tag-dup", "Duplicate", "2026-01-01T00:00:01Z");
+  const other = appliedTag("tag-other", "Other", "2026-01-01T00:00:02Z");
+  const payload = {
+    tags: [duplicate.tag, duplicate.tag, other.tag],
+    tasks: { "task-peer": [duplicate.application, other.application] },
+  };
+  const { host } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+
+  const items = quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
+
+  assertStructural.deepEqual(
+    items.map((item) => item.id),
+    ["more", "tag-other", "tag-dup"],
+    "one child per id, so the host never builds two identical keys",
+  );
+});
+
+test("card menu quick list is derived once per store value and rebuilt when the store changes", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems } = plugin.__internal;
+  const older = appliedTag("tag-old", "Older", "2026-01-01T00:00:01Z");
+  const newer = appliedTag("tag-new", "Newer", "2026-01-01T00:00:02Z");
+  const payload = {
+    tags: [older.tag, newer.tag],
+    tasks: { "task-peer": [older.application, newer.application] },
+  };
+  const { host } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+  const context = { taskId: "task-1", workspaceId: "ws-1" };
+
+  const first = quickTagItems(host, context);
+  assertStructural.deepEqual(first.map((item) => item.id), ["more", "tag-new", "tag-old"]);
+  assert.equal(
+    quickTagItems(host, context),
+    first,
+    "unchanged stores reuse the derived list instead of rescanning on every render",
+  );
+
+  payload.tasks["task-peer"][0].updatedAt = "2026-01-01T00:00:09Z";
+  await primeSharedStore(plugin, host);
+
+  const rebuilt = quickTagItems(host, context);
+  assert.notEqual(rebuilt, first, "a refreshed store rebuilds the list");
+  assertStructural.deepEqual(rebuilt.map((item) => item.id), ["more", "tag-old", "tag-new"]);
+});
+
+test("card menu quick list never fetches from the menu-build path", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems } = plugin.__internal;
+  const payload = {
+    tags: [appliedTag("tag-a", "Blocked", "2026-01-01T00:00:01Z").tag],
+    tasks: {},
+  };
+  const { host, calls } = makeQuickPickHost(payload);
+  const context = { taskId: "task-1", workspaceId: "ws-1" };
+
+  assertStructural.deepEqual(
+    quickTagItems(host, context).map((item) => item.id),
+    ["more"],
+  );
+  await flush();
+  assertStructural.deepEqual(
+    quickTagItems(host, context).map((item) => item.id),
+    ["more"],
+    "a store nothing has loaded yet offers the picker entry, not a fetch",
+  );
+  assertStructural.deepEqual(calls, [], "the menu-build path issues no action call at all");
 });
 
 test("card menu quick pick applies a tag through the shared action and refreshes the store", async () => {
   const plugin = loadBundle();
   const { quickTagItems } = plugin.__internal;
-  const fixture = sharedTagFixture(0);
-  const payload = {
-    tags: [fixture.tag],
-    tasks: { "task-peer": [fixture.application] },
-  };
+  const entry = appliedTag("tag-a", "Blocked", "2026-01-01T00:00:01Z");
+  const payload = { tags: [entry.tag], tasks: { "task-peer": [entry.application] } };
   const { host, calls } = makeQuickPickHost(payload);
-  const context = { taskId: "task-1", workspaceId: "ws-1" };
-  await openQuickList(quickTagItems, host, context);
+  await primeSharedStore(plugin, host);
   calls.length = 0;
 
-  const items = quickTagItems(host, context);
+  const items = quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
   await items[1].run();
   await flush();
 
   assertStructural.deepEqual(calls[0], {
     key: "task-tag-add",
-    input: { taskId: "task-1", body: { tagId: "tag-0" } },
+    input: { taskId: "task-1", body: { tagId: "tag-a" } },
   });
   assert.equal(calls[1].key, "shared-tags", "a successful add refreshes the store the chips read");
 });
@@ -4011,11 +4103,8 @@ test("card menu quick pick reports a failed add through the host toast", async (
   const plugin = loadBundle();
   const { quickTagItems } = plugin.__internal;
   const toastMessages = [];
-  const fixture = sharedTagFixture(0);
-  const payload = {
-    tags: [fixture.tag],
-    tasks: { "task-peer": [fixture.application] },
-  };
+  const entry = appliedTag("tag-a", "Blocked", "2026-01-01T00:00:01Z");
+  const payload = { tags: [entry.tag], tasks: { "task-peer": [entry.application] } };
   const { host } = makeQuickPickHost(payload, {
     toast: {
       error(message) {
@@ -4028,10 +4117,9 @@ test("card menu quick pick reports a failed add through the host toast", async (
     void input;
     return Promise.reject(apiError(500, "add failed"));
   };
-  const context = { taskId: "task-1", workspaceId: "ws-1" };
-  await openQuickList(quickTagItems, host, context);
+  await primeSharedStore(plugin, host);
 
-  await quickTagItems(host, context)[1].run();
+  await quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" })[1].run();
   await flush();
 
   assertStructural.deepEqual(toastMessages, ["Could not add tag. Please try again."]);
@@ -4061,11 +4149,8 @@ test("card menu quick list is only the picker entry on a host without shared tag
 
 test("the registered Add tag action carries the quick list and keeps run as its flat fallback", async () => {
   const plugin = loadBundle();
-  const fixture = sharedTagFixture(0);
-  const payload = {
-    tags: [fixture.tag],
-    tasks: { "task-peer": [fixture.application] },
-  };
+  const entry = appliedTag("tag-a", "Blocked", "2026-01-01T00:00:01Z");
+  const payload = { tags: [entry.tag], tasks: { "task-peer": [entry.application] } };
   let registration = null;
   let modalOptions = null;
   const { host } = makeQuickPickHost(payload, {
@@ -4084,18 +4169,15 @@ test("the registered Add tag action carries the quick list and keeps run as its 
     },
     host,
   );
+  await primeSharedStore(plugin, host);
 
   assert.equal(registration.group, "primary");
   assert.equal(typeof registration.items, "function", "a submenu-capable host reads items()");
-
-  const context = { taskId: "task-1", workspaceId: "ws-1" };
-  registration.items(context);
-  await flush();
   assertStructural.deepEqual(
-    registration.items(context).map((item) => item.label),
-    ["More tags\u2026", "Tag 0"],
+    registration.items({ taskId: "task-1", workspaceId: "ws-1" }).map((item) => item.label),
+    ["More tags\u2026", "Blocked"],
   );
 
-  await registration.run(context);
+  await registration.run({ taskId: "task-1", workspaceId: "ws-1" });
   assert.equal(modalOptions.size, "md", "a host that predates items still gets the picker from run()");
 });
