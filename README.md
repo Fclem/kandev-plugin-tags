@@ -276,7 +276,7 @@ The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
 in the monorepo). That host change is not upstream yet -- it is open as
 kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, eight commits against `kdlbs/kandev`:
+`contrib/kandev-plugin-submenus.patch`, ten commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -302,6 +302,12 @@ kdlbs/kandev PR #3874 -- and ships here as
 8. `perf(plugins): build a card's plugin menu entries once per render` -- the
    card builds its dropdown and context variants from one render, so each
    plugin action's `items()` is evaluated once instead of twice.
+9. `fix(plugins): keep a submenu trigger label in the command palette` -- the
+   sidebar command builder stamped its own context over the trigger label a
+   flattened child carries, so the label never reached a palette row.
+10. `fix(plugins): keep flattened palette command ids unique` -- a child's id
+    could spell a different action's key, which collides in the palette where
+    the id is also the search value.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch
