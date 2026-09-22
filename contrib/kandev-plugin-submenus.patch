@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 1/5] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 1/7] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 2/5] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 2/7] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 3/5] fix(plugins): keep a plugin submenu reachable in command
+Subject: [PATCH 3/7] fix(plugins): keep a plugin submenu reachable in command
  lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From dcb29b5eb598cab6872c4eb2e100e81ef153acd3 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 4/5] fix(plugins): validate submenu children at the host
+Subject: [PATCH 4/7] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1269,7 +1269,7 @@ index fea317306..4139809d2 100644
 From 9d8f3b00aac3fc748c1b8b32ad5aa1728b0f1be8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 5/5] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 5/7] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1357,6 +1357,148 @@ index 79d27dba0..8d5c33a90 100644
  `registerTaskFilter` adds a client-side, multi-select filter section to the
  kanban board's display dropdown, next to the built-in Workflow and Repository
  sections. The plugin supplies its own options (including any "untagged"-style
+-- 
+2.53.0
+
+
+From d36f8a61021030be1e8273058593b46e66a9ed11 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Tue, 22 Sep 2026 22:38:57 +0000
+Subject: [PATCH 6/7] docs(plugins): align the task menu icon type with the SDK
+
+The two task menu interface blocks were the only ones in PLUGIN-API.md still
+typing `icon` as React.ReactNode, while the SDK, the web re-export and the
+other eight icon fields in the same file use PluginIcon. A plugin author
+following the block could not compile it against the SDK. The menu-only
+tolerance for a ready-made element is stated in the PluginIcon note, so the
+type is now spelled consistently.
+
+(cherry picked from commit 5a3f7c9303c68a3fe92e3f843105ebf9918ad8d0)
+---
+ docs/plans/plugins/PLUGIN-API.md | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/docs/plans/plugins/PLUGIN-API.md b/docs/plans/plugins/PLUGIN-API.md
+index 4139809d2..71fbfe81b 100644
+--- a/docs/plans/plugins/PLUGIN-API.md
++++ b/docs/plans/plugins/PLUGIN-API.md
+@@ -1421,7 +1421,7 @@ interface PluginTaskMenuContext {
+ interface TaskMenuSubItemRegistration {
+   id: string; // unique within the action; contributes to the entry's React key
+   label: string;
+-  icon?: React.ReactNode;
++  icon?: PluginIcon;
+   disabled?: boolean;
+   run(context: PluginTaskMenuContext): void | Promise<void>; // a rejection is caught and logged
+ }
+@@ -1429,7 +1429,7 @@ interface TaskMenuSubItemRegistration {
+ interface TaskMenuActionRegistration {
+   id: string;
+   label: string;
+-  icon?: React.ReactNode;
++  icon?: PluginIcon;
+   // "edit" nests the item in the card's Edit submenu; "primary" renders it
+   // as a flat, top-level item after the "Move to"/"Send to workflow"
+   // submenus and before the "Archive"/"Delete" items.
+-- 
+2.53.0
+
+
+From 0857f718f13effbe56f56040f87f6b58d279bdc9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Tue, 22 Sep 2026 22:39:21 +0000
+Subject: [PATCH 7/7] test(plugins): pin the submenu registration in the SDK
+ contract
+
+sdk-contract.test.ts is where a new public SDK type is pinned against the
+host's runtime-facing types, and it said nothing about the task menu
+registrations this change adds. It now asserts both registrations are
+canonical in both directions, that the public action type carries the
+optional `items` field, and that a registration predating submenus still
+compiles unchanged while the submenu shape is expressible. Removing `items`
+from the SDK fails these assertions, so they are not tautological.
+
+(cherry picked from commit d34744f371e74b5a39441cbb8b7c36bf2063e1a3)
+---
+ apps/web/lib/plugins/sdk-contract.test.ts | 47 +++++++++++++++++++++++
+ 1 file changed, 47 insertions(+)
+
+diff --git a/apps/web/lib/plugins/sdk-contract.test.ts b/apps/web/lib/plugins/sdk-contract.test.ts
+index 26af63b36..0a5d2e256 100644
+--- a/apps/web/lib/plugins/sdk-contract.test.ts
++++ b/apps/web/lib/plugins/sdk-contract.test.ts
+@@ -19,6 +19,8 @@ import type {
+   RepositoryProviderRegistration as PublicRepositoryProviderRegistration,
+   ReviewSummary as PublicReviewSummary,
+   ReviewTaskAssociation as PublicReviewTaskAssociation,
++  TaskMenuActionRegistration as PublicTaskMenuActionRegistration,
++  TaskMenuSubItemRegistration as PublicTaskMenuSubItemRegistration,
+   TaskPanelRegistration as PublicTaskPanelRegistration,
+ } from "@kandev/plugin-sdk";
+ import type {
+@@ -39,6 +41,8 @@ import type {
+   RepositoryProviderRegistration,
+   ReviewItemSummary,
+   ReviewTaskAssociation,
++  TaskMenuActionRegistration,
++  TaskMenuSubItemRegistration,
+   TaskPanelRegistration,
+ } from "./types";
+ 
+@@ -51,6 +55,24 @@ type SameType<Left, Right> = Left extends Right ? (Right extends Left ? true : f
+ type HasUseLayoutEffect = "useLayoutEffect" extends keyof PublicHostReact ? true : false;
+ type HasPromptMentionText = "PromptMentionText" extends keyof PublicPluginUIApi ? true : false;
+ type HasConversationApi = "conversation" extends keyof PublicPluginHostApi ? true : false;
++type HasTaskMenuItems = "items" extends keyof PublicTaskMenuActionRegistration ? true : false;
++
++// A registration that predates submenus must keep compiling unchanged, and the
++// submenu shape must be expressible: that pair is the whole compatibility story
++// of the optional `items` field.
++const flatOnlyTaskMenuAction: PublicTaskMenuActionRegistration = {
++  id: "legacy",
++  label: "Legacy",
++  group: "primary",
++  run: () => {},
++};
++const submenuTaskMenuAction: PublicTaskMenuActionRegistration = {
++  id: "submenu",
++  label: "Submenu",
++  group: "primary",
++  items: () => [{ id: "child", label: "Child", run: () => {} }],
++  run: () => {},
++};
+ 
+ const legacyTaskPanelRegistration: PublicTaskPanelRegistration = {
+   id: "legacy",
+@@ -157,3 +179,28 @@ describe("public plugin SDK", () => {
+     expect(publicRegistryContract).toBeTypeOf("function");
+   });
+ });
++
++// The registrations this feature adds to the public SDK. A plugin author
++// imports these names verbatim, and the host's runtime-facing types must stay
++// identical to them, including the optional `items` field.
++describe("task menu submenu SDK contract", () => {
++  it("is canonical in both directions", () => {
++    const taskMenuActionRegistrationIsCanonical: SameType<
++      TaskMenuActionRegistration,
++      PublicTaskMenuActionRegistration
++    > = true;
++    const taskMenuSubItemRegistrationIsCanonical: SameType<
++      TaskMenuSubItemRegistration,
++      PublicTaskMenuSubItemRegistration
++    > = true;
++    const publicTaskMenuActionHasItems: HasTaskMenuItems = true;
++    expect(taskMenuActionRegistrationIsCanonical).toBe(true);
++    expect(taskMenuSubItemRegistrationIsCanonical).toBe(true);
++    expect(publicTaskMenuActionHasItems).toBe(true);
++    // A registration that predates submenus still compiles unchanged, and the
++    // submenu shape is expressible: that pair is the compatibility story of the
++    // optional `items` field.
++    expect(flatOnlyTaskMenuAction.run).toBeTypeOf("function");
++    expect(submenuTaskMenuAction.items).toBeTypeOf("function");
++  });
++});
 -- 
 2.53.0
 

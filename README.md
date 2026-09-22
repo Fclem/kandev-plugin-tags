@@ -276,7 +276,7 @@ The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
 in the monorepo). That host change is not upstream yet -- it is open as
 kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, five commits against `kdlbs/kandev`:
+`contrib/kandev-plugin-submenus.patch`, seven commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -293,6 +293,12 @@ kdlbs/kandev PR #3874 -- and ships here as
 5. `docs(plugins): document submenu items in the authoring guide` -- the
    authoring guide and `apps/web/AGENTS.md` stop calling group `primary`
    flat-only.
+6. `docs(plugins): align the task menu icon type with the SDK` -- the two
+   task-menu interface blocks name `PluginIcon`, like every other icon field
+   in the document.
+7. `test(plugins): pin the submenu registration in the SDK contract` -- the
+   public/host SDK contract test covers the two registrations this adds,
+   including that a flat-only registration still compiles.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch
