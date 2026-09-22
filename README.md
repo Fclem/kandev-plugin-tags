@@ -276,7 +276,7 @@ The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
 in the monorepo). That host change is not upstream yet -- it is open as
 kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, ten commits against `kdlbs/kandev`:
+`contrib/kandev-plugin-submenus.patch`, eleven commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -308,6 +308,10 @@ kdlbs/kandev PR #3874 -- and ships here as
 10. `fix(plugins): keep flattened palette command ids unique` -- a child's id
     could spell a different action's key, which collides in the palette where
     the id is also the search value.
+11. `fix(plugins): guard the registration's own label and icon` -- an action
+    whose label was not a usable string is omitted instead of handing React an
+    object, a non-string icon is no longer coerced into a name lookup on any
+    surface, and the new tests typecheck again.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch

@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/10] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/11] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/10] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/11] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/10] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/11] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/10] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/11] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/10] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/11] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/10] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/11] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/10] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/11] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/10] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/11] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/10] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/11] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/10] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/11] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2089,6 +2089,453 @@ index 7906f40d4..0d4933367 100644
        label: entry.label,
        group,
        // A child's own label ("Blocked") is meaningless on its own in a palette
+-- 
+2.53.0
+
+
+From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Tue, 22 Sep 2026 23:28:44 +0000
+Subject: [PATCH 11/11] fix(plugins): guard the registration's own label and
+ icon
+
+Round 3 filed four findings; this is the host-side delta.
+
+- [BLOCKER] the new test file did not typecheck: the helper's `items` field
+  was typed as the contract, so the two deliberately out-of-contract
+  registrations (a promise, an unknown-returning wrapper) failed
+  `tsc --noEmit`, which is a required apps/web CI step. The field is widened
+  to `=> unknown` with one cast at the registration, matching what a
+  JavaScript bundle can actually send.
+- the guard stopped at `items()`: an action whose own `label` was an object or
+  blank still reached React as a child, and an object `icon` was coerced into
+  a key by the icon map, so an object with a throwing `toString` took the
+  card's render down. `readActionLabel` omits such an action (reported, one
+  entry fewer rather than a crash) and `readActionIcon` reads the icon once
+  and falls back to no icon; `lookupPluginIcon` now maps only strings to
+  names, which covers every icon surface (nav, panels, drawers, integrations)
+  and makes an object icon the fallback glyph instead of a key lookup.
+- tests: blank/object label (omitted, reported), an object icon that refuses
+  coercion (entry kept, no throw), every processing flag disabling the plugin
+  entries on both the prebuilt and internal paths, a hostile Array subclass
+  proving the result is copied rather than called, and the two new child
+  filter cases (blank label, non-boolean `disabled`).
+
+Residuals documented rather than fixed, with reasons in the code: a throwing
+*getter* on the registration object escapes before this module sees it (the
+registry spreads the raw object into its own copy -- that boundary is the
+registry's, for every registration type), and the once-per-action-and-kind log
+set is never cleared, so the same defect kind recurring after a
+re-registration stays silent for the page's life (clearing it would need a
+registry hook that imports back into this module).
+---
+ .../components/kanban-card-edit-submenu.tsx   |   4 +-
+ .../plugins/task-menu-actions.test.tsx        | 121 +++++++++++++++++-
+ .../components/plugins/task-menu-actions.ts   |  83 +++++++++---
+ apps/web/lib/plugins/icons.test.ts            |  17 +++
+ apps/web/lib/plugins/icons.ts                 |  10 +-
+ 5 files changed, 209 insertions(+), 26 deletions(-)
+
+diff --git a/apps/web/components/kanban-card-edit-submenu.tsx b/apps/web/components/kanban-card-edit-submenu.tsx
+index 49c220598..34fabdb30 100644
+--- a/apps/web/components/kanban-card-edit-submenu.tsx
++++ b/apps/web/components/kanban-card-edit-submenu.tsx
+@@ -59,7 +59,9 @@ export function buildEditMenuEntry({
+         disabled: disabled || !onEdit,
+         onSelect: onEdit,
+       },
+-      ...pluginActions.map((action) => pluginMenuEntry(action, context, disabled)),
++      ...pluginActions
++        .map((action) => pluginMenuEntry(action, context, disabled))
++        .filter((entry): entry is KanbanCardMenuEntry => entry !== null),
+     ],
+   };
+ }
+diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
+index e92bad55a..2b1038775 100644
+--- a/apps/web/components/plugins/task-menu-actions.test.tsx
++++ b/apps/web/components/plugins/task-menu-actions.test.tsx
+@@ -8,7 +8,11 @@ import type {
+   PluginTaskMenuContext,
+   TaskMenuSubItemRegistration,
+ } from "@/lib/plugins/types";
+-import { KanbanCardDropdownMenuItems, type KanbanCardMenuEntry } from "../kanban-card-menu-items";
++import {
++  buildCardPluginEntries,
++  KanbanCardDropdownMenuItems,
++  type KanbanCardMenuEntry,
++} from "../kanban-card-menu-items";
+ import { buildPrimaryPluginEntries } from "./task-menu-actions";
+ 
+ const PLUGIN_ID = "kandev-plugin-tags";
+@@ -31,7 +35,10 @@ function registerAction(
+     group?: "edit" | "primary";
+     icon?: PluginIcon;
+     run?: (context: PluginTaskMenuContext) => void | Promise<void>;
+-    items?: (context: PluginTaskMenuContext) => readonly TaskMenuSubItemRegistration[];
++    // Deliberately wider than the contract: this helper also registers results
++    // the types forbid (a promise, an unknown-returning wrapper), which is what
++    // a JavaScript bundle can actually send.
++    items?: (context: PluginTaskMenuContext) => unknown;
+   } = {},
+ ) {
+   const run = overrides.run ?? vi.fn();
+@@ -41,7 +48,13 @@ function registerAction(
+     group: overrides.group ?? "primary",
+     run,
+     ...(overrides.icon ? { icon: overrides.icon } : {}),
+-    ...(overrides.items ? { items: overrides.items } : {}),
++    ...(overrides.items
++      ? {
++          items: overrides.items as (
++            context: PluginTaskMenuContext,
++          ) => readonly TaskMenuSubItemRegistration[],
++        }
++      : {}),
+   });
+   return run;
+ }
+@@ -212,6 +225,11 @@ describe("buildPrimaryPluginEntries — malformed plugin results", () => {
+     ["a null child", () => [null]],
+     ["a child without an id or label", () => [{ run: vi.fn() }]],
+     ["a child with a blank id", () => [{ id: "   ", label: "X", run: vi.fn() }]],
++    ["a child with a blank label", () => [{ id: "x", label: "  ", run: vi.fn() }]],
++    [
++      "a child with a non-boolean disabled",
++      () => [{ id: "x", label: "X", run: vi.fn(), disabled: 1 }],
++    ],
+     ["a child without a run", () => [{ id: "x", label: "X" }]],
+     ["a child with an unusable icon", () => [{ id: "x", label: "X", icon: {}, run: vi.fn() }]],
+     ["a non-array result", () => "nope"],
+@@ -239,7 +257,7 @@ describe("buildPrimaryPluginEntries — malformed plugin results", () => {
+   for (const [index, [label, items]] of fallbackCases.entries()) {
+     it(`falls back to the flat item and reports ${label} once`, async () => {
+       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+-      registerAction({ id: `broken-${index}`, items: items as never });
++      registerAction({ id: `broken-${index}`, items });
+ 
+       expect(buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.kind)).toEqual([
+         "item",
+@@ -364,6 +382,101 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+   });
+ });
+ 
++describe("buildPrimaryPluginEntries — unusable registrations and array-likes", () => {
++  // A registration is plugin-authored data as much as its `items()` result: an
++  // action whose own fields cannot be read degrades to no entry instead of
++  // handing React an object child, and a result whose array methods are
++  // hostile must be copied rather than called.
++  it("omits an action whose label is not a usable string, and logs once", () => {
++    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
++    // Registered around the helper, which defaults a missing label.
++    const broken = (id: string, label: unknown) => ({ id, label, group: "primary", run: vi.fn() });
++    pluginRegistry
++      .forPlugin(PLUGIN_ID)
++      .registerTaskMenuAction(broken("blank-label", "   ") as never);
++    pluginRegistry
++      .forPlugin(PLUGIN_ID)
++      .registerTaskMenuAction(broken("object-label", { toString: () => "not a label" }) as never);
++
++    const entries = buildPrimaryPluginEntries({ context: CONTEXT });
++
++    expect(entries).toEqual([]);
++    // One report per action: the two registrations fail the same way but are
++    // different action ids.
++    expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
++    consoleErrorSpy.mockRestore();
++  });
++
++  it("renders an action whose icon is an object that refuses to be coerced", () => {
++    // The icon resolver looks a name up in its curated map, so a non-string
++    // icon is no name at all: the entry keeps rendering with the fallback glyph
++    // instead of throwing out of the card's render while the map coerces the
++    // object to a key.
++    const icon = {
++      toString() {
++        throw new Error("key coercion");
++      },
++    };
++    registerAction({
++      id: "object-icon",
++      label: "Object icon",
++      icon: icon as unknown as PluginIcon,
++    });
++
++    const entries = buildPrimaryPluginEntries({ context: CONTEXT });
++
++    expect(entries.map((entry) => entry.kind)).toEqual(["item"]);
++    const entry = entries[0];
++    if (entry.kind !== "item") return;
++    expect(entry.label).toBe("Object icon");
++    expect(entry.icon).toBeDefined();
++  });
++
++  it("copies a hostile array-like instead of calling its methods", () => {
++    class HostileArray extends Array<unknown> {
++      forEach(): void {
++        throw new Error("forEach is not yours to call");
++      }
++      map(): never {
++        throw new Error("map is not yours to call");
++      }
++    }
++    const items = HostileArray.from([{ id: "child", label: "Child", run: vi.fn() }]);
++    registerAction({ id: "hostile-array", items: () => items });
++
++    const entry = buildPrimaryPluginEntries({ context: CONTEXT })[0];
++
++    expect(entry.kind).toBe("submenu");
++    if (entry.kind !== "submenu") return;
++    expect(entry.children.map((child) => child.key)).toEqual([
++      `plugin-primary-${PLUGIN_ID}-hostile-array-child`,
++    ]);
++  });
++
++  it("treats every processing flag as disabling the plugin entries, on both paths", () => {
++    registerAction({ id: "flagged", items: () => [{ id: "child", label: "Child", run: vi.fn() }] });
++
++    for (const flag of ["disabled", "isDeleting", "isArchiving", "isDetaching"] as const) {
++      const inputs = { pluginMenuContext: CONTEXT, [flag]: true };
++      const prebuilt = buildCardPluginEntries(inputs).primary.find(
++        (entry) => entry.key === `plugin-primary-${PLUGIN_ID}-flagged`,
++      );
++      const internal = buildPrimaryPluginEntries({ context: CONTEXT, disabled: true })[0];
++      // Both paths must agree, and a submenu's children inherit the state.
++      const prebuiltSubmenu = prebuilt?.kind === "submenu" ? prebuilt : undefined;
++      const internalSubmenu = internal.kind === "submenu" ? internal : undefined;
++      expect(prebuiltSubmenu?.disabled, flag).toBe(true);
++      expect(internalSubmenu?.disabled, flag).toBe(true);
++      expect(
++        prebuiltSubmenu?.children.map((child) =>
++          child.kind === "item" ? child.disabled : undefined,
++        ),
++        flag,
++      ).toEqual([true]);
++    }
++  });
++});
++
+ describe("buildPrimaryPluginEntries — mixed registrations", () => {
+   it("renders a submenu action as one entry and keeps the rest flat", () => {
+     registerAction({ id: "add-tag", items: () => [{ id: "more", label: "More", run: vi.fn() }] });
+diff --git a/apps/web/components/plugins/task-menu-actions.ts b/apps/web/components/plugins/task-menu-actions.ts
+index b0ba10a18..a13b2da25 100644
+--- a/apps/web/components/plugins/task-menu-actions.ts
++++ b/apps/web/components/plugins/task-menu-actions.ts
+@@ -50,21 +50,56 @@ function pluginMenuIcon(icon?: PluginIcon): ReactNode {
+  * promise, not a guarantee. One log per action *and kind* is enough: `items()`
+  * runs on every menu build, so a permanently malformed registration would
+  * otherwise log on every render, while a later defect of a different kind on
+- * the same action still reports.
++ * the same action still reports. The set is never cleared, so the same kind
++ * recurring on the same action after a re-registration stays silent for the
++ * life of the page -- accepted: this module has no registration-lifecycle hook
++ * (the registry that would clear it imports this one, so wiring the call back
++ * would be a cycle), and a lost diagnostic line is cheaper than that coupling.
++ * Reading the registration itself is only guarded here, not at the registry,
++ * which spreads the raw object into its own copy before this module sees it.
++ * A *value* of the wrong shape on the registration itself is handled here (see
++ * readActionLabel/readActionIcon), but a throwing *getter* on the registration
++ * object is not: the registry spreads that object into its own copy
++ * (getTaskMenuActions) before this module ever sees it, so that boundary is the
++ * registry's to harden, for every registration type rather than this one.
+  */
+-const loggedSubItemDefects = new Set<string>();
++const loggedMenuDefects = new Set<string>();
+ 
+-function logSubItemDefect(
++function logMenuDefect(
+   action: PluginTaskMenuActionRegistration,
+   kind: string,
+   detail?: unknown,
+ ): void {
+   const key = `${action.pluginId}:${action.id}:${kind}`;
+-  if (loggedSubItemDefects.has(key)) return;
+-  loggedSubItemDefects.add(key);
++  if (loggedMenuDefects.has(key)) return;
++  loggedMenuDefects.add(key);
+   console.error(`[plugins] task menu action "${action.pluginId}:${action.id}" ${kind}`, detail);
+ }
+ 
++/**
++ * The action's own label, read once and only when it is a non-blank string.
++ * A registration is plugin-authored data too, so a missing or hostile accessor
++ * omits the entry (and reports it) rather than handing React an object child.
++ */
++function readActionLabel(action: PluginTaskMenuActionRegistration): string | null {
++  try {
++    const { label } = action;
++    return typeof label === "string" && label.trim().length > 0 ? label : null;
++  } catch {
++    return null;
++  }
++}
++
++/** The action's own icon, read once; an unreadable one simply means no icon. */
++function readActionIcon(action: PluginTaskMenuActionRegistration): ReactNode {
++  try {
++    return pluginMenuIcon(action.icon);
++  } catch {
++    logMenuDefect(action, "registration icon could not be read");
++    return undefined;
++  }
++}
++
+ /** One child, read once into the plain values the menu actually renders. */
+ type SubItemSnapshot = {
+   id: string;
+@@ -132,11 +167,11 @@ function pluginSubItems(
+     const result: unknown = action.items(context);
+ 
+     if (result && typeof (result as { then?: unknown }).then === "function") {
+-      logSubItemDefect(action, "items() returned a promise; it must be synchronous");
++      logMenuDefect(action, "items() returned a promise; it must be synchronous");
+       // Observe the rejection so an out-of-contract async callback cannot
+       // surface as an unhandled rejection out of the host's menu build.
+       void Promise.resolve(result).catch((error: unknown) => {
+-        logSubItemDefect(action, "items() rejected", error);
++        logMenuDefect(action, "items() rejected", error);
+       });
+       return null;
+     }
+@@ -144,7 +179,7 @@ function pluginSubItems(
+     if (!Array.isArray(result)) {
+       // null/undefined means "no children"; anything else is out of contract.
+       if (result !== null && result !== undefined) {
+-        logSubItemDefect(action, "items() must return an array");
++        logMenuDefect(action, "items() must return an array");
+       }
+       return null;
+     }
+@@ -157,11 +192,11 @@ function pluginSubItems(
+     list.forEach((item) => {
+       const child = readSubItem(item);
+       if (!child) {
+-        logSubItemDefect(action, "items() returned an unusable child", item);
++        logMenuDefect(action, "items() returned an unusable child", item);
+         return;
+       }
+       if (seen.has(child.id)) {
+-        logSubItemDefect(action, "items() repeated a child id", child.id);
++        logMenuDefect(action, "items() repeated a child id", child.id);
+         return;
+       }
+       seen.add(child.id);
+@@ -169,7 +204,7 @@ function pluginSubItems(
+     });
+     return usable.length > 0 ? usable : null;
+   } catch (error: unknown) {
+-    logSubItemDefect(action, "items() could not be read", error);
++    logMenuDefect(action, "items() could not be read", error);
+     return null;
+   }
+ }
+@@ -209,7 +244,13 @@ export function pluginMenuEntry(
+   context: PluginTaskMenuContext,
+   disabled?: boolean,
+   keyPrefix = "plugin-edit",
+-): KanbanCardMenuEntry {
++): KanbanCardMenuEntry | null {
++  const label = readActionLabel(action);
++  if (label === null) {
++    logMenuDefect(action, "registration has no usable label");
++    return null;
++  }
++  const icon = readActionIcon(action);
+   const key = `${keyPrefix}-${action.pluginId}-${action.id}`;
+   const items = pluginSubItems(action, context);
+ 
+@@ -217,8 +258,8 @@ export function pluginMenuEntry(
+     return {
+       kind: "submenu",
+       key,
+-      icon: pluginMenuIcon(action.icon),
+-      label: action.label,
++      icon,
++      label,
+       disabled,
+       children: items.map((item) => ({
+         kind: "item",
+@@ -231,11 +272,15 @@ export function pluginMenuEntry(
+     };
+   }
+ 
++  if (typeof action.run !== "function") {
++    logMenuDefect(action, "registration has no run");
++    return null;
++  }
+   return {
+     kind: "item",
+     key,
+-    icon: pluginMenuIcon(action.icon),
+-    label: action.label,
++    icon,
++    label,
+     disabled,
+     onSelect: () => runPluginCallback(action, action.run, context),
+   };
+@@ -255,7 +300,7 @@ export function buildPrimaryPluginEntries({
+   disabled?: boolean;
+   context: PluginTaskMenuContext;
+ }): KanbanCardMenuEntry[] {
+-  return visiblePluginMenuActions("primary", context).map((action) =>
+-    pluginMenuEntry(action, context, disabled, "plugin-primary"),
+-  );
++  return visiblePluginMenuActions("primary", context)
++    .map((action) => pluginMenuEntry(action, context, disabled, "plugin-primary"))
++    .filter((entry): entry is KanbanCardMenuEntry => entry !== null);
+ }
+diff --git a/apps/web/lib/plugins/icons.test.ts b/apps/web/lib/plugins/icons.test.ts
+index c8a7a886d..2557e0a72 100644
+--- a/apps/web/lib/plugins/icons.test.ts
++++ b/apps/web/lib/plugins/icons.test.ts
+@@ -25,6 +25,23 @@ describe("plugin icons", () => {
+     expect(lookupPluginIcon(undefined)).toBeUndefined();
+   });
+ 
++  // Regression: a JavaScript bundle can pass any value. Indexing PLUGIN_ICONS
++  // with a non-string coerced it to a key, so an object whose toString threw
++  // took the rendering surface down, and any other object silently became the
++  // puzzle glyph by way of a "[object Object]" lookup miss.
++  it("treats a non-string, non-function icon as absent instead of coercing it to a name", () => {
++    const hostile = {
++      toString() {
++        throw new Error("key coercion");
++      },
++    };
++
++    expect(() => lookupPluginIcon(hostile as unknown as string)).not.toThrow();
++    expect(lookupPluginIcon(hostile as unknown as string)).toBeUndefined();
++    expect(resolvePluginIcon(hostile as unknown as string)).toBe(IconPuzzle);
++    expect(lookupPluginIcon({} as unknown as string)).toBeUndefined();
++  });
++
+   it("falls back to the puzzle glyph from resolvePluginIcon", () => {
+     expect(resolvePluginIcon("not-an-icon")).toBe(IconPuzzle);
+     expect(resolvePluginIcon(undefined)).toBe(IconPuzzle);
+diff --git a/apps/web/lib/plugins/icons.ts b/apps/web/lib/plugins/icons.ts
+index b6961bc6f..acaa9883b 100644
+--- a/apps/web/lib/plugins/icons.ts
++++ b/apps/web/lib/plugins/icons.ts
+@@ -54,10 +54,16 @@ export const PLUGIN_ICONS: Record<string, TablerIcon> = {
+   users: IconUsers,
+ };
+ 
+-/** Strict lookup: the named icon, or undefined when the name is unknown/missing. */
++/**
++ * Strict lookup: the named icon, or undefined when the name is unknown/missing.
++ * Only a string names a curated icon: any other value (a stray object or a
++ * ready-made element from a JavaScript bundle) has no name to look up, and
++ * indexing the map with it would coerce it to a key -- which a hostile
++ * `toString` turns into a throw out of whatever is rendering.
++ */
+ export function lookupPluginIcon(icon?: PluginIcon): ResolvedPluginIcon | undefined {
+   if (typeof icon === "function") return icon;
+-  return icon ? PLUGIN_ICONS[icon] : undefined;
++  return typeof icon === "string" ? PLUGIN_ICONS[icon] : undefined;
+ }
+ 
+ /** Sidebar lookup: always renders something — unknown/missing names get the puzzle glyph. */
 -- 
 2.53.0
 
