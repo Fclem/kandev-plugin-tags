@@ -4080,6 +4080,131 @@ test("card menu quick list is derived per card, not per workspace", async () => 
   );
 });
 
+test("card menu quick list drops a tag the card's private layer gains while the payload is unchanged", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems, setTaskTagCache } = plugin.__internal;
+  const carried = appliedTag("tag-carried", "Carried", "2026-01-01T00:00:02Z");
+  const free = appliedTag("tag-free", "Free", "2026-01-01T00:00:01Z");
+  const payload = {
+    tags: [carried.tag, free.tag],
+    tasks: { "task-peer": [carried.application, free.application] },
+  };
+  const { host } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+  const context = { taskId: "task-1", workspaceId: "ws-1" };
+  assertStructural.deepEqual(
+    quickTagItems(host, context).map((item) => item.id),
+    ["more", "tag-carried", "tag-free"],
+  );
+
+  // The wide task-storage subscription, the filter's own prime, and the facet
+  // all replace a task's private value without touching the shared payload, so
+  // the memo has to invalidate on that identity too -- otherwise the list keeps
+  // offering a tag the card already shows.
+  setTaskTagCache("task-1", ["tag-carried"]);
+
+  assertStructural.deepEqual(
+    quickTagItems(host, context).map((item) => item.id),
+    ["more", "tag-free"],
+  );
+});
+
+test("card menu quick list ignores a timestamp it cannot parse", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems } = plugin.__internal;
+  const numeric = appliedTag("tag-numeric", "Numeric", "2026-01-01T00:00:02Z");
+  const garbage = appliedTag("tag-garbage", "Garbage", "2026-01-01T00:00:03Z");
+  const missing = appliedTag("tag-missing", "Missing", "2026-01-01T00:00:04Z");
+  const fresh = appliedTag("tag-fresh", "Fresh", "2026-01-01T00:00:01Z");
+  const payload = {
+    tags: [numeric.tag, garbage.tag, missing.tag, fresh.tag],
+    tasks: {
+      "task-peer": [
+        // A non-string must not throw out of the host's menu build...
+        { ...numeric.application, updatedAt: 42 },
+        // ...and a string the engine rejects must not be ranked as epoch,
+        // which would put a never-used tag at the top of the list.
+        { ...garbage.application, updatedAt: "not a timestamp" },
+        { id: missing.tag.id, name: missing.tag.name, color: missing.tag.color },
+        fresh.application,
+      ],
+    },
+  };
+  const { host } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+
+  const items = quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
+
+  assertStructural.deepEqual(
+    items.map((item) => item.id),
+    ["more", "tag-fresh"],
+    "an unreadable last-used time is not a used tag, and never an epoch-ranked one",
+  );
+});
+
+test("card menu quick list stays in order on an engine that only parses millisecond fractions", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems } = plugin.__internal;
+  const entries = [
+    appliedTag("tag-early", "Early", "2026-01-01T00:00:00.000000001Z"),
+    appliedTag("tag-late", "Late", "2026-01-01T00:00:01.000000002Z"),
+  ];
+  const payload = {
+    tags: entries.map((entry) => entry.tag),
+    tasks: { "task-peer": entries.map((entry) => entry.application) },
+  };
+  // The spec requires exactly three fractional digits, so V8 accepting nine is
+  // a convenience. This host forbids more, which is why lastUsedMillis
+  // truncates before parsing: without that, every value here would be
+  // unparseable and the list would be empty.
+  class StrictDate extends Date {
+    static parse(value) {
+      return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(String(value))
+        ? Date.parse(value)
+        : NaN;
+    }
+  }
+  const { host } = makeQuickPickHost(payload);
+  const strictPlugin = loadBundle(undefined, { Date: StrictDate });
+  await strictPlugin.__internal.fetchSharedTags(host, "ws-1");
+  await flush();
+
+  const items = strictPlugin.__internal.quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
+
+  assertStructural.deepEqual(
+    items.map((item) => item.id),
+    ["more", "tag-late", "tag-early"],
+    "each nanosecond time still parses once truncated, and the later wins",
+  );
+  void plugin;
+});
+
+test("the memoized quick list never pins a superseded shared payload", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems, quickTagCacheSize } = plugin.__internal;
+  const entry = appliedTag("tag-a", "Blocked", "2026-01-01T00:00:01Z");
+  const payload = { tags: [entry.tag], tasks: { "task-peer": [entry.application] } };
+  const { host } = makeQuickPickHost(payload);
+  await primeSharedStore(plugin, host);
+  const context = { taskId: "task-1", workspaceId: "ws-1" };
+
+  quickTagItems(host, context);
+  assert.equal(quickTagCacheSize(), 1, "one entry per card whose menu list was derived");
+
+  // The 30s refresh replaces the payload wholesale; entries built from the old
+  // one are dropped rather than kept alive by cards nothing rebuilds for.
+  await primeSharedStore(plugin, host);
+  assert.equal(quickTagCacheSize(), 0, "a refresh releases entries derived from the old payload");
+
+  quickTagItems(host, context);
+  assert.equal(quickTagCacheSize(), 1, "and the next build caches against the new one");
+
+  // clearTaskTagCache() is the workspace-switch / unload signal for exactly the
+  // stores these entries were derived from.
+  plugin.__internal.clearTaskTagCache();
+  assert.equal(quickTagCacheSize(), 0, "dropping the task stores releases the memo");
+});
+
 test("card menu quick list never fetches from the menu-build path", async () => {
   const plugin = loadBundle();
   const { quickTagItems } = plugin.__internal;
@@ -4090,15 +4215,12 @@ test("card menu quick list never fetches from the menu-build path", async () => 
   const { host, calls } = makeQuickPickHost(payload);
   const context = { taskId: "task-1", workspaceId: "ws-1" };
 
-  assertStructural.deepEqual(
-    quickTagItems(host, context).map((item) => item.id),
-    ["more"],
-  );
+  assertStructural.deepEqual(quickTagItems(host, context), []);
   await flush();
   assertStructural.deepEqual(
-    quickTagItems(host, context).map((item) => item.id),
-    ["more"],
-    "a store nothing has loaded yet offers the picker entry, not a fetch",
+    quickTagItems(host, context),
+    [],
+    "a store nothing has loaded yet yields no submenu, and never a fetch",
   );
   assertStructural.deepEqual(calls, [], "the menu-build path issues no action call at all");
 });
@@ -4149,25 +4271,41 @@ test("card menu quick pick reports a failed add through the host toast", async (
   assertStructural.deepEqual(toastMessages, ["Could not add tag. Please try again."]);
 });
 
-test("card menu quick list is only the picker entry on a host without shared tags", async () => {
+test("card menu quick list is empty on a host without shared tags, and the flat item still opens the picker", async () => {
   const plugin = loadBundle();
   const { quickTagItems } = plugin.__internal;
   let modalOptions = null;
-  const host = {
-    store: { getState: () => ({ workspaces: { activeId: "ws-1" } }) },
-    openModal(options) {
-      modalOptions = options;
-    },
+  let registration = null;
+  const host = makeFakeReactHost();
+  host.store = {
+    getState: () => ({ workspaces: { activeId: "ws-1" } }),
+    subscribe: () => () => {},
   };
+  host.storage = { get: () => Promise.resolve(undefined), subscribe: () => () => {} };
+  host.openModal = (options) => {
+    modalOptions = options;
+  };
+  plugin.initialize(
+    {
+      registerComponent() {},
+      registerTaskMenuAction(value) {
+        registration = value;
+      },
+      registerTaskFilter() {},
+      registerTaskListFacet() {},
+    },
+    host,
+  );
+  const context = { taskId: "task-1", workspaceId: "ws-1" };
 
-  const items = quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
   assertStructural.deepEqual(
-    items.map((item) => item.id),
-    ["more"],
+    quickTagItems(host, context),
+    [],
+    "no shared catalog means no quick children, so the host renders the flat item",
   );
 
-  await items[0].run();
-  assert.equal(modalOptions.size, "md", "the first entry opens the picker modal");
+  await registration.run(context);
+  assert.equal(modalOptions.size, "md", "the flat item opens the picker modal");
   assert.equal(modalOptions.title, "Tags");
 });
 

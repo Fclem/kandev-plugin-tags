@@ -139,9 +139,13 @@ that card. The target must be a task in this workspace.
   Recency is workspace-wide (an agent's application counts too) and comes
   from the application timestamps the shared read already returns; the plugin
   stores no extra history, and the menu build itself never fetches -- it reads
-  the store the chips keep warm, so right after load the submenu may offer
-  only **More tags...** until that first read lands. On a host predating
-  plugin submenus the item stays flat and opens the modal, exactly as before.
+  the catalog the chips, the filter and the periodic refresh keep warm. When
+  there is nothing recent to offer -- a workspace nothing has been applied in
+  yet, a catalog that has not loaded, or a card already carrying every recent
+  tag -- **Add tag...** stays a plain item that opens the modal, instead of
+  nesting the same modal one level deeper behind an extra click. On a host
+  predating plugin submenus the item stays flat and opens the modal, exactly
+  as before.
 - **Filter and manage from one place**: an icon-lg filter-icon button in
   the app's top bar opens the Tags box, a 380px-wide dropdown listing your
   whole tag catalog as grid-aligned rows (color swatch, name pill, delete

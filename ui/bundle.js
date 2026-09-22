@@ -1050,6 +1050,7 @@
           store.error = null;
           store.hasValue = true;
           sharedTagLoadErrorLogged = false;
+          pruneQuickTagCaches(store);
         }, false);
       },
       function (err) {
@@ -1204,6 +1205,9 @@
   /** Evicts every cached task's tag ids (plugin unload, workspace switch -- D13/AC20). */
   function clearTaskTagCache() {
     taskTagStores = {};
+    // Every memoized quick list is derived from one of those task stores (and
+    // the shared payload it was built with), so dropping the stores drops them.
+    quickTagCaches = {};
   }
 
   /**
@@ -1686,6 +1690,20 @@
   }
 
   /**
+   * Drops every memoized quick list built from a payload the shared store has
+   * since replaced. Without this, an entry for a card whose menu is not built
+   * again would keep that whole-workspace payload reachable for the life of
+   * the page -- one refresh every 30 seconds is enough for the cache to pin a
+   * generation that nothing else references. Entries derived from the current
+   * payload stay, so a board that keeps re-deriving costs nothing here.
+   */
+  function pruneQuickTagCaches(store) {
+    Object.keys(quickTagCaches).forEach(function (key) {
+      if (quickTagCaches[key].shared !== store.value) delete quickTagCaches[key];
+    });
+  }
+
+  /**
    * The last time a tag was applied anywhere in the workspace, in
    * milliseconds, from one application's `updatedAt`.
    *
@@ -1730,6 +1748,7 @@
    */
   function quickTagItems(host, context) {
     var workspaceId = resolveWorkspaceId(host, context.workspaceId);
+    if (!workspaceId || !sharedTagsEnabled(host, workspaceId)) return [];
     var more = {
       id: "more",
       label: "More tags\u2026",
@@ -1737,7 +1756,6 @@
         return openTagPicker(host, context.taskId, workspaceId);
       },
     };
-    if (!workspaceId || !sharedTagsEnabled(host, workspaceId)) return [more];
 
     var store = getSharedTagStore(workspaceId);
     var taskStore = getTaskTagStore(context.taskId);
@@ -1795,6 +1813,15 @@
           },
         };
       });
+
+    // Nothing recent to offer -- a fresh workspace has no applications at all,
+    // and a card can already carry every tag anyone applied. An empty list is
+    // the host's "no usable children" signal, so the action stops being a
+    // submenu and renders its flat item (label, and `run` opening this same
+    // picker): one click, and the command palette keeps its entry. Returning a
+    // lone "More tags..." child would nest that picker one level deeper for
+    // nothing.
+    if (quick.length === 0) return [];
 
     var items = [more].concat(quick);
     quickTagCaches[cacheKey] = { shared: store.value, private: taskStore.value, items: items };
@@ -3128,6 +3155,7 @@
       logError: logError,
       resolveWorkspaceId: resolveWorkspaceId,
       setTaskTagCache: setTaskTagCache,
+      clearTaskTagCache: clearTaskTagCache,
       readModifyWrite: readModifyWrite,
       sanitizeTagIdList: sanitizeTagIdList,
       sanitizeCatalog: sanitizeCatalog,
@@ -3151,6 +3179,9 @@
       makeTagPickerModal: makeTagPickerModal,
       quickTagItems: quickTagItems,
       applyQuickTag: applyQuickTag,
+      quickTagCacheSize: function () {
+        return Object.keys(quickTagCaches).length;
+      },
       QUICK_TAG_LIMIT: QUICK_TAG_LIMIT,
       makeTagsTopBarDropdown: makeTagsTopBarDropdown,
       makeDeleteTagConfirm: makeDeleteTagConfirm,
