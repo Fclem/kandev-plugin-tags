@@ -122,12 +122,24 @@ that card. The target must be a task in this workspace.
   this row -- removing a tag stays confined to the card chip row or the Add
   tag modal.
 - **Add/pick a tag**: open a card's context/dropdown menu, choose **Add
-  tag...** (a tag icon, flat top-level item between "Move to" and "Link").
-  A medium modal shows a "Select or create a tag..." input (typing a name
+  tag...** (a tag icon, top-level item between "Move to" and "Link"). A
+  medium modal shows a "Select or create a tag..." input (typing a name
   that doesn't exist yet enables **Add**, which creates it in your tag
   catalog and applies it to the card) above a scrollable list of your
   existing colored tags rendered as pills -- click a row to apply/remove it
   from this card; applied tags show a checkmark.
+- **Quick pick**: on a host that renders plugin submenus, **Add tag...** is
+  a submenu instead: **More tags...** first (the same modal), then up to five
+  tags used most recently anywhere in the workspace, most recent first.
+  Choosing one applies it to this card in a single click and refreshes the
+  chips, so the tag you reach for constantly is one click from the card menu
+  and from the sidebar/`/tasks` row menu, wherever that item appears. Tags
+  the card already carries are left out -- the list only ever adds what you
+  picked, and removing a tag stays on the card's chips and in the modal.
+  Recency is workspace-wide (an agent's application counts too) and comes
+  from the application timestamps the shared read already returns; the plugin
+  stores no extra history. On a host predating plugin submenus the item stays
+  flat and opens the modal, exactly as before.
 - **Filter and manage from one place**: an icon-lg filter-icon button in
   the app's top bar opens the Tags box, a 380px-wide dropdown listing your
   whole tag catalog as grid-aligned rows (color swatch, name pill, delete
@@ -248,6 +260,29 @@ some-parent-dir/
 └── kandev/
     └── apps/backend/     (from kdlbs/kandev)
 ```
+
+### Host prerequisite: the menu submenu
+
+The card menu's quick pick needs a host that renders plugin submenus
+(`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
+in the monorepo). That host change is not upstream yet; it ships as
+`contrib/kandev-plugin-submenus.patch`, two commits against `kdlbs/kandev`:
+
+1. `feat(plugins): render a task menu action as a submenu` -- the
+   `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
+   API doc, and its tests.
+2. `fix(plugins): keep element-form plugin menu icons` -- menu entries
+   render a ready-made element icon as-is instead of replacing it with the
+   fallback puzzle glyph, which is the shape this plugin's tag icon uses.
+
+```sh
+git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch
+```
+
+Until that lands -- and on any host that predates it -- the plugin degrades
+by design: **Add tag...** stays the flat item it has always been and opens
+the picker modal. The quick pick is an addition to that item, never a
+host-version requirement for installing the plugin.
 
 ### Setup / Prerequisites
 

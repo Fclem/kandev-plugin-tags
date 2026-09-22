@@ -12,7 +12,11 @@
  *     for the sidebar task row and the `/tasks` list row;
  *   - a registerTaskMenuAction under the kanban card's "primary" group
  *     ("Add tag...") that opens a redesigned host.openModal editor
- *     (TagPickerModal) to search/create and multi-select tags for the card;
+ *     (TagPickerModal) to search/create and multi-select tags for the card.
+ *     On a host that renders plugin submenus it becomes that editor plus a
+ *     quick list -- "More tags..." first, then the workspace's latest-used
+ *     tags, one click each (see quickTagItems); a host that predates the
+ *     submenu field still renders the flat item and calls run;
  *   - a "main-top-bar" slot button ("Tags box") that opens a
  *     filter+manage dropdown (TagsTopBarDropdown) to add/rename/recolor/
  *     remove tags from the user's tag catalog: an icon-lg trigger, a
@@ -111,6 +115,10 @@
   var UNTAGGED_FILTER_VALUE = "__untagged__";
   var TAGS_FILTER_ID = "tags";
   var TASK_ROW_CHIP_LIMIT = 3;
+  // How many recently used workspace tags the card menu's "Add tag..." submenu
+  // offers below its "More tags..." entry. The list is a shortcut, not a
+  // second catalog: the picker behind "More tags..." still shows every tag.
+  var QUICK_TAG_LIMIT = 5;
 
   // Shapes of generated catalog tag ids -- used by resolveTag to distinguish
   // an *orphaned* v2 tag id (deleted from the catalog but still referenced by
@@ -1634,13 +1642,129 @@
     };
   }
 
+  // ---------------------------------------------------------------------
+  // Card-menu quick pick (the "Add tag..." submenu's children)
+  // ---------------------------------------------------------------------
+
+  /** Opens the full picker modal: the menu's flat behavior on a host that
+   * predates submenus, and its "More tags..." child on one that renders them. */
+  function openTagPicker(host, taskId, workspaceId) {
+    return host.openModal({
+      title: "Tags",
+      size: "md",
+      content: makeTagPickerModal(host, taskId, workspaceId),
+    });
+  }
+
+  /**
+   * Applies one tag from the menu's quick list, mirroring the picker's apply
+   * branch: the shared action is the only write path, since the quick list
+   * exists only where the shared store does. Refreshes that store, which is
+   * what every chip row reads. A failure toasts as well as logs -- a menu
+   * click has no inline error surface the way the picker modal does.
+   */
+  function applyQuickTag(host, workspaceId, taskId, tagId) {
+    return host.api
+      .invokeAction("task-tag-add", { taskId: taskId, body: { tagId: tagId } })
+      .then(function () {
+        return fetchSharedTags(host, workspaceId);
+      })
+      .catch(function (err) {
+        logError("add tag from card menu", err);
+        if (host.toast && typeof host.toast.error === "function") {
+          host.toast.error("Could not add tag. Please try again.");
+        }
+      });
+  }
+
+  /**
+   * The children of the card menu's "Add tag..." entry on a host that renders
+   * plugin submenus: "More tags..." first (the picker modal), then the tags
+   * this workspace applied most recently, newest first, capped at
+   * QUICK_TAG_LIMIT.
+   *
+   * Recency needs no bookkeeping of its own: the shared store already holds
+   * every task's applications, each carrying the timestamp of its last add by
+   * an agent or a person, so "latest used" is a scan of data the chip rows
+   * have already loaded. A tag nothing has ever been applied with has no place
+   * in a most-recently-used list and is left to the picker.
+   *
+   * Only tags the card does not already carry are offered, so every child
+   * adds exactly the tag it names: removal stays where it has always been, on
+   * the card's own chips and in the picker.
+   */
+  function quickTagItems(host, context) {
+    var workspaceId = resolveWorkspaceId(host, context.workspaceId);
+    var more = {
+      id: "more",
+      label: "More tags\u2026",
+      run: function () {
+        return openTagPicker(host, context.taskId, workspaceId);
+      },
+    };
+    if (!workspaceId || !sharedTagsEnabled(host, workspaceId)) return [more];
+
+    var store = getSharedTagStore(workspaceId);
+    var tasks = store.value.tasks || {};
+    // Warm the store for a surface with no chip row of its own (the task
+    // preview/detail menu). Coalesced with any fetch already in flight, it
+    // does not populate this list -- the menu is being built right now -- but
+    // it makes the next open carry real tags instead of "More tags..." alone.
+    if (!store.hasValue && !store.inFlight) fetchSharedTags(host, workspaceId);
+
+    var applied = {};
+    (tasks[context.taskId] || []).forEach(function (entry) {
+      if (entry && typeof entry.id === "string") applied[entry.id] = true;
+    });
+    (getTaskTagStore(context.taskId).value || []).forEach(function (id) {
+      applied[id] = true;
+    });
+
+    var lastUsedAt = {};
+    Object.keys(tasks).forEach(function (taskId) {
+      (tasks[taskId] || []).forEach(function (entry) {
+        if (!entry || typeof entry.id !== "string") return;
+        var at = typeof entry.updatedAt === "string" ? entry.updatedAt : "";
+        // RFC3339 strings from the same writer compare in order; the
+        // sub-second tie this could misjudge is not a tie worth another pass.
+        if (!lastUsedAt[entry.id] || at > lastUsedAt[entry.id]) lastUsedAt[entry.id] = at;
+      });
+    });
+
+    var quick = (store.value.tags || [])
+      .filter(function (tag) {
+        return !applied[tag.id] && lastUsedAt[tag.id];
+      })
+      .map(function (tag, order) {
+        return { tag: tag, at: lastUsedAt[tag.id], order: order };
+      })
+      .sort(function (a, b) {
+        return a.at === b.at ? a.order - b.order : a.at < b.at ? 1 : -1;
+      })
+      .slice(0, QUICK_TAG_LIMIT)
+      .map(function (candidate) {
+        var tagId = candidate.tag.id;
+        return {
+          id: tagId,
+          label: candidate.tag.name,
+          run: function () {
+            return applyQuickTag(host, workspaceId, context.taskId, tagId);
+          },
+        };
+      });
+
+    return [more].concat(quick);
+  }
+
   /**
    * The add-tag menu item's icon -- @tabler/icons-react's IconTag geometry,
    * inlined (host.ui exposes no icon set) at the same `mr-2 h-4 w-4`,
    * stroke="currentColor" sizing every neighbouring item in the same menu
-   * uses (`Move to`/`Archive`/`Delete`), so it lines up pixel-for-pixel. The
-   * renderer emits `entry.icon` bare and applies no sizing of its own, so
-   * the plugin must own the className.
+   * uses (`Move to`/`Archive`/`Delete`), so it lines up pixel-for-pixel. It
+   * is a ready-made element rather than a curated icon name or a component:
+   * the host's menu entry passes an element through untouched -- and is the
+   * only icon shape a host predating that resolution renders at all -- so
+   * the plugin owns the className in every case.
    */
   function tagIconElement(host) {
     return host.jsx(
@@ -2903,12 +3027,17 @@
         // Flat, top-level item between "Move to"/"Send to workflow" and
         // "Link" -- shipped in kdlbs/kandev PR #2351.
         group: "primary",
+        // A host that renders plugin submenus (TaskMenuActionRegistration.items)
+        // turns this item into the quick list: "More tags..." (this picker)
+        // plus the workspace's latest-used tags, one click each. A host that
+        // predates the field ignores it entirely and calls run, so the item
+        // behaves exactly as it did before -- which is also why run stays
+        // here rather than living only inside the submenu's first child.
+        items: function (context) {
+          return quickTagItems(host, context);
+        },
         run: function (context) {
-          return host.openModal({
-            title: "Tags",
-            size: "md",
-            content: makeTagPickerModal(host, context.taskId, context.workspaceId),
-          });
+          return openTagPicker(host, context.taskId, context.workspaceId);
         },
       });
 
@@ -2975,6 +3104,9 @@
       TAGS_FILTER_ID: TAGS_FILTER_ID,
       makeTagChips: makeTagChips,
       makeTagPickerModal: makeTagPickerModal,
+      quickTagItems: quickTagItems,
+      applyQuickTag: applyQuickTag,
+      QUICK_TAG_LIMIT: QUICK_TAG_LIMIT,
       makeTagsTopBarDropdown: makeTagsTopBarDropdown,
       makeDeleteTagConfirm: makeDeleteTagConfirm,
       detectHostCapabilities: detectHostCapabilities,
