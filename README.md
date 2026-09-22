@@ -274,8 +274,9 @@ some-parent-dir/
 
 The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
-in the monorepo). That host change is not upstream yet; it ships as
-`contrib/kandev-plugin-submenus.patch`, two commits against `kdlbs/kandev`:
+in the monorepo). That host change is not upstream yet -- it is open as
+kdlbs/kandev PR #3874 -- and ships here as
+`contrib/kandev-plugin-submenus.patch`, five commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -283,6 +284,15 @@ in the monorepo). That host change is not upstream yet; it ships as
 2. `fix(plugins): keep element-form plugin menu icons` -- menu entries
    render a ready-made element icon as-is instead of replacing it with the
    fallback puzzle glyph, which is the shape this plugin's tag icon uses.
+3. `fix(plugins): keep a plugin submenu reachable in command lists` -- the
+   command palette and the sidebar's task commands flatten a submenu's item
+   children instead of dropping the action.
+4. `fix(plugins): validate submenu children at the host boundary` -- a
+   malformed or async `items()` result degrades to the flat item instead of
+   breaking the card render.
+5. `docs(plugins): document submenu items in the authoring guide` -- the
+   authoring guide and `apps/web/AGENTS.md` stop calling group `primary`
+   flat-only.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch

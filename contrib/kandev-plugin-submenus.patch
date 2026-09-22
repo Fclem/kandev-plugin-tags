@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 1/4] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 1/5] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 2/4] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 2/5] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 3/4] fix(plugins): keep a plugin submenu reachable in command
+Subject: [PATCH 3/5] fix(plugins): keep a plugin submenu reachable in command
  lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From dcb29b5eb598cab6872c4eb2e100e81ef153acd3 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 4/4] fix(plugins): validate submenu children at the host
+Subject: [PATCH 4/5] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1262,6 +1262,101 @@ index fea317306..4139809d2 100644
  elsewhere. Submenu nesting stops at this one level; a `run` rejection is
  caught and logged, and the menu closes either way.
  
+-- 
+2.53.0
+
+
+From 9d8f3b00aac3fc748c1b8b32ad5aa1728b0f1be8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Tue, 22 Sep 2026 22:22:29 +0000
+Subject: [PATCH 5/5] docs(plugins): document submenu items in the authoring
+ guide
+
+apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
+group "primary" actions as flat-only, so the newly public items() field, its
+one-level nesting, its flat fallback and its call timing were documented only
+in PLUGIN-API.md. Both now state the submenu contract, and the public guide
+carries an example.
+
+(cherry picked from commit 9ef4d1b68267106f896289b63752b0f4d294f0f0)
+---
+ apps/web/AGENTS.md               |  4 +++-
+ docs/public/plugins-authoring.md | 33 ++++++++++++++++++++++++++++++--
+ 2 files changed, 34 insertions(+), 3 deletions(-)
+
+diff --git a/apps/web/AGENTS.md b/apps/web/AGENTS.md
+index cf271c7f2..f35a4e7c2 100644
+--- a/apps/web/AGENTS.md
++++ b/apps/web/AGENTS.md
+@@ -280,7 +280,9 @@ and `lib/plugins/types.ts` are its detailed host implementation — all three mu
+   `PluginErrorBoundary`; `mobileEnabled: true` also renders it via the phone bottom nav
+   (`session-mobile-bottom-nav.tsx`) with `presentation: "mobile"`.
+ - **Task contributions:** `registerTaskMenuAction({ group: "edit", ... })` adds card-only actions to
+-  the `Edit` submenu. Group `"primary"` adds flat actions to card and desktop/mobile task-row menus.
++  the `Edit` submenu. Group `"primary"` adds top-level actions to card and desktop/mobile task-row
++  menus; declaring `items(context)` renders an action of either group as a submenu of its children
++  instead, with `run` kept as the flat fallback.
+   Card indicator/tag slots stay card-specific; `task-row-metadata` is generic for sidebar and `/tasks` rows.
+ - **Sidebar workspace actions:** `registerComponent("sidebar-workspace-actions", ...)` renders after Quick Terminal/Quick Chat in the desktop sidebar's New Task row and in the shared phone navigation sheet, forwarding `SidebarWorkspaceActionsSlotProps` with `presentation: "desktop" | "mobile"`; mobile plugin controls own a 44px touch target and accessible name.
+ - **`host.storage`:** authenticated per-user key/value storage (`lib/plugins/host-api.ts`) backed by `/api/plugins/{id}/user-state/...` (`docs/decisions/2026-08-01-per-user-plugin-storage.md`); `subscribe` (`lib/plugins/user-state-sync.ts`) wraps `registerWsHandler` with own-plugin filtering and own-tab echo suppression via a per-tab `writerId`.
+diff --git a/docs/public/plugins-authoring.md b/docs/public/plugins-authoring.md
+index 79d27dba0..8d5c33a90 100644
+--- a/docs/public/plugins-authoring.md
++++ b/docs/public/plugins-authoring.md
+@@ -446,7 +446,7 @@ closing future reads.
+ | registerTaskAction              | Child action inside the task menu's native Link section                                                                                                                                                                                                                                                | Active ui.bundle                                                       | Action is revoked on unload; host supplies current task/workspace and desktop/mobile presentation                                                                                                               | registry.registerTaskAction({ id: "link-pr", placement: "link", ... })                                              |
+ | registerReviewProvider          | Normalized task reviews, workspace associations, unlink, and shared Review panel                                                                                                                                                                                                                       | ui.bundle and matching `repository_providers[]` id                     | Snapshots/subscriptions are owner-scoped and revoked on unload; host owns status chrome, indicators, unlink UI, and responsive Review placement                                                                 | registry.registerReviewProvider({ id: "acme", ...reviews })                                                         |
+ | registerTaskPanel               | { id, title, titleKey?, icon?, Component, mobileEnabled?, visible?(context) }; adds a row to the task workspace's "+" (add panel) menu; Component receives { panelId, taskId, sessionId, sessionKind, presentation, conversation: { openMessage(messageId), history } }; `titleKey` is a plugin translation key with literal `title` fallback | Active ui.bundle | Panel renders behind its own error boundary with reactive localized titles; a throwing `visible` hides the item; handles are generation-bound and independently scoped, inert after unmount, identity change, disable, reload, or uninstall; `host.conversation` outside a panel returns stable empty state; desktop preserves layout identity on navigation and mobile uses the full-height Chat surface | registry.registerTaskPanel({ id: "notes", title: "Notes", titleKey: "panels.notes", Component: NotesPanel }) |
+-| registerTaskMenuAction          | { id, label, icon?, group: "edit" \| "primary", visible?(context), run(context) }; "edit" is card-only inside Edit, while "primary" is a flat item on cards and desktop/mobile task-row menus                                                                                                          | Active ui.bundle                                                       | Action is revoked on disable/uninstall; a throwing/rejecting run is caught and logged                                                                                                                           | registry.registerTaskMenuAction({ id: "enhance", label: "Enhance", group: "primary", run: doEnhance })              |
++| registerTaskMenuAction          | { id, label, icon?, group: "edit" \| "primary", visible?(context), items?(context), run(context) }; "edit" is card-only inside Edit, while "primary" is a top-level item on cards and desktop/mobile task-row menus; a synchronous `items(context)` returning TaskMenuSubItemRegistration[] ({ id, label, icon?, disabled?, run(context) }) renders the action as a submenu of those children instead | Active ui.bundle                                                       | Action is revoked on disable/uninstall; a throwing/rejecting run is caught and logged; an items() that throws or yields nothing usable falls back to the flat item, and unusable children are dropped                                                                                                                           | registry.registerTaskMenuAction({ id: "enhance", label: "Enhance", group: "primary", run: doEnhance })              |
+ | registerTaskFilter              | { id, label, getOptions(), matches(context, selected) }; adds a client-side, multi-select filter section to the kanban board's display dropdown, alongside Workflow/Repository                                                                                                                         | Active ui.bundle                                                       | Filter is revoked on disable/uninstall; selections are ephemeral (not persisted); matches is only called for a non-empty selection, and a throw is caught, logged, and treated as non-matching                  | registry.registerTaskFilter({ id: "tags", label: "Tags", getOptions: listTagOptions, matches: taskHasSelectedTag }) |
+ | registerTaskListFacet           | { id, label, getValues({ taskId, workspaceId }), subscribe? }; adds page-local Sort and Group choices on `/tasks`                                                                                                                                                                                      | Active ui.bundle                                                       | Values apply only to the loaded page, callbacks are isolated, and registrations are revoked on disable/unload                                                                                                   | registry.registerTaskListFacet({ id: "tags", label: "Tag", getValues: taskTags })                                   |
+ | host.React / host.jsx           | Shared React instance and React.createElement alias                                                                                                                                                                                                                                                    | Active ui.bundle                                                       | No cleanup; never bundle a second React/Radix runtime                                                                                                                                                           | const h = host.jsx                                                                                                  |
+@@ -2505,7 +2505,7 @@ Host reader because event queues are bounded and delivery is best-effort.
+ 
+ `registerTaskMenuAction` adds an item to native task menus. Group `"edit"` is
+ card-only and nests inside the kanban card's `Edit` submenu. Group `"primary"`
+-renders as a flat top-level item on cards and desktop/mobile task-row menus.
++renders as a top-level item on cards and desktop/mobile task-row menus.
+ `task-card-indicators` (see the named slots table) is the matching read-only
+ surface, rendered beside the PR status icon on every card. `task-card-tags`
+ is a sibling read-only surface with the same `slotProps` shape, mounted in its
+@@ -2540,6 +2540,35 @@ logged, not left to crash the card; the menu closes either way. Group
+ including in desktop and phone task-row menus. Do not patch first-party task
+ components directly.
+ 
++An action of either group that declares `items(context)` renders as a submenu
++instead: `label` becomes an unselectable trigger and the returned
++`TaskMenuSubItemRegistration` children are its entries, in order, each called
++with the same `context` as the action. Nesting stops at that one level. The
++children also reach the command palette and the sidebar's task commands, one
++command each. `items()` is synchronous and is called while the host builds
++that card's or row's menu entries, which happens on every render for both
++menu variants whether or not one is open, so read cached state and memoize
++anything expensive. `run` stays required: it is the flat item a host that
++predates `items` renders, and the fallback whenever `items` yields nothing
++usable (a non-array, an empty list, or a throw, which is caught and logged).
++
++```js
++registry.registerTaskMenuAction({
++  id: "add-tag",
++  label: "Add tag...",
++  group: "primary",
++  // Optional. Turns this action into a submenu of these children.
++  items: (context) =>
++    recentTags(context).map((tag) => ({
++      id: tag.id,
++      label: tag.name,
++      run: (ctx) => applyTag(ctx.taskId, tag.id),
++    })),
++  // Flat behavior, and the fallback when `items` has nothing usable.
++  run: (context) => openTagPicker(context.taskId),
++});
++```
++
+ `registerTaskFilter` adds a client-side, multi-select filter section to the
+ kanban board's display dropdown, next to the built-in Workflow and Repository
+ sections. The plugin supplies its own options (including any "untagged"-style
 -- 
 2.53.0
 
