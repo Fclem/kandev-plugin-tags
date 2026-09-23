@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/14] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/15] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/14] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/15] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/14] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/15] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/14] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/15] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/14] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/15] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/14] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/15] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/14] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/15] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/14] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/15] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/14] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/15] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/14] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/15] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/14] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/15] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/14] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/15] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2895,7 +2895,7 @@ index 8d5c33a90..c1d6a5849 100644
 From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:58:04 +0000
-Subject: [PATCH 13/14] fix(plugins): recognise component-object icons and
+Subject: [PATCH 13/15] fix(plugins): recognise component-object icons and
  escape child keys
 
 Two defects the PR owner found by rebuilding against this patch, both real:
@@ -3258,7 +3258,7 @@ index acaa9883b..8b82f0aaa 100644
 From fbce2e5d42ae5dac9b6dcdfc61574bcb65ed8a76 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:10:56 +0000
-Subject: [PATCH 14/14] fix(plugins): make child keys unforgeable and keep the
+Subject: [PATCH 14/15] fix(plugins): make child keys unforgeable and keep the
  native Edit item
 
 Round 4 filed two findings; both are fixed here.
@@ -3438,6 +3438,668 @@ index 91b4f7539..844e4e757 100644
          key: `${key}#${encodeURIComponent(item.id)}`,
          icon: pluginMenuIcon(item.icon),
          label: item.label,
+-- 
+2.53.0
+
+
+From 46b97e6cb98c9b9d14d2a9f02d07247c239ee43a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Wed, 23 Sep 2026 00:15:52 +0000
+Subject: [PATCH 15/15] fix(plugins): drop lazy icons, encode key parts, and
+ resolve own keys only
+
+Three findings from the PR owner's rounds, all on code this patch owns:
+
+- `isPluginIconComponent` accepted `react.lazy`, but a lazy component cannot
+  resolve synchronously: a menu whose icon was one left the dropdown content
+  uncommitted (suspended with no boundary) instead of showing the fallback
+  glyph. The guard allowlists `react.memo` and `react.forward_ref` -- the
+  shapes an icon set builds -- and excludes elements and bogus tags
+  (`{ $$typeof: 1 }` used to reach `createElement`).
+- The action key joined `pluginId` and `actionId` with a dash, so plugin `p`
+  + action `q-x` and plugin `p-q` + action `x` produced one key, one React
+  key and one cmdk value. Both parts are now percent-encoded around a `%`
+  separator (`encodeURIComponent` always escapes `%`), and the child id is
+  still encoded after `#`, so a child key can never equal a flat action's
+  key either. Every key expectation in the menu, command and edit test files
+  follows the new separator.
+- `lookupPluginIcon` indexed the curated map with any string, so
+  `"__proto__"` returned `Object.prototype`, `"constructor"` returned
+  `Object`, and `"toString"` returned a function -- all of which React then
+  failed to render, where the comment promises the fallback glyph. It now
+  resolves own keys only (`Object.hasOwn`).
+
+Tests: a lazy icon and a bogus tag are excluded (and resolve to the fallback
+glyph), the inherited-key names resolve to nothing, and the two-plugin key
+collision is pinned alongside the existing action/child pair. The public
+guide's section is rebuilt from base so its diff is additions only -- the
+formatter had realigned unrelated tables in that file.
+---
+ .../kanban-card-edit-submenu.test.tsx         |   2 +-
+ .../kanban-card-menu-grouping.test.tsx        |   6 +-
+ .../kanban-card-menu-items.test.tsx           |  12 +-
+ .../kanban-card-plugin-context.test.tsx       |   2 +-
+ .../plugins/task-menu-actions.test.tsx        |  62 ++++++--
+ .../components/plugins/task-menu-actions.ts   |  17 +--
+ .../components/task-command-choices.test.tsx  |   8 +-
+ .../kanban/task-actions-menu-entries.test.ts  |   4 +-
+ apps/web/lib/plugins/icons.test.ts            |  25 +++-
+ apps/web/lib/plugins/icons.ts                 |  18 ++-
+ docs/public/plugins-authoring.md              | 140 +++++++++---------
+ 11 files changed, 176 insertions(+), 120 deletions(-)
+
+diff --git a/apps/web/components/kanban-card-edit-submenu.test.tsx b/apps/web/components/kanban-card-edit-submenu.test.tsx
+index c2ad728e9..18947f80f 100644
+--- a/apps/web/components/kanban-card-edit-submenu.test.tsx
++++ b/apps/web/components/kanban-card-edit-submenu.test.tsx
+@@ -76,7 +76,7 @@ describe("buildEditMenuEntry — AC9 (plugin action registered)", () => {
+     if (entry.kind === "submenu") {
+       expect(entry.children.map((c) => c.key)).toEqual([
+         "edit-task",
+-        `plugin-edit-${PLUGIN_ID}-enhance`,
++        `plugin-edit-${PLUGIN_ID}%enhance`,
+       ]);
+     }
+   });
+diff --git a/apps/web/components/kanban-card-menu-grouping.test.tsx b/apps/web/components/kanban-card-menu-grouping.test.tsx
+index b2acdbf30..dd3015db6 100644
+--- a/apps/web/components/kanban-card-menu-grouping.test.tsx
++++ b/apps/web/components/kanban-card-menu-grouping.test.tsx
+@@ -58,7 +58,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+ 
+     const keys = entryKeys(entries);
+     const sendToIndex = keys.indexOf("send-to-workflow");
+-    const primaryIndex = keys.indexOf(`plugin-primary-${PLUGIN_ID}-${ACTION_ID}`);
++    const primaryIndex = keys.indexOf(`plugin-primary-${PLUGIN_ID}%${ACTION_ID}`);
+     const linkIndex = keys.indexOf("link");
+ 
+     expect(sendToIndex).toBeGreaterThanOrEqual(0);
+@@ -107,7 +107,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+       "move-to",
+       "send-to-workflow",
+       "plugins-separator",
+-      `plugin-primary-${PLUGIN_ID}-${ACTION_ID}`,
++      `plugin-primary-${PLUGIN_ID}%${ACTION_ID}`,
+       "remove-separator",
+       "archive",
+       "delete",
+@@ -119,7 +119,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+ 
+     const entries = buildKanbanCardMenuEntries({ workflows: [], stepsByWorkflowId: {} });
+ 
+-    expect(entryKeys(entries)).not.toContain(`plugin-primary-${PLUGIN_ID}-${ACTION_ID}`);
++    expect(entryKeys(entries)).not.toContain(`plugin-primary-${PLUGIN_ID}%${ACTION_ID}`);
+   });
+ 
+   it("leaves the 'edit' group submenu unaffected by 'primary' group registrations", () => {
+diff --git a/apps/web/components/kanban-card-menu-items.test.tsx b/apps/web/components/kanban-card-menu-items.test.tsx
+index fc2d8e06d..8923adcb3 100644
+--- a/apps/web/components/kanban-card-menu-items.test.tsx
++++ b/apps/web/components/kanban-card-menu-items.test.tsx
+@@ -75,10 +75,10 @@ describe("buildCardPluginEntries", () => {
+ 
+     expect(items).toHaveBeenCalledTimes(1);
+     const fromDropdown = dropdown.find(
+-      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}-add-tag`,
++      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`,
+     );
+     const fromContext = contextMenu.find(
+-      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}-add-tag`,
++      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`,
+     );
+     expect(fromDropdown).toBeDefined();
+     expect(fromContext).toBe(fromDropdown);
+@@ -95,7 +95,7 @@ describe("buildCardPluginEntries", () => {
+     });
+ 
+     expect(items).toHaveBeenCalledTimes(1);
+-    expect(entries.some((entry) => entry.key === `plugin-primary-${PLUGIN_ID}-add-tag`)).toBe(true);
++    expect(entries.some((entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`)).toBe(true);
+   });
+ });
+ 
+@@ -282,7 +282,7 @@ describe("buildKanbanCardMenuEntries — !onEdit does not disable plugin edit ac
+       (child) => child.kind === "item" && child.key === "edit-task",
+     );
+     const pluginAction = editMenu.children.find(
+-      (child) => child.kind === "item" && child.key === `plugin-edit-${PLUGIN_ID}-enhance`,
++      (child) => child.kind === "item" && child.key === `plugin-edit-${PLUGIN_ID}%enhance`,
+     );
+ 
+     expect(editTask?.kind === "item" && editTask.disabled).toBe(true);
+@@ -330,7 +330,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+ 
+     const keys = entryKeys(entries);
+     const sendToIndex = keys.indexOf("send-to-workflow");
+-    const primaryIndex = keys.indexOf(`plugin-primary-${PLUGIN_ID}-quick-tag`);
++    const primaryIndex = keys.indexOf(`plugin-primary-${PLUGIN_ID}%quick-tag`);
+     const archiveIndex = keys.indexOf("archive");
+ 
+     expect(sendToIndex).toBeGreaterThanOrEqual(0);
+@@ -358,7 +358,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+ 
+     const entries = buildKanbanCardMenuEntries({ workflows: [], stepsByWorkflowId: {} });
+ 
+-    expect(entryKeys(entries)).not.toContain(`plugin-primary-${PLUGIN_ID}-quick-tag`);
++    expect(entryKeys(entries)).not.toContain(`plugin-primary-${PLUGIN_ID}%quick-tag`);
+   });
+ 
+   it("leaves the 'edit' group submenu unaffected by 'primary' group registrations", () => {
+diff --git a/apps/web/components/kanban-card-plugin-context.test.tsx b/apps/web/components/kanban-card-plugin-context.test.tsx
+index f8214fb3d..be1aa278c 100644
+--- a/apps/web/components/kanban-card-plugin-context.test.tsx
++++ b/apps/web/components/kanban-card-plugin-context.test.tsx
+@@ -27,7 +27,7 @@ async function invokePluginAction(presentation: "desktop" | "mobile") {
+   if (entry.kind !== "submenu") throw new Error("expected Edit submenu");
+   const action = entry.children.find(
+     (child) =>
+-      child.kind === "item" && child.key === `plugin-edit-${PLUGIN_ID}-action-${presentation}`,
++      child.kind === "item" && child.key === `plugin-edit-${PLUGIN_ID}%action-${presentation}`,
+   );
+   if (action?.kind !== "item") throw new Error("expected plugin action");
+ 
+diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
+index a09eccb9c..faac3613c 100644
+--- a/apps/web/components/plugins/task-menu-actions.test.tsx
++++ b/apps/web/components/plugins/task-menu-actions.test.tsx
+@@ -18,7 +18,7 @@ import { buildPrimaryPluginEntries } from "./task-menu-actions";
+ const PLUGIN_ID = "kandev-plugin-tags";
+ const ACTION_ID = "add-tag";
+ const ACTION_LABEL = "Add tag";
+-const ACTION_KEY = `plugin-primary-${PLUGIN_ID}-${ACTION_ID}`;
++const ACTION_KEY = `plugin-primary-${PLUGIN_ID}%${ACTION_ID}`;
+ 
+ const CONTEXT: PluginTaskMenuContext = {
+   workspaceId: "ws-1",
+@@ -310,7 +310,7 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-duplicated#dup`,
++      `plugin-primary-${PLUGIN_ID}%duplicated#dup`,
+     ]);
+     expect(consoleErrorSpy).toHaveBeenCalledWith(
+       expect.stringContaining("repeated a child id"),
+@@ -354,8 +354,8 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-icon-shapes#null-icon`,
+-      `plugin-primary-${PLUGIN_ID}-icon-shapes#no-icon`,
++      `plugin-primary-${PLUGIN_ID}%icon-shapes#null-icon`,
++      `plugin-primary-${PLUGIN_ID}%icon-shapes#no-icon`,
+     ]);
+     // The two unusable shapes are one defect of the same kind: one report.
+     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+@@ -380,7 +380,7 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     const child = entry.children[0];
+-    expect(child.key).toBe(`plugin-primary-${PLUGIN_ID}-component-icon#child`);
++    expect(child.key).toBe(`plugin-primary-${PLUGIN_ID}%component-icon#child`);
+     expect(child.kind).toBe("item");
+     if (child.kind !== "item") return;
+     expect((child.icon as { type?: unknown } | undefined)?.type).toBe(ForwardIcon);
+@@ -400,12 +400,39 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+     );
+ 
+     expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-quick%23x`,
+-      `plugin-primary-${PLUGIN_ID}-quick`,
+-      `plugin-primary-${PLUGIN_ID}-quick#x`,
++      `plugin-primary-${PLUGIN_ID}%quick%23x`,
++      `plugin-primary-${PLUGIN_ID}%quick`,
++      `plugin-primary-${PLUGIN_ID}%quick#x`,
+     ]);
+     expect(new Set(keys).size).toBe(keys.length);
+   });
++});
++
++describe("buildPrimaryPluginEntries — key uniqueness", () => {
++  it("keeps two plugins' keys distinct when their id parts concatenate alike", () => {
++    // Plugin `p` + action `q-x` and plugin `p-q` + action `x` joined to one key
++    // under the old dash separator, which is a duplicate React key and one cmdk
++    // value for two different actions.
++    pluginRegistry.forPlugin("p").registerTaskMenuAction({
++      id: "q-x",
++      label: "First",
++      group: "primary",
++      run: vi.fn(),
++    });
++    pluginRegistry.forPlugin("p-q").registerTaskMenuAction({
++      id: "x",
++      label: "Second",
++      group: "primary",
++      run: vi.fn(),
++    });
++
++    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
++
++    expect(keys).toEqual(["plugin-primary-p%q-x", "plugin-primary-p-q%x"]);
++    expect(new Set(keys).size).toBe(keys.length);
++    pluginRegistry.unregisterPlugin("p");
++    pluginRegistry.unregisterPlugin("p-q");
++  });
+ 
+   it("keeps two actions' child keys distinct when their ids concatenate alike", () => {
+     // Without the escaping, action `quick`'s child `pick-x` and action
+@@ -420,13 +447,15 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+     );
+ 
+     expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-quick#pick-x`,
+-      `plugin-primary-${PLUGIN_ID}-quick-pick#x`,
++      `plugin-primary-${PLUGIN_ID}%quick#pick-x`,
++      `plugin-primary-${PLUGIN_ID}%quick-pick#x`,
+     ]);
+     expect(new Set(keys).size).toBe(keys.length);
+   });
++});
+ 
+-  it("ignores a label the palette cannot render", () => {
++describe("buildPrimaryPluginEntries — children the host cannot read", () => {
++  it("degrades to the flat item when a child's icon getter throws", () => {
+     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+     const hostile = { id: "x", label: "X", run: vi.fn() };
+     Object.defineProperty(hostile, "icon", {
+@@ -464,12 +493,13 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+     const entry = entries[0];
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-partly-broken#gone`,
+-      `plugin-primary-${PLUGIN_ID}-partly-broken#ok`,
++      `plugin-primary-${PLUGIN_ID}%partly-broken#gone`,
++      `plugin-primary-${PLUGIN_ID}%partly-broken#ok`,
+     ]);
+     consoleErrorSpy.mockRestore();
+   });
+ });
++
+ describe("buildPrimaryPluginEntries — unusable registrations and array-likes", () => {
+   // A registration is plugin-authored data as much as its `items()` result: an
+   // action whose own fields cannot be read degrades to no entry instead of
+@@ -537,7 +567,7 @@ describe("buildPrimaryPluginEntries — unusable registrations and array-likes",
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-hostile-array#child`,
++      `plugin-primary-${PLUGIN_ID}%hostile-array#child`,
+     ]);
+   });
+ 
+@@ -547,7 +577,7 @@ describe("buildPrimaryPluginEntries — unusable registrations and array-likes",
+     for (const flag of ["disabled", "isDeleting", "isArchiving", "isDetaching"] as const) {
+       const inputs = { pluginMenuContext: CONTEXT, [flag]: true };
+       const prebuilt = buildCardPluginEntries(inputs).primary.find(
+-        (entry) => entry.key === `plugin-primary-${PLUGIN_ID}-flagged`,
++        (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%flagged`,
+       );
+       const internal = buildPrimaryPluginEntries({ context: CONTEXT, disabled: true })[0];
+       // Both paths must agree, and a submenu's children inherit the state.
+@@ -575,7 +605,7 @@ describe("buildPrimaryPluginEntries — mixed registrations", () => {
+     expect(entries.map((entry) => entry.kind)).toEqual(["submenu", "item"]);
+     expect(entries.map((entry) => entry.key)).toEqual([
+       ACTION_KEY,
+-      `plugin-primary-${PLUGIN_ID}-other`,
++      `plugin-primary-${PLUGIN_ID}%other`,
+     ]);
+   });
+ });
+diff --git a/apps/web/components/plugins/task-menu-actions.ts b/apps/web/components/plugins/task-menu-actions.ts
+index 844e4e757..09db20eb5 100644
+--- a/apps/web/components/plugins/task-menu-actions.ts
++++ b/apps/web/components/plugins/task-menu-actions.ts
+@@ -76,11 +76,6 @@ function logMenuDefect(
+   console.error(`[plugins] task menu action "${action.pluginId}:${action.id}" ${kind}`, detail);
+ }
+ 
+-/** A key part with the child-key delimiter escaped, so no id can forge one. */
+-function escapeKeyPart(part: unknown): string {
+-  return String(part).replace(/#/g, "%23");
+-}
+-
+ /** The action's own id, read once and only when it is a non-blank string. */
+ function readActionId(action: PluginTaskMenuActionRegistration): string | null {
+   try {
+@@ -276,11 +271,13 @@ export function pluginMenuEntry(
+     return null;
+   }
+   const icon = readActionIcon(action);
+-  // Every id part escapes the child delimiter below, so a flat key can never
+-  // contain a raw `#` and a child key's first `#` always separates the action
+-  // scope from an id that is percent-encoded on top of that. Two actions can
+-  // therefore no longer produce one key, however their ids are chosen.
+-  const key = [keyPrefix, action.pluginId, actionId].map(escapeKeyPart).join("-");
++  // Both id parts are percent-encoded and separated by `%`, a character
++  // `encodeURIComponent` always escapes: joining them with a dash let plugin
++  // `p` + action `q-x` and plugin `p-q` + action `x` spell one key, and a menu
++  // key is also the palette row's id (cmdk's value). The child id below is
++  // encoded after `#`, which an encoded id cannot contain, so a child key can
++  // never equal a flat action's key either.
++  const key = `${keyPrefix}-${encodeURIComponent(action.pluginId)}%${encodeURIComponent(actionId)}`;
+   const items = pluginSubItems(action, context);
+ 
+   if (items) {
+diff --git a/apps/web/components/task-command-choices.test.tsx b/apps/web/components/task-command-choices.test.tsx
+index 2c771e17d..3ceb8a095 100644
+--- a/apps/web/components/task-command-choices.test.tsx
++++ b/apps/web/components/task-command-choices.test.tsx
+@@ -59,7 +59,7 @@ describe("pluginCommandChoices", () => {
+   });
+ 
+   it("flattens a plugin submenu into its item children, keeping their disabled flag", () => {
+-    const first = item("Blocked", "plugin-primary-tags-add-tag-more");
++    const first = item("Blocked", "plugin-primary-tags%add-tag-more");
+     const second = { ...item("Urgent"), disabled: true };
+     const entry = {
+       kind: "submenu" as const,
+@@ -69,7 +69,7 @@ describe("pluginCommandChoices", () => {
+     };
+ 
+     expect(pluginCommandChoices(entry, "Tasks").map((command) => command.id)).toEqual([
+-      "plugin-primary-tags-add-tag-more",
++      "plugin-primary-tags%add-tag-more",
+       "Urgent",
+     ]);
+     const [more, urgent] = pluginCommandChoices(entry, "Tasks");
+@@ -87,7 +87,7 @@ describe("pluginCommandChoices", () => {
+     // `quick-pick` + `x`), which the escaped key rules out at the source.
+     const child = {
+       kind: "item" as const,
+-      key: "plugin-primary-p-quick#pick-x",
++      key: "plugin-primary-p%quick#pick-x",
+       label: "Pick X",
+       onSelect: vi.fn(),
+     };
+@@ -99,7 +99,7 @@ describe("pluginCommandChoices", () => {
+     };
+ 
+     expect(pluginCommandChoices(submenu, "Tasks").map((command) => command.id)).toEqual([
+-      "plugin-primary-p-quick#pick-x",
++      "plugin-primary-p%quick#pick-x",
+     ]);
+   });
+ 
+diff --git a/apps/web/lib/kanban/task-actions-menu-entries.test.ts b/apps/web/lib/kanban/task-actions-menu-entries.test.ts
+index 2cbe571be..c38bd8a33 100644
+--- a/apps/web/lib/kanban/task-actions-menu-entries.test.ts
++++ b/apps/web/lib/kanban/task-actions-menu-entries.test.ts
+@@ -131,7 +131,7 @@ describe("buildTaskActionsMenuEntries — archived tier", () => {
+ 
+     const entries = buildTaskActionsMenuEntries("archived", baseArgs);
+     expect(itemKeys(entries)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-primary-action`,
++      `plugin-primary-${PLUGIN_ID}%primary-action`,
+       REMOVE_SEPARATOR,
+       "delete",
+     ]);
+@@ -164,7 +164,7 @@ describe("buildTaskActionsMenuEntries — unresolved board row tier", () => {
+ 
+     const entries = buildTaskActionsMenuEntries("unresolved-row", baseArgs);
+     expect(itemKeys(entries)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}-primary-action`,
++      `plugin-primary-${PLUGIN_ID}%primary-action`,
+       REMOVE_SEPARATOR,
+       "archive",
+       "delete",
+diff --git a/apps/web/lib/plugins/icons.test.ts b/apps/web/lib/plugins/icons.test.ts
+index 3cb86f313..272206352 100644
+--- a/apps/web/lib/plugins/icons.test.ts
++++ b/apps/web/lib/plugins/icons.test.ts
+@@ -1,4 +1,4 @@
+-import { createElement, forwardRef, memo } from "react";
++import { createElement, forwardRef, lazy, memo } from "react";
+ import { describe, expect, it } from "vitest";
+ import { IconPuzzle, IconTicket } from "@tabler/icons-react";
+ import { isPluginIconComponent, lookupPluginIcon, resolvePluginIcon } from "./icons";
+@@ -40,6 +40,29 @@ describe("plugin icons", () => {
+     expect(isPluginIconComponent("ticket")).toBe(false);
+   });
+ 
++  it("excludes a lazy component and element-like objects from the component set", () => {
++    // `lazy` resolves asynchronously, so a menu that renders it suspends with
++    // no boundary instead of falling back; and an element is not a component
++    // even though it carries a $$typeof tag.
++    const LazyIcon = lazy(async () => ({ default: () => createElement("svg") }));
++
++    expect(isPluginIconComponent(LazyIcon)).toBe(false);
++    expect(lookupPluginIcon(LazyIcon as unknown as string)).toBeUndefined();
++    expect(resolvePluginIcon(LazyIcon as unknown as string)).toBe(IconPuzzle);
++    expect(isPluginIconComponent({ $$typeof: Symbol.for("react.element") })).toBe(false);
++    expect(isPluginIconComponent({ $$typeof: 1 })).toBe(false);
++  });
++
++  it("never resolves an inherited object key", () => {
++    // Indexing the map with these reached Object.prototype, Object and built-in
++    // functions, which React then failed to render; the fallback glyph is the
++    // documented answer for anything not curated.
++    for (const name of ["__proto__", "constructor", "toString", "valueOf", "hasOwnProperty"]) {
++      expect(lookupPluginIcon(name), name).toBeUndefined();
++      expect(resolvePluginIcon(name), name).toBe(IconPuzzle);
++    }
++  });
++
+   it("returns undefined from lookupPluginIcon for unknown or missing names", () => {
+     expect(lookupPluginIcon("not-an-icon")).toBeUndefined();
+     expect(lookupPluginIcon(undefined)).toBeUndefined();
+diff --git a/apps/web/lib/plugins/icons.ts b/apps/web/lib/plugins/icons.ts
+index 8b82f0aaa..1538fa707 100644
+--- a/apps/web/lib/plugins/icons.ts
++++ b/apps/web/lib/plugins/icons.ts
+@@ -66,11 +66,11 @@ export function isPluginIconComponent(icon: unknown): icon is PluginIconComponen
+   if (typeof icon === "function") return true;
+   if (!icon || typeof icon !== "object") return false;
+   const tag = (icon as { $$typeof?: unknown }).$$typeof;
+-  return (
+-    tag === Symbol.for("react.forward_ref") ||
+-    tag === Symbol.for("react.memo") ||
+-    tag === Symbol.for("react.lazy")
+-  );
++  // Only the two tags that resolve synchronously: `lazy` cannot, so a menu
++  // icon built with it would leave the dropdown suspended or blank rather than
++  // showing the fallback glyph, and an element carries its own tag but is not
++  // a component.
++  return tag === Symbol.for("react.forward_ref") || tag === Symbol.for("react.memo");
+ }
+ 
+ /**
+@@ -82,7 +82,13 @@ export function isPluginIconComponent(icon: unknown): icon is PluginIconComponen
+  */
+ export function lookupPluginIcon(icon?: PluginIcon): ResolvedPluginIcon | undefined {
+   if (isPluginIconComponent(icon)) return icon;
+-  return typeof icon === "string" ? PLUGIN_ICONS[icon] : undefined;
++  // Own keys only: `PLUGIN_ICONS["__proto__"]` is `Object.prototype` and
++  // `["constructor"]` is `Object`, both of which React then fails to render,
++  // while `["toString"]` reaches a function that throws on render. The point of
++  // this lookup is the fallback glyph, so anything not curated maps to nothing.
++  return typeof icon === "string" && Object.hasOwn(PLUGIN_ICONS, icon)
++    ? PLUGIN_ICONS[icon]
++    : undefined;
+ }
+ 
+ /** Sidebar lookup: always renders something — unknown/missing names get the puzzle glyph. */
+diff --git a/docs/public/plugins-authoring.md b/docs/public/plugins-authoring.md
+index c1d6a5849..b912f87d7 100644
+--- a/docs/public/plugins-authoring.md
++++ b/docs/public/plugins-authoring.md
+@@ -102,12 +102,12 @@ directory.
+ 
+ ## Choose a plugin shape
+ 
+-| Shape             | Package contents                                           | Typical contract                                                        | Minimal capability set                                          |
+-| ----------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------- |
+-| Backend plugin    | Go binary and manifest                                     | events, webhooks, Host data, state, secrets, or utility-agent calls     | only the capabilities used by the backend                       |
+-| UI-focused plugin | no-op managed binary, ui/bundle.js, optional styles/assets | routes, nav, named slots, WebSocket handlers, keybindings, shared store | ui.bundle; add ui.keybindings when declaring shortcuts          |
+-| Combined plugin   | Go binary plus UI bundle                                   | UI calls a declared webhook or backend API; backend uses Host           | union of the two surfaces, kept least-privilege                 |
+-| Isolated web app  | manifest plus static HTML, CSS, JS, and assets             | task or workspace canvas inside a sandboxed iframe                      | only the Kandev data, event, state, and network access it needs |
++| Shape             | Package contents                                           | Typical contract                                                        | Minimal capability set                                 |
++| ----------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------ |
++| Backend plugin    | Go binary and manifest                                     | events, webhooks, Host data, state, secrets, or utility-agent calls     | only the capabilities used by the backend              |
++| UI-focused plugin | no-op managed binary, ui/bundle.js, optional styles/assets | routes, nav, named slots, WebSocket handlers, keybindings, shared store | ui.bundle; add ui.keybindings when declaring shortcuts |
++| Combined plugin   | Go binary plus UI bundle                                   | UI calls a declared webhook or backend API; backend uses Host           | union of the two surfaces, kept least-privilege        |
++| Isolated web app  | manifest plus static HTML, CSS, JS, and assets             | task or workspace canvas inside a sandboxed iframe                     | only the Kandev data, event, state, and network access it needs |
+ 
+ ## Build an isolated web application
+ 
+@@ -289,15 +289,15 @@ for the runtime boundary.
+ 
+ ## Storage decision table
+ 
+-| Need                                      | Use                                                                  | Scope/lifecycle                                                                                       | Capability or rule                                                                      |
+-| ----------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+-| Small JSON object owned by this plugin    | Host state: GetState, SetState, DeleteState, ListState               | instance, workspace, task, or agent; survives restart/upgrade and is included in Kandev state backups | capabilities.state: true; values are JSON objects, not bare scalars                     |
+-| Canvas app shared state                   | Relative `./_kandev/v1/state` protocol                               | Canvas instance; survives restart while the instance remains                                          | `state` grant, store app-specific shared values, not duplicate task data                |
+-| Per-user browser/plugin storage           | host.storage: get/set/delete/list/subscribe                          | instance, workspace, task, session, or repository, scoped per user                                    | capabilities.user_state: true; set/delete accept ifUnmodifiedSince and writerId         |
+-| Temporary canvas app value                | JavaScript memory inside the iframe                                  | Current document only                                                                                 | Use browser storage for user-scoped client data; keep shared app values in canvas state |
+-| Operator configuration                    | Host.GetConfig and manifest config_schema                            | Plugin-owned settings; config changes restart an active subprocess                                    | Ungated GetConfig; secret fields arrive cleartext in the subprocess                     |
+-| Plugin-owned credentials                  | Host.GetSecret/SetSecret/DeleteSecret, or secret: true config fields | Encrypted Kandev vault, namespaced to this plugin                                                     | capabilities.secrets: true; never log values                                            |
+-| Files, caches, or plugin-managed database | KANDEV_PLUGIN_DATA_DIR                                               | Shared across versions, removed on uninstall                                                          | Write only below the injected directory; own schema, locking, and migrations            |
++| Need                                      | Use                                                                  | Scope/lifecycle                                                                                       | Capability or rule                                                              |
++| ----------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
++| Small JSON object owned by this plugin    | Host state: GetState, SetState, DeleteState, ListState               | instance, workspace, task, or agent; survives restart/upgrade and is included in Kandev state backups | capabilities.state: true; values are JSON objects, not bare scalars             |
++| Canvas app shared state                   | Relative `./_kandev/v1/state` protocol                              | Canvas instance; survives restart while the instance remains                 | `state` grant, store app-specific shared values, not duplicate task data       |
++| Per-user browser/plugin storage           | host.storage: get/set/delete/list/subscribe                          | instance, workspace, task, session, or repository, scoped per user                                    | capabilities.user_state: true; set/delete accept ifUnmodifiedSince and writerId |
++| Temporary canvas app value                | JavaScript memory inside the iframe                                  | Current document only                                                         | Use browser storage for user-scoped client data; keep shared app values in canvas state |
++| Operator configuration                    | Host.GetConfig and manifest config_schema                            | Plugin-owned settings; config changes restart an active subprocess                                    | Ungated GetConfig; secret fields arrive cleartext in the subprocess             |
++| Plugin-owned credentials                  | Host.GetSecret/SetSecret/DeleteSecret, or secret: true config fields | Encrypted Kandev vault, namespaced to this plugin                                                     | capabilities.secrets: true; never log values                                    |
++| Files, caches, or plugin-managed database | KANDEV_PLUGIN_DATA_DIR                                               | Shared across versions, removed on uninstall                                                          | Write only below the injected directory; own schema, locking, and migrations    |
+ 
+ Host state is not host.storage: Host state is plugin-scoped backend state with
+ no transaction primitive, so design updates to be idempotent; host.storage
+@@ -423,45 +423,45 @@ The turns hook follows the same scope and lifecycle rules, favorites remain
+ read-only and reactive, and `session.removed` retains visible rows while
+ closing future reads.
+ 
+-| Need               | Browser facade                                    | Go Host API                 |
+-| ------------------ | ------------------------------------------------- | --------------------------- |
+-| Surface            | `host.conversation` or `conversation.history`     | `host.Messages().List`      |
+-| Runtime            | Native UI bundle                                  | Plugin server process       |
+-| Data               | Sanitized browser DTOs and revision-bound updates | Typed paginated reader      |
+-| Forbidden shortcut | `host.store`, raw WS, `/api/v1`                   | Private application imports |
++| Need | Browser facade | Go Host API |
++| --- | --- | --- |
++| Surface | `host.conversation` or `conversation.history` | `host.Messages().List` |
++| Runtime | Native UI bundle | Plugin server process |
++| Data | Sanitized browser DTOs and revision-bound updates | Typed paginated reader |
++| Forbidden shortcut | `host.store`, raw WS, `/api/v1` | Private application imports |
+ 
+ ### Frontend hook/API matrix
+ 
+-| Surface                         | Location and input                                                                                                                                                                                                                                                                                                                                                                                    | Manifest requirement                                                   | Cleanup/lifecycle                                                                                                                                                                                                                                                                                                                                                                                         | Small example                                                                                                       |
+-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+-| registerRoute                   | registry.registerRoute(path, Component, options?); exact SPA path; options.topbar defaults to host chrome or false for full-bleed                                                                                                                                                                                                                                                                     | Active ui.bundle                                                       | Route is removed on disable/uninstall; use destroy for subscriptions                                                                                                                                                                                                                                                                                                                                      | registry.registerRoute("/acme", Page, { topbar: { title: "Acme" } })                                                |
+-| registerNavItem                 | { id, label, path, icon?, section? }; section is main, integrations, sidebar-footer (sidebar footer icon row, subject to an inline budget past which the item moves to the footer's overflow menu; and phone menu Utilities group, uncapped), or accepted-but-not-rendered settings                                                                                                                   | Active ui.bundle                                                       | Nav item is revoked and removed from desktop/phone navigation                                                                                                                                                                                                                                                                                                                                             | registry.registerNavItem({ id: "home", label: "Acme", path: "/acme", icon: "chart" })                               |
+-| registerSettingsRoute           | registerSettingsRoute(fullPath, Component) with an exact path under /settings/plugins/<id>/...; settings shell supplies chrome                                                                                                                                                                                                                                                                        | Active ui.bundle                                                       | Route is removed on disable/uninstall                                                                                                                                                                                                                                                                                                                                                                     | registry.registerSettingsRoute("/settings/plugins/acme/health", HealthPage)                                         |
+-| registerComponent               | registerComponent(slot, Component); component receives { slotProps?: unknown }                                                                                                                                                                                                                                                                                                                        | Active ui.bundle                                                       | Every registration is owner-tracked, error-isolated, and bulk-revoked                                                                                                                                                                                                                                                                                                                                     | registry.registerComponent("task-sidebar", Panel)                                                                   |
+-| registerWsHandler               | registerWsHandler(action, handler(payload)); receives actions bridged from lib/ws                                                                                                                                                                                                                                                                                                                     | Active ui.bundle                                                       | Handler is removed on disable/uninstall; tolerate duplicate/replayed actions                                                                                                                                                                                                                                                                                                                              | registry.registerWsHandler("acme.updated", renderUpdate)                                                            |
+-| registerKeybinding              | registerKeybinding(id, handler(event)); id must be declared in ui.keybindings; users can override the effective combo on the installed plugin detail page at **Settings > Plugins > `<plugin>`**                                                                                                                                                                                                      | ui.bundle and ui.keybindings[]                                         | Handler is removed on disable/uninstall; core shortcuts win, and editable targets are skipped unless that entry set ui.keybindings[].allow_in_editor                                                                                                                                                                                                                                                      | registry.registerKeybinding("open-panel", () => host.openModal(...))                                                |
+-| registerIntegrationSettings     | One provider-owned settings component with an optional action mounted in the detail header and the integrations index card                                                                                                                                                                                                                                                                            | Active ui.bundle                                                       | Registration is exclusive by id and revoked on unload; host owns workspace selection and settings navigation; component and action receive the routed `workspaceId`, and action receives its `surface`                                                                                                                                                                                                    | registry.registerIntegrationSettings({ id: "acme", Component, action: Toggle })                                     |
+-| registerTranslations            | Flat English fallback plus optional Kandev locale catalogs, isolated to this plugin's namespace                                                                                                                                                                                                                                                                                                       | Active ui.bundle                                                       | Catalogs are replaced atomically, removed on unload, and registry consumers invalidate when the host locale changes                                                                                                                                                                                                                                                                                       | registry.registerTranslations({ en: { settings: "Settings" }, "pt-pt": { settings: "Definições" } })                |
+-| registerRepositoryProvider      | Provider-owned paged/searchable repository list, URL match/inspect, branches, and optional native `createChangeRequest` transport                                                                                                                                                                                                                                                                     | ui.bundle and matching `repository_providers[]` id                     | Registration and in-flight callbacks are result-fenced on unload; host owns native task and Create PR UI                                                                                                                                                                                                                                                                                                  | registry.registerRepositoryProvider({ id: "acme", ...provider })                                                    |
+-| registerTaskAction              | Child action inside the task menu's native Link section                                                                                                                                                                                                                                                                                                                                               | Active ui.bundle                                                       | Action is revoked on unload; host supplies current task/workspace and desktop/mobile presentation                                                                                                                                                                                                                                                                                                         | registry.registerTaskAction({ id: "link-pr", placement: "link", ... })                                              |
+-| registerReviewProvider          | Normalized task reviews, workspace associations, unlink, and shared Review panel                                                                                                                                                                                                                                                                                                                      | ui.bundle and matching `repository_providers[]` id                     | Snapshots/subscriptions are owner-scoped and revoked on unload; host owns status chrome, indicators, unlink UI, and responsive Review placement                                                                                                                                                                                                                                                           | registry.registerReviewProvider({ id: "acme", ...reviews })                                                         |
+-| registerTaskPanel               | { id, title, titleKey?, icon?, Component, mobileEnabled?, visible?(context) }; adds a row to the task workspace's "+" (add panel) menu; Component receives { panelId, taskId, sessionId, sessionKind, presentation, conversation: { openMessage(messageId), history } }; `titleKey` is a plugin translation key with literal `title` fallback                                                         | Active ui.bundle                                                       | Panel renders behind its own error boundary with reactive localized titles; a throwing `visible` hides the item; handles are generation-bound and independently scoped, inert after unmount, identity change, disable, reload, or uninstall; `host.conversation` outside a panel returns stable empty state; desktop preserves layout identity on navigation and mobile uses the full-height Chat surface | registry.registerTaskPanel({ id: "notes", title: "Notes", titleKey: "panels.notes", Component: NotesPanel })        |
+-| registerTaskMenuAction          | { id, label, icon?, group: "edit" \| "primary", visible?(context), items?(context), run(context) }; "edit" is card-only inside Edit, while "primary" is a top-level item on cards and desktop/mobile task-row menus; a synchronous `items(context)` returning TaskMenuSubItemRegistration[] ({ id, label, icon?, disabled?, run(context) }) renders the action as a submenu of those children instead | Active ui.bundle                                                       | Action is revoked on disable/uninstall; a throwing/rejecting run is caught and logged; an items() that throws or yields nothing usable falls back to the flat item, and unusable children are dropped                                                                                                                                                                                                     | registry.registerTaskMenuAction({ id: "enhance", label: "Enhance", group: "primary", run: doEnhance })              |
+-| registerTaskFilter              | { id, label, getOptions(), matches(context, selected) }; adds a client-side, multi-select filter section to the kanban board's display dropdown, alongside Workflow/Repository                                                                                                                                                                                                                        | Active ui.bundle                                                       | Filter is revoked on disable/uninstall; selections are ephemeral (not persisted); matches is only called for a non-empty selection, and a throw is caught, logged, and treated as non-matching                                                                                                                                                                                                            | registry.registerTaskFilter({ id: "tags", label: "Tags", getOptions: listTagOptions, matches: taskHasSelectedTag }) |
+-| registerTaskListFacet           | { id, label, getValues({ taskId, workspaceId }), subscribe? }; adds page-local Sort and Group choices on `/tasks`                                                                                                                                                                                                                                                                                     | Active ui.bundle                                                       | Values apply only to the loaded page, callbacks are isolated, and registrations are revoked on disable/unload                                                                                                                                                                                                                                                                                             | registry.registerTaskListFacet({ id: "tags", label: "Tag", getValues: taskTags })                                   |
+-| host.React / host.jsx           | Shared React instance and React.createElement alias                                                                                                                                                                                                                                                                                                                                                   | Active ui.bundle                                                       | No cleanup; never bundle a second React/Radix runtime                                                                                                                                                                                                                                                                                                                                                     | const h = host.jsx                                                                                                  |
+-| host.context                    | Versioned provider-neutral reads/subscriptions for active workspace, all workspace ids, native task creation, and exact provider repository identity                                                                                                                                                                                                                                                  | Active ui.bundle                                                       | Subscriptions are generation-owned and revoked on unload; records are stable SDK shapes, not private app state                                                                                                                                                                                                                                                                                            | const ids = host.context.getWorkspaceIds()                                                                          |
+-| host.useSettingsSaveContributor | Registers one plugin-owned contributor for the native save bar; the host prefixes ids with `plugin:<pluginId>:` before shared coordination                                                                                                                                                                                                                                                            | Active ui.bundle                                                       | Contributor lifecycle follows the rendering component; save and discard remain plugin-owned                                                                                                                                                                                                                                                                                                               | host.useSettingsSaveContributor({ id: "credentials", revision, isDirty, save, discard })                            |
+-| host.setIntegrationEnabled      | Publishes one registration's live enabled value for one workspace; the value is reactive but not durable                                                                                                                                                                                                                                                                                              | Active ui.bundle                                                       | The host validates that `integrationId` belongs to this plugin; republish after load using `host.context.getWorkspaceIds()` and `subscribeWorkspaces()`                                                                                                                                                                                                                                                   | host.setIntegrationEnabled("acme", workspaceId, enabled)                                                            |
+-| host.i18n                       | Plugin-scoped `locale`, imperative `t(key, options?)`, and reactive `useTranslation()`                                                                                                                                                                                                                                                                                                                | A registered English catalog                                           | Locale changes re-render reactive consumers; missing active-locale messages fall back to the plugin's English catalog                                                                                                                                                                                                                                                                                     | const { t } = host.i18n.useTranslation(); t("pullRequests")                                                         |
+-| host.store (legacy)             | Compatibility-only access to Kandev's private Zustand store; intentionally absent from `@kandev/plugin-sdk`                                                                                                                                                                                                                                                                                           | Older ui.bundle                                                        | Do not use in new or official plugins; private slices may change without plugin-API compatibility                                                                                                                                                                                                                                                                                                         | Migrate reads to host.context                                                                                       |
+-| host.api.fetch / baseUrl        | fetch(path, init?) is scoped to /api/plugins/<id>/...; baseUrl is the backend origin for split-origin deployments                                                                                                                                                                                                                                                                                     | Active ui.bundle; backend path must be a declared webhook when relayed | Declare `webhooks[].access: authenticated` for UI-only or billable operations; requests are generation-aborted on unload                                                                                                                                                                                                                                                                                  | host.api.fetch("webhooks/inbound", { method: "POST" })                                                              |
+-| host.api.invokeAction           | Authenticated call to a declared action with host-verified workspace/task/session/repository selectors and bounded untrusted body                                                                                                                                                                                                                                                                     | Matching manifest `actions[]` key/scope                                | Browser abort cancels the bounded plugin RPC; safe domain statuses and `Retry-After` may be returned                                                                                                                                                                                                                                                                                                      | host.api.invokeAction("reviews.get", { taskId }, { signal })                                                        |
+-| host.storage                    | Authenticated, per-user key/value storage: get(scope, scopeId, key, options?)/set(scope, scopeId, key, value, options?)/delete(scope, scopeId, key, options?)/list(scope, scopeId, options?) plus subscribe(filter, handler); no plugin backend required                                                                                                                                              | capabilities.user_state: true                                          | Reads and writes accept an AbortSignal; set/delete also accept writerId (appended to the host's per-tab id, not a replacement) for echo suppression; list returns every entry under the scope pair, unpaginated                                                                                                                                                                                           | host.storage.set("task", taskId, "note", value, { writerId: panelId, signal })                                      |
+-| host.ui                         | Curated host instances: Alert*, Badge, Button, Card*, Checkbox, Dialog*, DropdownMenu*, Input, Label, Pagination*, ScrollArea, Select*, Separator, Sheet*, Skeleton, Spinner, Switch, Table*, Tabs*, Textarea, Tooltip*, RichTextEditor, RichTextReadOnly, plus Combobox, PageTopbar, TaskCreateDialog                                                                                                | Active ui.bundle                                                       | Host owns contexts/portals; render with host React and let modal/slot cleanup run                                                                                                                                                                                                                                                                                                                         | const Button = host.ui.Button                                                                                       |
+-| host.theme                      | Current "light" or "dark" theme                                                                                                                                                                                                                                                                                                                                                                       | Active ui.bundle                                                       | Read during render; subscribe through host/app patterns if theme-sensitive                                                                                                                                                                                                                                                                                                                                | host.theme === "dark"                                                                                               |
+-| host.navigate                   | Soft SPA navigation navigate(href, { replace? })                                                                                                                                                                                                                                                                                                                                                      | Active ui.bundle                                                       | No registry cleanup; avoid navigating to undeclared external origins                                                                                                                                                                                                                                                                                                                                      | host.navigate("/t/" + taskId)                                                                                       |
+-| host.openModal                  | Host-owned modal: { title?, content, size?, dismissible? } -> { close() }                                                                                                                                                                                                                                                                                                                             | Active ui.bundle                                                       | Modal auto-closes on disable/uninstall; close handles are idempotent                                                                                                                                                                                                                                                                                                                                      | const modal = host.openModal({ content: Panel })                                                                    |
++| Surface                         | Location and input                                                                                                                                                                                                                                                                                     | Manifest requirement                                                   | Cleanup/lifecycle                                                                                                                                                                                               | Small example                                                                                                       |
++| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
++| registerRoute                   | registry.registerRoute(path, Component, options?); exact SPA path; options.topbar defaults to host chrome or false for full-bleed                                                                                                                                                                      | Active ui.bundle                                                       | Route is removed on disable/uninstall; use destroy for subscriptions                                                                                                                                            | registry.registerRoute("/acme", Page, { topbar: { title: "Acme" } })                                                |
++| registerNavItem                 | { id, label, path, icon?, section? }; section is main, integrations, sidebar-footer (sidebar footer icon row, subject to an inline budget past which the item moves to the footer's overflow menu; and phone menu Utilities group, uncapped), or accepted-but-not-rendered settings                    | Active ui.bundle                                                       | Nav item is revoked and removed from desktop/phone navigation                                                                                                                                                   | registry.registerNavItem({ id: "home", label: "Acme", path: "/acme", icon: "chart" })                               |
++| registerSettingsRoute           | registerSettingsRoute(fullPath, Component) with an exact path under /settings/plugins/<id>/...; settings shell supplies chrome                                                                                                                                                                         | Active ui.bundle                                                       | Route is removed on disable/uninstall                                                                                                                                                                           | registry.registerSettingsRoute("/settings/plugins/acme/health", HealthPage)                                         |
++| registerComponent               | registerComponent(slot, Component); component receives { slotProps?: unknown }                                                                                                                                                                                                                         | Active ui.bundle                                                       | Every registration is owner-tracked, error-isolated, and bulk-revoked                                                                                                                                           | registry.registerComponent("task-sidebar", Panel)                                                                   |
++| registerWsHandler               | registerWsHandler(action, handler(payload)); receives actions bridged from lib/ws                                                                                                                                                                                                                      | Active ui.bundle                                                       | Handler is removed on disable/uninstall; tolerate duplicate/replayed actions                                                                                                                                    | registry.registerWsHandler("acme.updated", renderUpdate)                                                            |
++| registerKeybinding              | registerKeybinding(id, handler(event)); id must be declared in ui.keybindings; users can override the effective combo on the installed plugin detail page at **Settings > Plugins > `<plugin>`**                                                                                                       | ui.bundle and ui.keybindings[]                                         | Handler is removed on disable/uninstall; core shortcuts win, and editable targets are skipped unless that entry set ui.keybindings[].allow_in_editor                                                            | registry.registerKeybinding("open-panel", () => host.openModal(...))                                                |
++| registerIntegrationSettings     | One provider-owned settings component with an optional action mounted in the detail header and the integrations index card                                                                                                                                                                             | Active ui.bundle                                                       | Registration is exclusive by id and revoked on unload; host owns workspace selection and settings navigation; component and action receive the routed `workspaceId`, and action receives its `surface`          | registry.registerIntegrationSettings({ id: "acme", Component, action: Toggle })                                     |
++| registerTranslations            | Flat English fallback plus optional Kandev locale catalogs, isolated to this plugin's namespace                                                                                                                                                                                                        | Active ui.bundle                                                       | Catalogs are replaced atomically, removed on unload, and registry consumers invalidate when the host locale changes                                                                                             | registry.registerTranslations({ en: { settings: "Settings" }, "pt-pt": { settings: "Definições" } })                |
++| registerRepositoryProvider      | Provider-owned paged/searchable repository list, URL match/inspect, branches, and optional native `createChangeRequest` transport                                                                                                                                                                      | ui.bundle and matching `repository_providers[]` id                     | Registration and in-flight callbacks are result-fenced on unload; host owns native task and Create PR UI                                                                                                        | registry.registerRepositoryProvider({ id: "acme", ...provider })                                                    |
++| registerTaskAction              | Child action inside the task menu's native Link section                                                                                                                                                                                                                                                | Active ui.bundle                                                       | Action is revoked on unload; host supplies current task/workspace and desktop/mobile presentation                                                                                                               | registry.registerTaskAction({ id: "link-pr", placement: "link", ... })                                              |
++| registerReviewProvider          | Normalized task reviews, workspace associations, unlink, and shared Review panel                                                                                                                                                                                                                       | ui.bundle and matching `repository_providers[]` id                     | Snapshots/subscriptions are owner-scoped and revoked on unload; host owns status chrome, indicators, unlink UI, and responsive Review placement                                                                 | registry.registerReviewProvider({ id: "acme", ...reviews })                                                         |
++| registerTaskPanel               | { id, title, titleKey?, icon?, Component, mobileEnabled?, visible?(context) }; adds a row to the task workspace's "+" (add panel) menu; Component receives { panelId, taskId, sessionId, sessionKind, presentation, conversation: { openMessage(messageId), history } }; `titleKey` is a plugin translation key with literal `title` fallback | Active ui.bundle | Panel renders behind its own error boundary with reactive localized titles; a throwing `visible` hides the item; handles are generation-bound and independently scoped, inert after unmount, identity change, disable, reload, or uninstall; `host.conversation` outside a panel returns stable empty state; desktop preserves layout identity on navigation and mobile uses the full-height Chat surface | registry.registerTaskPanel({ id: "notes", title: "Notes", titleKey: "panels.notes", Component: NotesPanel }) |
++| registerTaskMenuAction          | { id, label, icon?, group: "edit" \| "primary", visible?(context), run(context) }; "edit" is card-only inside Edit, while "primary" is a flat item on cards and desktop/mobile task-row menus                                                                                                          | Active ui.bundle                                                       | Action is revoked on disable/uninstall; a throwing/rejecting run is caught and logged                                                                                                                           | registry.registerTaskMenuAction({ id: "enhance", label: "Enhance", group: "primary", run: doEnhance })              |
++| registerTaskFilter              | { id, label, getOptions(), matches(context, selected) }; adds a client-side, multi-select filter section to the kanban board's display dropdown, alongside Workflow/Repository                                                                                                                         | Active ui.bundle                                                       | Filter is revoked on disable/uninstall; selections are ephemeral (not persisted); matches is only called for a non-empty selection, and a throw is caught, logged, and treated as non-matching                  | registry.registerTaskFilter({ id: "tags", label: "Tags", getOptions: listTagOptions, matches: taskHasSelectedTag }) |
++| registerTaskListFacet           | { id, label, getValues({ taskId, workspaceId }), subscribe? }; adds page-local Sort and Group choices on `/tasks`                                                                                                                                                                                      | Active ui.bundle                                                       | Values apply only to the loaded page, callbacks are isolated, and registrations are revoked on disable/unload                                                                                                   | registry.registerTaskListFacet({ id: "tags", label: "Tag", getValues: taskTags })                                   |
++| host.React / host.jsx           | Shared React instance and React.createElement alias                                                                                                                                                                                                                                                    | Active ui.bundle                                                       | No cleanup; never bundle a second React/Radix runtime                                                                                                                                                           | const h = host.jsx                                                                                                  |
++| host.context                    | Versioned provider-neutral reads/subscriptions for active workspace, all workspace ids, native task creation, and exact provider repository identity                                                                                                                                                   | Active ui.bundle                                                       | Subscriptions are generation-owned and revoked on unload; records are stable SDK shapes, not private app state                                                                                                  | const ids = host.context.getWorkspaceIds()                                                                          |
++| host.useSettingsSaveContributor | Registers one plugin-owned contributor for the native save bar; the host prefixes ids with `plugin:<pluginId>:` before shared coordination                                                                                                                                                             | Active ui.bundle                                                       | Contributor lifecycle follows the rendering component; save and discard remain plugin-owned                                                                                                                     | host.useSettingsSaveContributor({ id: "credentials", revision, isDirty, save, discard })                            |
++| host.setIntegrationEnabled      | Publishes one registration's live enabled value for one workspace; the value is reactive but not durable                                                                                                                                                                                               | Active ui.bundle                                                       | The host validates that `integrationId` belongs to this plugin; republish after load using `host.context.getWorkspaceIds()` and `subscribeWorkspaces()`                                                         | host.setIntegrationEnabled("acme", workspaceId, enabled)                                                            |
++| host.i18n                       | Plugin-scoped `locale`, imperative `t(key, options?)`, and reactive `useTranslation()`                                                                                                                                                                                                                 | A registered English catalog                                           | Locale changes re-render reactive consumers; missing active-locale messages fall back to the plugin's English catalog                                                                                           | const { t } = host.i18n.useTranslation(); t("pullRequests")                                                         |
++| host.store (legacy)             | Compatibility-only access to Kandev's private Zustand store; intentionally absent from `@kandev/plugin-sdk`                                                                                                                                                                                            | Older ui.bundle                                                        | Do not use in new or official plugins; private slices may change without plugin-API compatibility                                                                                                               | Migrate reads to host.context                                                                                       |
++| host.api.fetch / baseUrl        | fetch(path, init?) is scoped to /api/plugins/<id>/...; baseUrl is the backend origin for split-origin deployments                                                                                                                                                                                      | Active ui.bundle; backend path must be a declared webhook when relayed | Declare `webhooks[].access: authenticated` for UI-only or billable operations; requests are generation-aborted on unload                                                                                        | host.api.fetch("webhooks/inbound", { method: "POST" })                                                              |
++| host.api.invokeAction           | Authenticated call to a declared action with host-verified workspace/task/session/repository selectors and bounded untrusted body                                                                                                                                                                      | Matching manifest `actions[]` key/scope                                | Browser abort cancels the bounded plugin RPC; safe domain statuses and `Retry-After` may be returned                                                                                                            | host.api.invokeAction("reviews.get", { taskId }, { signal })                                                        |
++| host.storage                    | Authenticated, per-user key/value storage: get(scope, scopeId, key, options?)/set(scope, scopeId, key, value, options?)/delete(scope, scopeId, key, options?)/list(scope, scopeId, options?) plus subscribe(filter, handler); no plugin backend required                                               | capabilities.user_state: true                                          | Reads and writes accept an AbortSignal; set/delete also accept writerId (appended to the host's per-tab id, not a replacement) for echo suppression; list returns every entry under the scope pair, unpaginated | host.storage.set("task", taskId, "note", value, { writerId: panelId, signal })                                      |
++| host.ui                         | Curated host instances: Alert*, Badge, Button, Card*, Checkbox, Dialog*, DropdownMenu*, Input, Label, Pagination*, ScrollArea, Select*, Separator, Sheet*, Skeleton, Spinner, Switch, Table*, Tabs*, Textarea, Tooltip*, RichTextEditor, RichTextReadOnly, plus Combobox, PageTopbar, TaskCreateDialog | Active ui.bundle                                                       | Host owns contexts/portals; render with host React and let modal/slot cleanup run                                                                                                                               | const Button = host.ui.Button                                                                                       |
++| host.theme                      | Current "light" or "dark" theme                                                                                                                                                                                                                                                                        | Active ui.bundle                                                       | Read during render; subscribe through host/app patterns if theme-sensitive                                                                                                                                      | host.theme === "dark"                                                                                               |
++| host.navigate                   | Soft SPA navigation navigate(href, { replace? })                                                                                                                                                                                                                                                       | Active ui.bundle                                                       | No registry cleanup; avoid navigating to undeclared external origins                                                                                                                                            | host.navigate("/t/" + taskId)                                                                                       |
++| host.openModal                  | Host-owned modal: { title?, content, size?, dismissible? } -> { close() }                                                                                                                                                                                                                              | Active ui.bundle                                                       | Modal auto-closes on disable/uninstall; close handles are idempotent                                                                                                                                            | const modal = host.openModal({ content: Panel })                                                                    |
+ 
+ ### Code-host integration surface map
+ 
+@@ -677,24 +677,24 @@ subscription vocabulary and wildcard rules are in the
+ 
+ ### Host API matrix
+ 
+-| Host surface          | Methods                                                                        | Required manifest capability | Notes                                                                                                                                                                                                                                                                                     |
+-| --------------------- | ------------------------------------------------------------------------------ | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+-| State                 | GetState, SetState, DeleteState, ListState                                     | state: true                  | Plugin-scoped JSON objects keyed by scope/scopeID/key; no transactions                                                                                                                                                                                                                    |
+-| Config                | GetConfig                                                                      | None                         | Reads this plugin's validated config_schema; secret fields are cleartext in the subprocess; config updates restart active plugins                                                                                                                                                         |
+-| Secrets               | RevealSecret, GetSecret, SetSecret, DeleteSecret                               | secrets: true                | Encrypted vault; plugin-owned keys are namespaced; never log values                                                                                                                                                                                                                       |
+-| Tasks                 | Tasks().List, Tasks().Get                                                      | api_read: tasks              | Typed DTOs and opaque pagination cursor                                                                                                                                                                                                                                                   |
+-| Tasks writes          | Tasks().Create, Tasks().Update, Tasks().Move                                   | api_write: tasks             | Implemented; routed through Kandev services so events/WS updates fire. Create and Update support priority. Update rejects a workflow step change; Move is the only path that moves a task between steps                                                                                   |
+-| Sessions              | Sessions().List, Sessions().CodeStats                                          | api_read: sessions           | Typed session and computed code-stat records                                                                                                                                                                                                                                              |
+-| Workspaces            | Workspaces().List                                                              | api_read: workspaces         | Instance-visible workspaces                                                                                                                                                                                                                                                               |
+-| Workflows             | Workflows().List, Workflows().ListSteps                                        | api_read: workflows          | List steps by workflow id                                                                                                                                                                                                                                                                 |
+-| Agent profiles        | AgentProfiles().List                                                           | api_read: agent_profiles     | Global agent profiles exposed by the Host data API                                                                                                                                                                                                                                        |
+-| Repositories          | Repositories().List                                                            | api_read: repositories       | List by workspace id                                                                                                                                                                                                                                                                      |
+-| Messages              | Messages().List                                                                | api_read: messages           | Historical user/agent content; Kandev system blocks are stripped                                                                                                                                                                                                                          |
+-| Message send          | Messages().Send                                                                | api_write: messages          | Sends a prompt to a task session and records plugin:<id> author                                                                                                                                                                                                                           |
+-| Interactions          | Interactions().ListPending, Interactions().Get                                 | api_read: interactions       | Durable record of agent requests still owed a human answer; Get resolves resolved ones too                                                                                                                                                                                                |
+-| Interaction responses | Interactions().RespondToPermission, .AnswerClarification, .CancelClarification | api_write: interactions      | Routed through the services the native UI drives; first terminal response wins                                                                                                                                                                                                            |
+-| Agent invocation      | InvokeUtilityAgent(ctx, prompt, options...)                                    | agent_invoke: true           | One-shot completion. No options, or an empty ProfileID, uses the current platform default. A non-empty ProfileID selects that exact eligible profile. An invalid explicit profile returns FailedPrecondition without fallback. The host does not read plugin configuration for selection. |
+-| Agent conversations   | AgentConversations(host): Ensure, Dispatch, Delete                             | agent_conversation: true     | Hidden workflowless ephemeral task/session per plugin, workspace, and conversation key; dispatch occurrence keys are durable and idempotent; uninstall removes every conversation owned by the plugin                                                                                     |
++| Host surface          | Methods                                                                        | Required manifest capability                                                | Notes                                                                                                                                                                                       |
++| --------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++| State                 | GetState, SetState, DeleteState, ListState                                     | state: true                                                                 | Plugin-scoped JSON objects keyed by scope/scopeID/key; no transactions                                                                                                                      |
++| Config                | GetConfig                                                                      | None                                                                        | Reads this plugin's validated config_schema; secret fields are cleartext in the subprocess; config updates restart active plugins                                                           |
++| Secrets               | RevealSecret, GetSecret, SetSecret, DeleteSecret                               | secrets: true                                                               | Encrypted vault; plugin-owned keys are namespaced; never log values                                                                                                                         |
++| Tasks                 | Tasks().List, Tasks().Get                                                      | api_read: tasks                                                             | Typed DTOs and opaque pagination cursor                                                                                                                                                     |
++| Tasks writes          | Tasks().Create, Tasks().Update, Tasks().Move                                   | api_write: tasks                                                            | Implemented; routed through Kandev services so events/WS updates fire. Create and Update support priority. Update rejects a workflow step change; Move is the only path that moves a task between steps                         |
++| Sessions              | Sessions().List, Sessions().CodeStats                                          | api_read: sessions                                                          | Typed session and computed code-stat records                                                                                                                                                |
++| Workspaces            | Workspaces().List                                                              | api_read: workspaces                                                        | Instance-visible workspaces                                                                                                                                                                 |
++| Workflows             | Workflows().List, Workflows().ListSteps                                        | api_read: workflows                                                         | List steps by workflow id                                                                                                                                                                   |
++| Agent profiles        | AgentProfiles().List                                                           | api_read: agent_profiles                                                    | Global agent profiles exposed by the Host data API                                                                                                                                          |
++| Repositories          | Repositories().List                                                            | api_read: repositories                                                      | List by workspace id                                                                                                                                                                        |
++| Messages              | Messages().List                                                                | api_read: messages                                                          | Historical user/agent content; Kandev system blocks are stripped                                                                                                                            |
++| Message send          | Messages().Send                                                                | api_write: messages                                                         | Sends a prompt to a task session and records plugin:<id> author                                                                                                                             |
++| Interactions          | Interactions().ListPending, Interactions().Get                                 | api_read: interactions                                                      | Durable record of agent requests still owed a human answer; Get resolves resolved ones too                                                                                                  |
++| Interaction responses | Interactions().RespondToPermission, .AnswerClarification, .CancelClarification | api_write: interactions                                                     | Routed through the services the native UI drives; first terminal response wins                                                                                                              |
++| Agent invocation      | InvokeUtilityAgent(ctx, prompt, options...)                                    | agent_invoke: true                                                          | One-shot completion. No options, or an empty ProfileID, uses the current platform default. A non-empty ProfileID selects that exact eligible profile. An invalid explicit profile returns FailedPrecondition without fallback. The host does not read plugin configuration for selection. |
++| Agent conversations   | AgentConversations(host): Ensure, Dispatch, Delete                             | agent_conversation: true                                                    | Hidden workflowless ephemeral task/session per plugin, workspace, and conversation key; dispatch occurrence keys are durable and idempotent; uninstall removes every conversation owned by the plugin |
+ 
+ The Go signatures, filters, DTOs, and pagination types live in
+ apps/backend/pkg/pluginsdk/host.go and data_types.go. api_write task/message
+@@ -2505,7 +2505,7 @@ Host reader because event queues are bounded and delivery is best-effort.
+ 
+ `registerTaskMenuAction` adds an item to native task menus. Group `"edit"` is
+ card-only and nests inside the kanban card's `Edit` submenu. Group `"primary"`
+-renders as a top-level item on cards and desktop/mobile task-row menus.
++renders as a flat top-level item on cards and desktop/mobile task-row menus.
+ `task-card-indicators` (see the named slots table) is the matching read-only
+ surface, rendered beside the PR status icon on every card. `task-card-tags`
+ is a sibling read-only surface with the same `slotProps` shape, mounted in its
 -- 
 2.53.0
 
