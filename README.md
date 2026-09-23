@@ -276,7 +276,7 @@ The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
 in the monorepo). That host change is not upstream yet -- it is open as
 kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, twenty-two commits against `kdlbs/kandev`:
+`contrib/kandev-plugin-submenus.patch`, twenty-three commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -362,6 +362,12 @@ kdlbs/kandev PR #3874 -- and ships here as
     instead of throwing out of the report, and a component icon must carry the
     payload React can call, so a plain object faking `$$typeof` falls back to
     the glyph instead of reaching `createElement`.
+23. `fix(plugins): make the icon guard total and the registry read defensive`
+    -- a class payload is refused (React cannot call a constructor as a
+    function component), the guard answers "no icon" for a throwing getter or
+    a cyclic wrapper instead of throwing through surfaces with no error
+    boundary, and `getTaskMenuActions` drops a registration it cannot read
+    instead of letting its getter escape during a card's render.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch

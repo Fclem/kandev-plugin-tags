@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/22] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/23] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/22] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/23] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/22] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/23] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/22] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/23] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/22] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/23] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/22] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/23] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/22] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/23] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/22] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/23] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/22] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/23] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/22] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/23] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/22] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/23] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/22] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/23] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2895,7 +2895,7 @@ index 8d5c33a90..c1d6a5849 100644
 From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:58:04 +0000
-Subject: [PATCH 13/22] fix(plugins): recognise component-object icons and
+Subject: [PATCH 13/23] fix(plugins): recognise component-object icons and
  escape child keys
 
 Two defects the PR owner found by rebuilding against this patch, both real:
@@ -3258,7 +3258,7 @@ index acaa9883b..8b82f0aaa 100644
 From fbce2e5d42ae5dac9b6dcdfc61574bcb65ed8a76 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:10:56 +0000
-Subject: [PATCH 14/22] fix(plugins): make child keys unforgeable and keep the
+Subject: [PATCH 14/23] fix(plugins): make child keys unforgeable and keep the
  native Edit item
 
 Round 4 filed two findings; both are fixed here.
@@ -3445,7 +3445,7 @@ index 91b4f7539..844e4e757 100644
 From 46b97e6cb98c9b9d14d2a9f02d07247c239ee43a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:15:52 +0000
-Subject: [PATCH 15/22] fix(plugins): drop lazy icons, encode key parts, and
+Subject: [PATCH 15/23] fix(plugins): drop lazy icons, encode key parts, and
  resolve own keys only
 
 Three findings from the PR owner's rounds, all on code this patch owns:
@@ -4107,7 +4107,7 @@ index c1d6a5849..b912f87d7 100644
 From 690b02dc94a3f40cb88d7c8ecc9a4ced16fefb00 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:25:38 +0000
-Subject: [PATCH 16/22] fix(plugins): force the flat Edit item over a prebuilt
+Subject: [PATCH 16/23] fix(plugins): force the flat Edit item over a prebuilt
  bundle
 
 Round 9 filed five findings; three were already fixed on this tree (the
@@ -4388,7 +4388,7 @@ index 87f972d29..60208a4d0 100644
 From f8f3f868c102a84a803ba9d66e102c2891a9dcef Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:30:03 +0000
-Subject: [PATCH 17/22] fix(plugins): encode key parts without throwing on a
+Subject: [PATCH 17/23] fix(plugins): encode key parts without throwing on a
  lone surrogate
 
 The PR owner's round 5 found that key building used `encodeURIComponent`,
@@ -4558,7 +4558,7 @@ index 09db20eb5..a8b2bec18 100644
 From 9d72bec03d28a62bbdc393877c976489aab5154d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:17:55 +0000
-Subject: [PATCH 18/22] docs(plugins): state the action-id uniqueness
+Subject: [PATCH 18/23] docs(plugins): state the action-id uniqueness
  requirement
 
 Round 5 of the host loop checked the key space against the freshly escaped
@@ -4639,7 +4639,7 @@ index 60208a4d0..348a05eae 100644
 From 98ce2665fab2c1ea5d01fd38c242877f8be81804 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:23:57 +0000
-Subject: [PATCH 19/22] fix(plugins): make the key escape injective
+Subject: [PATCH 19/23] fix(plugins): make the key escape injective
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -5112,7 +5112,7 @@ index c38bd8a33..620415a23 100644
 From 0f6a9ee9fb614a28ecaf5c7bef1752cf3fdfe90b Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:29:29 +0000
-Subject: [PATCH 20/22] test(plugins): pin the escaping's width independence
+Subject: [PATCH 20/23] test(plugins): pin the escaping's width independence
 
 The PR owner asked me to check the one property their own encoder got wrong
 last round: a per-code-unit hex escape with a two-digit minimum makes `%0`
@@ -5446,7 +5446,7 @@ index 000000000..f19f734fa
 From 9c6875639257a6387b5a572658703828cabfceba Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:32:13 +0000
-Subject: [PATCH 21/22] fix(plugins): resolve a child's icon inside the guard,
+Subject: [PATCH 21/23] fix(plugins): resolve a child's icon inside the guard,
  and finish the null docs
 
 Round 10 filed six findings; two were already fixed on a later revision (the
@@ -5656,7 +5656,7 @@ index b912f87d7..5b4acb00b 100644
 From acaea613a85beee26cbab475a2bda0af62ba0a9a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:37:31 +0000
-Subject: [PATCH 22/22] fix(plugins): stop the diagnostics and the icon guard
+Subject: [PATCH 22/23] fix(plugins): stop the diagnostics and the icon guard
  from throwing
 
 Round 6 filed five findings; two were already closed on a later revision (the
@@ -5859,6 +5859,291 @@ index 1538fa707..45d5aa066 100644
  }
  
  /**
+-- 
+2.53.0
+
+
+From cff1423f02593ea6fe610421502f697956809183 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Wed, 23 Sep 2026 07:04:53 +0000
+Subject: [PATCH 23/23] fix(plugins): make the icon guard total and the
+ registry read defensive
+
+Round 7 filed three MAJORs, all about a plugin object throwing where no
+boundary exists.
+
+- `isPluginIconComponent` accepted a `forward_ref` whose `render` was a class:
+  `typeof render === "function"` is true for a constructor, and React then
+  throws `Class constructor X cannot be invoked without 'new'` inside whatever
+  surface renders the icon. Component-shaped functions are now checked to be
+  callable (a class source is rejected), for the plain-function case too.
+- the guard was not total: it read `$$typeof`, `render` and `type` outside any
+  try, and `memo` recursion had no cycle guard, so `resolvePluginIcon({
+  get $$typeof() { throw } })` and a self-referential memo both threw through
+  callers that have no error boundary (nav, panels, drawers, integrations).
+  The walk is now total -- one try per level, a depth bound -- so every
+  malformed value answers "no icon" and falls back to the glyph.
+- `pluginRegistry.getTaskMenuActions` spread each raw registration into a new
+  object before the task-menu guards could see it, so a throwing getter on a
+  registration escaped from the registry itself, during a card's render.
+  Reading a registration now happens inside a per-entry catch: a malformed one
+  is dropped and logged, and the rest of the list is unaffected.
+
+Tests: a class payload, a hostile `$$typeof` getter, a cyclic memo wrapper,
+nested real wrappers, and a registry entry whose getter throws alongside a
+good one.
+---
+ apps/web/lib/plugins/icons.test.ts    | 59 +++++++++++++++++++-----
+ apps/web/lib/plugins/icons.ts         | 64 ++++++++++++++++++++-------
+ apps/web/lib/plugins/registry.test.ts | 30 +++++++++++++
+ apps/web/lib/plugins/registry.ts      | 26 +++++++++--
+ 4 files changed, 146 insertions(+), 33 deletions(-)
+
+diff --git a/apps/web/lib/plugins/icons.test.ts b/apps/web/lib/plugins/icons.test.ts
+index 41f2f2e21..00f4e64ee 100644
+--- a/apps/web/lib/plugins/icons.test.ts
++++ b/apps/web/lib/plugins/icons.test.ts
+@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
+ import { IconPuzzle, IconTicket } from "@tabler/icons-react";
+ import { isPluginIconComponent, lookupPluginIcon, resolvePluginIcon } from "./icons";
+ 
++const FORWARD_REF_TAG = Symbol.for("react.forward_ref");
++const MEMO_TAG = Symbol.for("react.memo");
++
+ describe("plugin icons", () => {
+   it("looks up a known icon name", () => {
+     expect(lookupPluginIcon("ticket")).toBe(IconTicket);
+@@ -39,22 +42,54 @@ describe("plugin icons", () => {
+     expect(isPluginIconComponent(null)).toBe(false);
+     expect(isPluginIconComponent("ticket")).toBe(false);
+   });
++});
++
++describe("plugin icons — hostile and wrapped values", () => {
++  it("rejects a class payload and stays total on hostile or cyclic wrappers", () => {
++    // React cannot call a class as a function component, and it cannot call a
++    // getter that throws or a wrapper that points at itself at all: every one
++    // of these has to answer "no icon" rather than throw out of a surface that
++    // has no boundary (nav, panels, drawers, integrations).
++    class ClassRender {
++      render() {
++        return null;
++      }
++    }
++    const forgedForwardRef = { $$typeof: FORWARD_REF_TAG, render: ClassRender };
++    const hostileTag = {
++      get $$typeof(): symbol {
++        throw new Error("tag getter");
++      },
++    };
++    const cyclic: { $$typeof: symbol; type?: unknown } = { $$typeof: MEMO_TAG };
++    cyclic.type = cyclic;
++
++    expect(isPluginIconComponent(forgedForwardRef)).toBe(false);
++    expect(isPluginIconComponent(ClassRender)).toBe(false);
++    expect(() => isPluginIconComponent(hostileTag)).not.toThrow();
++    expect(isPluginIconComponent(hostileTag)).toBe(false);
++    expect(() => isPluginIconComponent(cyclic)).not.toThrow();
++    expect(isPluginIconComponent(cyclic)).toBe(false);
++    expect(resolvePluginIcon(forgedForwardRef as unknown as string)).toBe(IconPuzzle);
++    expect(resolvePluginIcon(hostileTag as unknown as string)).toBe(IconPuzzle);
++    expect(resolvePluginIcon(cyclic as unknown as string)).toBe(IconPuzzle);
++    // Real wrappers still pass, nested included.
++    const Plain = () => createElement("svg");
++    const forward = forwardRef<SVGSVGElement>(() => createElement("svg"));
++    expect(isPluginIconComponent(memo(Plain))).toBe(true);
++    expect(isPluginIconComponent(memo(forward))).toBe(true);
++    expect(isPluginIconComponent(Plain)).toBe(true);
++  });
+ 
+   it("rejects an object that merely carries a component tag", () => {
+     // A plain object can fake `$$typeof`; without a payload React would call
+     // it and throw `Element type is invalid` instead of showing the glyph.
+-    expect(isPluginIconComponent({ $$typeof: Symbol.for("react.forward_ref") })).toBe(false);
+-    expect(isPluginIconComponent({ $$typeof: Symbol.for("react.memo") })).toBe(false);
+-    expect(isPluginIconComponent({ $$typeof: Symbol.for("react.forward_ref"), render: 1 })).toBe(
+-      false,
+-    );
+-    expect(isPluginIconComponent({ $$typeof: Symbol.for("react.memo"), type: {} })).toBe(false);
+-    expect(
+-      lookupPluginIcon({ $$typeof: Symbol.for("react.forward_ref") } as unknown as string),
+-    ).toBeUndefined();
+-    expect(resolvePluginIcon({ $$typeof: Symbol.for("react.memo") } as unknown as string)).toBe(
+-      IconPuzzle,
+-    );
++    expect(isPluginIconComponent({ $$typeof: FORWARD_REF_TAG })).toBe(false);
++    expect(isPluginIconComponent({ $$typeof: MEMO_TAG })).toBe(false);
++    expect(isPluginIconComponent({ $$typeof: FORWARD_REF_TAG, render: 1 })).toBe(false);
++    expect(isPluginIconComponent({ $$typeof: MEMO_TAG, type: {} })).toBe(false);
++    expect(lookupPluginIcon({ $$typeof: FORWARD_REF_TAG } as unknown as string)).toBeUndefined();
++    expect(resolvePluginIcon({ $$typeof: MEMO_TAG } as unknown as string)).toBe(IconPuzzle);
+     // The real shapes still pass.
+     const Plain = () => createElement("svg");
+     expect(isPluginIconComponent(memo(Plain))).toBe(true);
+diff --git a/apps/web/lib/plugins/icons.ts b/apps/web/lib/plugins/icons.ts
+index 45d5aa066..4437e3d6e 100644
+--- a/apps/web/lib/plugins/icons.ts
++++ b/apps/web/lib/plugins/icons.ts
+@@ -54,31 +54,61 @@ export const PLUGIN_ICONS: Record<string, TablerIcon> = {
+   users: IconUsers,
+ };
+ 
++/**
++ * Depth bound for the wrapper walk below: `memo(memo(forwardRef(...)))` is
++ * already exotic, and a self-referential wrapper would otherwise recurse until
++ * the stack runs out.
++ */
++const MAX_ICON_WRAPPER_DEPTH = 4;
++
++/**
++ * Whether a value is a function React can call as a component. A class
++ * constructor is a function too, but React cannot call one as a function
++ * component (`forwardRef` rejects a class outright at creation), so accepting
++ * it would move the failure into React's render -- `Class constructor X cannot
++ * be invoked without 'new'` -- where every caller of the resolver expects a
++ * glyph instead.
++ */
++function isRenderableFunction(value: unknown): boolean {
++  if (typeof value !== "function") return false;
++  return !/^\s*class[\s{]/.test(Function.prototype.toString.call(value));
++}
++
+ /**
+  * Whether a registration's icon is a plugin-owned component. React wraps
+- * `forwardRef`, `memo` and `lazy` components in an object carrying a `$$typeof`
+- * tag rather than a plain function, and `@tabler/icons-react` -- the set
++ * `forwardRef` and `memo` components in an object carrying a `$$typeof` tag
++ * rather than a plain function, and `@tabler/icons-react` -- the set
+  * `PLUGIN_ICONS` maps names onto, and the icons plugins copy -- builds every
+  * icon that way, so a guard that only tests `typeof icon === "function"`
+  * rejects the most common component shape a bundle can send.
++ *
++ * Total by construction, because callers pass plugin data straight through: a
++ * getter that throws, a wrapper cycle, a forged tag, a `lazy` (which cannot
++ * resolve synchronously) and a class payload all answer `false` rather than
++ * throwing, so the resolver can fall back to a glyph anywhere it is used --
++ * nav, panels, drawers and integrations call it outside any try/catch.
+  */
+ export function isPluginIconComponent(icon: unknown): icon is PluginIconComponent {
+-  if (typeof icon === "function") return true;
+-  if (!icon || typeof icon !== "object") return false;
+-  const tag = (icon as { $$typeof?: unknown }).$$typeof;
+-  // Only the two tags that resolve synchronously: `lazy` cannot, so a menu
+-  // icon built with it would leave the dropdown suspended or blank rather than
+-  // showing the fallback glyph, and an element carries its own tag but is not
+-  // a component. The tag alone is not enough -- a plain object can carry one --
+-  // so the payload has to look like the component React would call, or
+-  // `createElement` throws where this function's callers expect a glyph.
+-  if (tag === Symbol.for("react.forward_ref")) {
+-    return typeof (icon as { render?: unknown }).render === "function";
+-  }
+-  if (tag === Symbol.for("react.memo")) {
+-    return isPluginIconComponent((icon as { type?: unknown }).type);
++  return isIconComponent(icon, 0);
++}
++
++function isIconComponent(icon: unknown, depth: number): boolean {
++  try {
++    if (typeof icon === "function") return isRenderableFunction(icon);
++    if (!icon || typeof icon !== "object" || depth > MAX_ICON_WRAPPER_DEPTH) return false;
++    const tag = (icon as { $$typeof?: unknown }).$$typeof;
++    // Only the two tags that resolve synchronously, and only with a payload
++    // React would accept: the tag alone is something a plain object can carry.
++    if (tag === Symbol.for("react.memo")) {
++      return isIconComponent((icon as { type?: unknown }).type, depth + 1);
++    }
++    if (tag === Symbol.for("react.forward_ref")) {
++      return isRenderableFunction((icon as { render?: unknown }).render);
++    }
++    return false;
++  } catch {
++    return false;
+   }
+-  return false;
+ }
+ 
+ /**
+diff --git a/apps/web/lib/plugins/registry.test.ts b/apps/web/lib/plugins/registry.test.ts
+index 3c5d42ffa..5ea992068 100644
+--- a/apps/web/lib/plugins/registry.test.ts
++++ b/apps/web/lib/plugins/registry.test.ts
+@@ -359,6 +359,36 @@ describe("pluginRegistry — task panels and task menu actions", () => {
+     expect(pluginRegistry.getTaskMenuActions()).toHaveLength(2);
+   });
+ 
++  it("drops a task menu action whose registration cannot be read", () => {
++    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
++    const hostile = { id: "hostile", label: "Hostile", group: "primary", run: () => {} };
++    Object.defineProperty(hostile, "label", {
++      enumerable: true,
++      get() {
++        throw new Error("label getter");
++      },
++    });
++    const registry = pluginRegistry;
++    registry.forPlugin("plugin-hostile").registerTaskMenuAction(hostile as never);
++    registry
++      .forPlugin("plugin-good")
++      .registerTaskMenuAction({ id: "fine", label: "Fine", group: "primary", run: () => {} });
++
++    let actions: ReturnType<typeof registry.getTaskMenuActions> = [];
++    expect(() => {
++      actions = registry.getTaskMenuActions();
++    }).not.toThrow();
++
++    expect(actions.map((action) => `${action.pluginId}:${action.id}`)).toContain(
++      "plugin-good:fine",
++    );
++    expect(actions.some((action) => action.id === "hostile")).toBe(false);
++    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
++    consoleErrorSpy.mockRestore();
++    registry.unregisterPlugin("plugin-hostile");
++    registry.unregisterPlugin("plugin-good");
++  });
++
+   it("bulk-revokes task panels and task menu actions on unregisterPlugin", () => {
+     const scopedA = pluginRegistry.forPlugin("plugin-a");
+     const scopedB = pluginRegistry.forPlugin("plugin-b");
+diff --git a/apps/web/lib/plugins/registry.ts b/apps/web/lib/plugins/registry.ts
+index 6597b4132..9e60090ee 100644
+--- a/apps/web/lib/plugins/registry.ts
++++ b/apps/web/lib/plugins/registry.ts
+@@ -695,13 +695,31 @@ class PluginRegistryStore {
+     return entry ? { ...entry.value, pluginId: entry.pluginId } : undefined;
+   }
+ 
+-  /** Every registered task menu action, optionally filtered to one group. */
++  /**
++   * Every registered task menu action, optionally filtered to one group.
++   *
++   * Reading a registration copies its fields, and a plugin object may throw
++   * from a getter -- the registration types are a compile-time promise, not a
++   * runtime one. Because the consumers here render (a card menu is built during
++   * a card's render) and the board has no error boundary, one malformed
++   * registration is dropped and logged instead of taking the surface down.
++   */
+   getTaskMenuActions(
+     group?: TaskMenuActionRegistration["group"],
+   ): PluginTaskMenuActionRegistration[] {
+-    return this.taskMenuActions
+-      .filter((entry) => !group || entry.value.group === group)
+-      .map((entry) => ({ ...entry.value, pluginId: entry.pluginId }));
++    const actions: PluginTaskMenuActionRegistration[] = [];
++    for (const entry of this.taskMenuActions) {
++      try {
++        const action = { ...entry.value, pluginId: entry.pluginId };
++        if (!group || action.group === group) actions.push(action);
++      } catch (error: unknown) {
++        console.error(
++          `[plugins] task menu action registration from "${entry.pluginId}" could not be read`,
++          error,
++        );
++      }
++    }
++    return actions;
+   }
+ 
+   /** Every registered task filter, in registration order. */
 -- 
 2.53.0
 
