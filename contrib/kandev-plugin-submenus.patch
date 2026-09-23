@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/13] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/14] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/13] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/14] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/13] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/14] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/13] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/14] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/13] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/14] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/13] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/14] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/13] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/14] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/13] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/14] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/13] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/14] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/13] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/14] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/13] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/14] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/13] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/14] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2895,7 +2895,7 @@ index 8d5c33a90..c1d6a5849 100644
 From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:58:04 +0000
-Subject: [PATCH 13/13] fix(plugins): recognise component-object icons and
+Subject: [PATCH 13/14] fix(plugins): recognise component-object icons and
  escape child keys
 
 Two defects the PR owner found by rebuilding against this patch, both real:
@@ -3251,6 +3251,193 @@ index acaa9883b..8b82f0aaa 100644
    return typeof icon === "string" ? PLUGIN_ICONS[icon] : undefined;
  }
  
+-- 
+2.53.0
+
+
+From fbce2e5d42ae5dac9b6dcdfc61574bcb65ed8a76 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Wed, 23 Sep 2026 00:10:56 +0000
+Subject: [PATCH 14/14] fix(plugins): make child keys unforgeable and keep the
+ native Edit item
+
+Round 4 filed two findings; both are fixed here.
+
+- The `#`-delimited child key was still forgeable, because the action id
+  went into the key unescaped: an action id of `quick#x` produced the same
+  key as action `quick`'s child `x`. Every key part now escapes the
+  delimiter (`escapeKeyPart`), so a flat key cannot contain a raw `#` and a
+  child key's first `#` always separates the scope from a percent-encoded
+  id -- two actions cannot produce one key however their ids are chosen.
+  Action ids are read the way labels are (`readActionId`: a non-blank
+  string, else the entry is omitted and reported), and a test covers
+  exactly the colliding pair.
+- `buildEditMenuEntry` decided between the submenu and the flat Edit item
+  from the number of *visible* registrations, before entries that the host
+  cannot render were filtered out. A group "edit" registration with no
+  usable label therefore wrapped the native `Edit` item in a submenu with
+  nothing under it; the entries are now built and filtered first, so an
+  unusable list leaves the flat item alone. Test added.
+---
+ .../kanban-card-edit-submenu.test.tsx         | 20 +++++++++++++
+ .../components/kanban-card-edit-submenu.tsx   | 13 +++++---
+ .../plugins/task-menu-actions.test.tsx        | 21 +++++++++++++
+ .../components/plugins/task-menu-actions.ts   | 30 +++++++++++++++----
+ 4 files changed, 75 insertions(+), 9 deletions(-)
+
+diff --git a/apps/web/components/kanban-card-edit-submenu.test.tsx b/apps/web/components/kanban-card-edit-submenu.test.tsx
+index cf4b1b858..c2ad728e9 100644
+--- a/apps/web/components/kanban-card-edit-submenu.test.tsx
++++ b/apps/web/components/kanban-card-edit-submenu.test.tsx
+@@ -82,6 +82,26 @@ describe("buildEditMenuEntry — AC9 (plugin action registered)", () => {
+   });
+ });
+ 
++describe("buildEditMenuEntry — unusable edit registrations", () => {
++  it("stays the flat Edit item when every edit action is omitted", () => {
++    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
++    // A registration the menu cannot render contributes no child entry, so the
++    // native item must not grow a submenu around itself for nothing.
++    pluginRegistry.forPlugin(PLUGIN_ID).registerTaskMenuAction({
++      id: "blank-edit",
++      label: "   ",
++      group: "edit",
++      run: vi.fn(),
++    });
++
++    const entry = buildEditMenuEntry({ onEdit: vi.fn(), context: CONTEXT });
++
++    expect(entry.kind).toBe("item");
++    expect(entry.kind === "item" ? entry.label : undefined).toBe("Edit");
++    consoleErrorSpy.mockRestore();
++  });
++});
++
+ describe("buildEditMenuEntry — AC11 (run invoked with context, rejection caught, menu still closes)", () => {
+   it("invokes run(context) on select", async () => {
+     const run = vi.fn().mockResolvedValue(undefined);
+diff --git a/apps/web/components/kanban-card-edit-submenu.tsx b/apps/web/components/kanban-card-edit-submenu.tsx
+index 34fabdb30..53cd6939e 100644
+--- a/apps/web/components/kanban-card-edit-submenu.tsx
++++ b/apps/web/components/kanban-card-edit-submenu.tsx
+@@ -29,10 +29,17 @@ export function buildEditMenuEntry({
+   forceFlat?: boolean;
+ }): KanbanCardMenuEntry {
+   const pluginActions = forceFlat ? [] : visiblePluginMenuActions("edit", context);
++  // Built and filtered before deciding between the submenu and the flat item:
++  // an action the host cannot render (an unusable label or id) contributes no
++  // child entry, so a registration list that yields none must leave the native
++  // Edit item exactly as it is rather than wrapping it in an empty submenu.
++  const pluginEntries = pluginActions
++    .map((action) => pluginMenuEntry(action, context, disabled))
++    .filter((entry): entry is KanbanCardMenuEntry => entry !== null);
+ 
+   const icon = <IconPencil className="mr-2 h-4 w-4" />;
+ 
+-  if (pluginActions.length === 0) {
++  if (pluginEntries.length === 0) {
+     return {
+       kind: "item",
+       key: "edit",
+@@ -59,9 +66,7 @@ export function buildEditMenuEntry({
+         disabled: disabled || !onEdit,
+         onSelect: onEdit,
+       },
+-      ...pluginActions
+-        .map((action) => pluginMenuEntry(action, context, disabled))
+-        .filter((entry): entry is KanbanCardMenuEntry => entry !== null),
++      ...pluginEntries,
+     ],
+   };
+ }
+diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
+index f364ba261..a09eccb9c 100644
+--- a/apps/web/components/plugins/task-menu-actions.test.tsx
++++ b/apps/web/components/plugins/task-menu-actions.test.tsx
+@@ -386,6 +386,27 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+     expect((child.icon as { type?: unknown } | undefined)?.type).toBe(ForwardIcon);
+   });
+ 
++  it("keeps a flat key and a child key distinct when an id carries the delimiter", () => {
++    // The child delimiter is escaped in every key part, so an action whose id
++    // contains it (`quick#x`) can no longer spell another action's child key
++    // (`quick` + child `x`) -- which would hand cmdk two equal command ids.
++    registerAction({ id: "quick#x", label: "Flat" });
++    registerAction({ id: "quick", items: () => [{ id: "x", label: "Child", run: vi.fn() }] });
++
++    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).flatMap((entry) =>
++      entry.kind === "submenu"
++        ? [entry.key, ...entry.children.map((child) => child.key)]
++        : [entry.key],
++    );
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}-quick%23x`,
++      `plugin-primary-${PLUGIN_ID}-quick`,
++      `plugin-primary-${PLUGIN_ID}-quick#x`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length);
++  });
++
+   it("keeps two actions' child keys distinct when their ids concatenate alike", () => {
+     // Without the escaping, action `quick`'s child `pick-x` and action
+     // `quick-pick`'s child `x` both spell `plugin-primary-<id>-quick-pick-x`.
+diff --git a/apps/web/components/plugins/task-menu-actions.ts b/apps/web/components/plugins/task-menu-actions.ts
+index 91b4f7539..844e4e757 100644
+--- a/apps/web/components/plugins/task-menu-actions.ts
++++ b/apps/web/components/plugins/task-menu-actions.ts
+@@ -76,6 +76,21 @@ function logMenuDefect(
+   console.error(`[plugins] task menu action "${action.pluginId}:${action.id}" ${kind}`, detail);
+ }
+ 
++/** A key part with the child-key delimiter escaped, so no id can forge one. */
++function escapeKeyPart(part: unknown): string {
++  return String(part).replace(/#/g, "%23");
++}
++
++/** The action's own id, read once and only when it is a non-blank string. */
++function readActionId(action: PluginTaskMenuActionRegistration): string | null {
++  try {
++    const { id } = action;
++    return typeof id === "string" && id.trim().length > 0 ? id : null;
++  } catch {
++    return null;
++  }
++}
++
+ /**
+  * The action's own label, read once and only when it is a non-blank string.
+  * A registration is plugin-authored data too, so a missing or hostile accessor
+@@ -255,8 +270,17 @@ export function pluginMenuEntry(
+     logMenuDefect(action, "registration has no usable label");
+     return null;
+   }
++  const actionId = readActionId(action);
++  if (actionId === null) {
++    logMenuDefect(action, "registration has no usable id");
++    return null;
++  }
+   const icon = readActionIcon(action);
+-  const key = `${keyPrefix}-${action.pluginId}-${action.id}`;
++  // Every id part escapes the child delimiter below, so a flat key can never
++  // contain a raw `#` and a child key's first `#` always separates the action
++  // scope from an id that is percent-encoded on top of that. Two actions can
++  // therefore no longer produce one key, however their ids are chosen.
++  const key = [keyPrefix, action.pluginId, actionId].map(escapeKeyPart).join("-");
+   const items = pluginSubItems(action, context);
+ 
+   if (items) {
+@@ -268,10 +292,6 @@ export function pluginMenuEntry(
+       disabled,
+       children: items.map((item) => ({
+         kind: "item",
+-        // The child's id is escaped and delimited: a plugin can pick ids that
+-        // concatenate exactly like another action's key plus its own id, and a
+-        // menu key -- and the command id the palette derives from it -- has to
+-        // stay unique.
+         key: `${key}#${encodeURIComponent(item.id)}`,
+         icon: pluginMenuIcon(item.icon),
+         label: item.label,
 -- 
 2.53.0
 

@@ -276,7 +276,7 @@ The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
 in the monorepo). That host change is not upstream yet -- it is open as
 kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, thirteen commits against `kdlbs/kandev`:
+`contrib/kandev-plugin-submenus.patch`, fourteen commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -320,6 +320,11 @@ kdlbs/kandev PR #3874 -- and ships here as
     a `forwardRef`/`memo`/`lazy` component icon (what every `@tabler` icon is)
     no longer drops its child, and a child's key delimits and escapes its id
     so two actions cannot produce one key.
+14. `fix(plugins): make child keys unforgeable and keep the native Edit item`
+    -- every key part escapes the delimiter, so even an action id carrying it
+    cannot spell another action's child key, and a group `edit` registration
+    the host cannot render no longer wraps the native `Edit` item in an empty
+    submenu.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch
