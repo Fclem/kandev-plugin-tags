@@ -276,7 +276,7 @@ The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
 in the monorepo). That host change is not upstream yet -- it is open as
 kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, sixteen commits against `kdlbs/kandev`:
+`contrib/kandev-plugin-submenus.patch`, seventeen commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -334,6 +334,11 @@ kdlbs/kandev PR #3874 -- and ships here as
     `forceFlatEdit` outranks a prebuilt contribution bundle instead of being
     silently undone by it, and the API doc's fallback list no longer claims a
     partly broken array falls back whole.
+17. `fix(plugins): encode key parts without throwing on a lone surrogate` --
+    `encodeURIComponent` raises `URIError` on an unpaired surrogate, which a
+    truncated emoji in a plugin id produces and which would take the whole
+    kanban route down from inside a render; a non-throwing per-code-unit
+    encoder replaces it, and `disabled: null` now counts as absent.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch

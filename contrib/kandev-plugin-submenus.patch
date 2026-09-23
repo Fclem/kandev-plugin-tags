@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/16] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/17] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/16] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/17] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/16] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/17] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/16] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/17] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/16] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/17] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/16] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/17] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/16] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/17] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/16] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/17] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/16] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/17] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/16] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/17] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/16] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/17] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/16] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/17] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2895,7 +2895,7 @@ index 8d5c33a90..c1d6a5849 100644
 From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:58:04 +0000
-Subject: [PATCH 13/16] fix(plugins): recognise component-object icons and
+Subject: [PATCH 13/17] fix(plugins): recognise component-object icons and
  escape child keys
 
 Two defects the PR owner found by rebuilding against this patch, both real:
@@ -3258,7 +3258,7 @@ index acaa9883b..8b82f0aaa 100644
 From fbce2e5d42ae5dac9b6dcdfc61574bcb65ed8a76 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:10:56 +0000
-Subject: [PATCH 14/16] fix(plugins): make child keys unforgeable and keep the
+Subject: [PATCH 14/17] fix(plugins): make child keys unforgeable and keep the
  native Edit item
 
 Round 4 filed two findings; both are fixed here.
@@ -3445,7 +3445,7 @@ index 91b4f7539..844e4e757 100644
 From 46b97e6cb98c9b9d14d2a9f02d07247c239ee43a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:15:52 +0000
-Subject: [PATCH 15/16] fix(plugins): drop lazy icons, encode key parts, and
+Subject: [PATCH 15/17] fix(plugins): drop lazy icons, encode key parts, and
  resolve own keys only
 
 Three findings from the PR owner's rounds, all on code this patch owns:
@@ -4107,7 +4107,7 @@ index c1d6a5849..b912f87d7 100644
 From 690b02dc94a3f40cb88d7c8ecc9a4ced16fefb00 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:25:38 +0000
-Subject: [PATCH 16/16] fix(plugins): force the flat Edit item over a prebuilt
+Subject: [PATCH 16/17] fix(plugins): force the flat Edit item over a prebuilt
  bundle
 
 Round 9 filed five findings; three were already fixed on this tree (the
@@ -4381,6 +4381,175 @@ index 87f972d29..60208a4d0 100644
  throwing getter or a Proxy fails that child rather than the card's render;
  unusable children are dropped when others remain, duplicate ids keep their
  first occurrence, and each defect is logged once per action and kind rather
+-- 
+2.53.0
+
+
+From cda23707fcbde2ac050dca3b95076c1ac52f0a61 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Wed, 23 Sep 2026 00:30:03 +0000
+Subject: [PATCH 17/17] fix(plugins): encode key parts without throwing on a
+ lone surrogate
+
+The PR owner's round 5 found that key building used `encodeURIComponent`,
+which raises `URIError: URI malformed` on an unpaired surrogate -- and
+truncated astral text is ordinary plugin data (`name.slice(0, n)` on an
+emoji, `label[0]`). These keys are built during a card's render, and the
+board has no error boundary, so one such id would replace the whole kanban
+route with the fallback; a lone surrogate is a non-blank string, so the
+`readActionId` guard does not catch it.
+
+`encodeKeyPart` escapes every code unit outside `encodeURIComponent`'s
+unreserved set, `%` included. It cannot throw, it is injective as a
+function of the input's code units (so a lone surrogate stays distinct from
+any other id, and an id that merely *looks* percent-encoded cannot collide
+with the id it spells), and it keeps both raw delimiters out of an id.
+Reproduced first: restoring `encodeURIComponent` makes the new test fail
+with `URIError: URI malformed`.
+
+Also treats `disabled: null` as absent, matching `icon: null`: both are the
+idiomatic "not set" a JavaScript bundle sends, and only a real type
+mismatch should drop the child.
+---
+ .../plugins/task-menu-actions.test.tsx        | 57 +++++++++++++++++++
+ .../components/plugins/task-menu-actions.ts   | 27 +++++++--
+ 2 files changed, 80 insertions(+), 4 deletions(-)
+
+diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
+index faac3613c..99382306e 100644
+--- a/apps/web/components/plugins/task-menu-actions.test.tsx
++++ b/apps/web/components/plugins/task-menu-actions.test.tsx
+@@ -337,6 +337,25 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+     consoleErrorSpy.mockRestore();
+   });
+ 
++  it("treats a null icon or disabled as absent rather than unusable", () => {
++    registerAction({
++      id: "null-optionals",
++      items: () => [
++        { id: "null-icon", label: "Null icon", icon: null, run: vi.fn() },
++        { id: "null-disabled", label: "Null disabled", disabled: null, run: vi.fn() },
++      ],
++    });
++
++    const entry = buildPrimaryPluginEntries({ context: CONTEXT })[0];
++
++    expect(entry.kind).toBe("submenu");
++    if (entry.kind !== "submenu") return;
++    expect(entry.children.map((child) => child.key)).toEqual([
++      `plugin-primary-${PLUGIN_ID}%null-optionals#null-icon`,
++      `plugin-primary-${PLUGIN_ID}%null-optionals#null-disabled`,
++    ]);
++  });
++
+   it("keeps a child with an absent or null icon and drops an unusable one", () => {
+     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+     registerAction({
+@@ -409,6 +428,44 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+ });
+ 
+ describe("buildPrimaryPluginEntries — key uniqueness", () => {
++  it("builds a key for a lone surrogate instead of throwing", () => {
++    // encodeURIComponent raises URIError on an unpaired surrogate, which
++    // `name.slice(0, n)` on an emoji produces; these keys are built during the
++    // card's render, so a throw would take the whole board down.
++    const lone = "\ud83c";
++    registerAction({ id: lone, label: "Lone surrogate" });
++    registerAction({ id: "with-child", items: () => [{ id: lone, label: "Child", run: vi.fn() }] });
++
++    const entries = buildPrimaryPluginEntries({ context: CONTEXT });
++    const keys = entries.flatMap((entry) =>
++      entry.kind === "submenu"
++        ? [entry.key, ...entry.children.map((child) => child.key)]
++        : [entry.key],
++    );
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}%%D83C`,
++      `plugin-primary-${PLUGIN_ID}%with-child`,
++      `plugin-primary-${PLUGIN_ID}%with-child#%D83C`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length, "a lone surrogate stays distinct from other ids");
++  });
++
++  it("keeps a percent-encoded id distinct from the id it spells", () => {
++    // The encoder escapes `%` itself, so an id that looks like an escape
++    // sequence cannot collide with the id it would decode to.
++    registerAction({ id: "a%23b", label: "Encoded-looking" });
++    registerAction({ id: "a#b", label: "Delimiter" });
++
++    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}%a%2523b`,
++      `plugin-primary-${PLUGIN_ID}%a%23b`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length);
++  });
++
+   it("keeps two plugins' keys distinct when their id parts concatenate alike", () => {
+     // Plugin `p` + action `q-x` and plugin `p-q` + action `x` joined to one key
+     // under the old dash separator, which is a duplicate React key and one cmdk
+diff --git a/apps/web/components/plugins/task-menu-actions.ts b/apps/web/components/plugins/task-menu-actions.ts
+index 09db20eb5..a8b2bec18 100644
+--- a/apps/web/components/plugins/task-menu-actions.ts
++++ b/apps/web/components/plugins/task-menu-actions.ts
+@@ -76,6 +76,25 @@ function logMenuDefect(
+   console.error(`[plugins] task menu action "${action.pluginId}:${action.id}" ${kind}`, detail);
+ }
+ 
++/**
++ * Percent-encodes one part of a menu key. `encodeURIComponent` cannot be used
++ * here: it raises `URIError` on a lone surrogate, which ordinary plugin data
++ * reaches (`name.slice(0, n)` on an emoji, a truncated astral glyph), and
++ * these keys are built during the card's render -- with no error boundary on
++ * the board, one registration would replace the whole route with the fallback.
++ *
++ * Escaping every code unit outside `encodeURIComponent`'s unreserved set --
++ * `%` included -- is both non-throwing and injective, and keeps the raw
++ * delimiters (`#`, `%`) out of an id. Keys are opaque (React keys, cmdk
++ * values); nothing percent-decodes them, so per-code-unit escapes are fine.
++ */
++function encodeKeyPart(part: string): string {
++  return part.replace(
++    /[^A-Za-z0-9\-_.!~*'()]/g,
++    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
++  );
++}
++
+ /** The action's own id, read once and only when it is a non-blank string. */
+ function readActionId(action: PluginTaskMenuActionRegistration): string | null {
+   try {
+@@ -147,9 +166,9 @@ function readSubItem(item: unknown): SubItemSnapshot | null {
+     if (typeof id !== "string" || id.trim().length === 0) return null;
+     if (typeof label !== "string" || label.trim().length === 0) return null;
+     if (typeof run !== "function") return null;
+-    if (disabled !== undefined && typeof disabled !== "boolean") return null;
++    if (disabled != null && typeof disabled !== "boolean") return null;
+     if (!isUsableIconShape(icon)) return null;
+-    return { id, label, icon: icon ?? undefined, disabled, run };
++    return { id, label, icon: icon ?? undefined, disabled: disabled ?? undefined, run };
+   } catch {
+     return null;
+   }
+@@ -277,7 +296,7 @@ export function pluginMenuEntry(
+   // key is also the palette row's id (cmdk's value). The child id below is
+   // encoded after `#`, which an encoded id cannot contain, so a child key can
+   // never equal a flat action's key either.
+-  const key = `${keyPrefix}-${encodeURIComponent(action.pluginId)}%${encodeURIComponent(actionId)}`;
++  const key = `${keyPrefix}-${encodeKeyPart(action.pluginId)}%${encodeKeyPart(actionId)}`;
+   const items = pluginSubItems(action, context);
+ 
+   if (items) {
+@@ -289,7 +308,7 @@ export function pluginMenuEntry(
+       disabled,
+       children: items.map((item) => ({
+         kind: "item",
+-        key: `${key}#${encodeURIComponent(item.id)}`,
++        key: `${key}#${encodeKeyPart(item.id)}`,
+         icon: pluginMenuIcon(item.icon),
+         label: item.label,
+         disabled: disabled || item.disabled,
 -- 
 2.53.0
 
