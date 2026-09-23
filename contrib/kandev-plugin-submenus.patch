@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/18] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/19] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/18] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/19] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/18] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/19] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/18] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/19] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/18] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/19] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/18] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/19] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/18] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/19] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/18] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/19] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/18] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/19] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/18] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/19] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/18] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/19] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/18] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/19] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2895,7 +2895,7 @@ index 8d5c33a90..c1d6a5849 100644
 From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:58:04 +0000
-Subject: [PATCH 13/18] fix(plugins): recognise component-object icons and
+Subject: [PATCH 13/19] fix(plugins): recognise component-object icons and
  escape child keys
 
 Two defects the PR owner found by rebuilding against this patch, both real:
@@ -3258,7 +3258,7 @@ index acaa9883b..8b82f0aaa 100644
 From fbce2e5d42ae5dac9b6dcdfc61574bcb65ed8a76 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:10:56 +0000
-Subject: [PATCH 14/18] fix(plugins): make child keys unforgeable and keep the
+Subject: [PATCH 14/19] fix(plugins): make child keys unforgeable and keep the
  native Edit item
 
 Round 4 filed two findings; both are fixed here.
@@ -3445,7 +3445,7 @@ index 91b4f7539..844e4e757 100644
 From 46b97e6cb98c9b9d14d2a9f02d07247c239ee43a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:15:52 +0000
-Subject: [PATCH 15/18] fix(plugins): drop lazy icons, encode key parts, and
+Subject: [PATCH 15/19] fix(plugins): drop lazy icons, encode key parts, and
  resolve own keys only
 
 Three findings from the PR owner's rounds, all on code this patch owns:
@@ -4107,7 +4107,7 @@ index c1d6a5849..b912f87d7 100644
 From 690b02dc94a3f40cb88d7c8ecc9a4ced16fefb00 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:25:38 +0000
-Subject: [PATCH 16/18] fix(plugins): force the flat Edit item over a prebuilt
+Subject: [PATCH 16/19] fix(plugins): force the flat Edit item over a prebuilt
  bundle
 
 Round 9 filed five findings; three were already fixed on this tree (the
@@ -4388,7 +4388,7 @@ index 87f972d29..60208a4d0 100644
 From f8f3f868c102a84a803ba9d66e102c2891a9dcef Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:30:03 +0000
-Subject: [PATCH 17/18] fix(plugins): encode key parts without throwing on a
+Subject: [PATCH 17/19] fix(plugins): encode key parts without throwing on a
  lone surrogate
 
 The PR owner's round 5 found that key building used `encodeURIComponent`,
@@ -4558,7 +4558,7 @@ index 09db20eb5..a8b2bec18 100644
 From 9d72bec03d28a62bbdc393877c976489aab5154d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:17:55 +0000
-Subject: [PATCH 18/18] docs(plugins): state the action-id uniqueness
+Subject: [PATCH 18/19] docs(plugins): state the action-id uniqueness
  requirement
 
 Round 5 of the host loop checked the key space against the freshly escaped
@@ -4632,6 +4632,479 @@ index 60208a4d0..348a05eae 100644
    id: string;
    label: string;
    icon?: PluginIcon;
+-- 
+2.53.0
+
+
+From 98ce2665fab2c1ea5d01fd38c242877f8be81804 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Wed, 23 Sep 2026 06:23:57 +0000
+Subject: [PATCH 19/19] fix(plugins): make the key escape injective
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Round 11 found two collisions the previous encoder could not prevent, both
+reachable with ordinary ids:
+
+- variable-width hex: a raw U+25E9 and the three characters `%E9` both
+  encoded to `%25E9`, because a code unit under 0x100 emitted two hex digits
+  (`%E9`) while a larger one emitted four (`%25E9`);
+- a `%`-shaped separator: every escape starts with `%`, so plugin `p` with
+  action `E9é` and plugin `pé` with action `E9` both produced
+  `plugin-primary-p%E9%E9` -- the separator was indistinguishable from an
+  escape.
+
+The encoder escapes only the three characters a menu key gives meaning to --
+`%` first, so an escape already inside an id cannot alias one this adds, then
+`:`, then `#` -- and leaves everything else verbatim. That is injective and
+delimiter-free by construction (every `%` in the result starts one of exactly
+three escapes, so decoding is unambiguous, and neither `:` nor `#` survives raw
+in a part), it cannot throw on a lone surrogate the way `encodeURIComponent`
+does, and it keeps ids readable instead of opaque. The part separator is `:`
+now, and every key expectation in the menu, command, edit and facet test files
+follows it.
+
+Tests added for both reported pairs (`U+25E9` versus `%E9`, and the two-plugin
+`p`/`pé` pair), plus the existing lone-surrogate, `#`-bearing and child/action
+cases, all asserting distinctness rather than a single spelling.
+---
+ .../kanban-card-edit-submenu.test.tsx         |  2 +-
+ .../kanban-card-menu-grouping.test.tsx        |  6 +-
+ .../kanban-card-menu-items.test.tsx           |  6 +-
+ .../kanban-card-plugin-context.test.tsx       |  2 +-
+ .../kanban-card-plugin-entries.test.tsx       |  6 +-
+ .../plugins/task-menu-actions.test.tsx        | 85 ++++++++++++++-----
+ .../components/plugins/task-menu-actions.ts   | 31 ++++---
+ .../components/task-command-choices.test.tsx  |  8 +-
+ .../kanban/task-actions-menu-entries.test.ts  |  4 +-
+ 9 files changed, 94 insertions(+), 56 deletions(-)
+
+diff --git a/apps/web/components/kanban-card-edit-submenu.test.tsx b/apps/web/components/kanban-card-edit-submenu.test.tsx
+index 18947f80f..0fb5c931b 100644
+--- a/apps/web/components/kanban-card-edit-submenu.test.tsx
++++ b/apps/web/components/kanban-card-edit-submenu.test.tsx
+@@ -76,7 +76,7 @@ describe("buildEditMenuEntry — AC9 (plugin action registered)", () => {
+     if (entry.kind === "submenu") {
+       expect(entry.children.map((c) => c.key)).toEqual([
+         "edit-task",
+-        `plugin-edit-${PLUGIN_ID}%enhance`,
++        `plugin-edit-${PLUGIN_ID}:enhance`,
+       ]);
+     }
+   });
+diff --git a/apps/web/components/kanban-card-menu-grouping.test.tsx b/apps/web/components/kanban-card-menu-grouping.test.tsx
+index dd3015db6..d652c4696 100644
+--- a/apps/web/components/kanban-card-menu-grouping.test.tsx
++++ b/apps/web/components/kanban-card-menu-grouping.test.tsx
+@@ -58,7 +58,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+ 
+     const keys = entryKeys(entries);
+     const sendToIndex = keys.indexOf("send-to-workflow");
+-    const primaryIndex = keys.indexOf(`plugin-primary-${PLUGIN_ID}%${ACTION_ID}`);
++    const primaryIndex = keys.indexOf(`plugin-primary-${PLUGIN_ID}:${ACTION_ID}`);
+     const linkIndex = keys.indexOf("link");
+ 
+     expect(sendToIndex).toBeGreaterThanOrEqual(0);
+@@ -107,7 +107,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+       "move-to",
+       "send-to-workflow",
+       "plugins-separator",
+-      `plugin-primary-${PLUGIN_ID}%${ACTION_ID}`,
++      `plugin-primary-${PLUGIN_ID}:${ACTION_ID}`,
+       "remove-separator",
+       "archive",
+       "delete",
+@@ -119,7 +119,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+ 
+     const entries = buildKanbanCardMenuEntries({ workflows: [], stepsByWorkflowId: {} });
+ 
+-    expect(entryKeys(entries)).not.toContain(`plugin-primary-${PLUGIN_ID}%${ACTION_ID}`);
++    expect(entryKeys(entries)).not.toContain(`plugin-primary-${PLUGIN_ID}:${ACTION_ID}`);
+   });
+ 
+   it("leaves the 'edit' group submenu unaffected by 'primary' group registrations", () => {
+diff --git a/apps/web/components/kanban-card-menu-items.test.tsx b/apps/web/components/kanban-card-menu-items.test.tsx
+index ef77bde78..1a2582a90 100644
+--- a/apps/web/components/kanban-card-menu-items.test.tsx
++++ b/apps/web/components/kanban-card-menu-items.test.tsx
+@@ -213,7 +213,7 @@ describe("buildKanbanCardMenuEntries — !onEdit does not disable plugin edit ac
+       (child) => child.kind === "item" && child.key === "edit-task",
+     );
+     const pluginAction = editMenu.children.find(
+-      (child) => child.kind === "item" && child.key === `plugin-edit-${PLUGIN_ID}%enhance`,
++      (child) => child.kind === "item" && child.key === `plugin-edit-${PLUGIN_ID}:enhance`,
+     );
+ 
+     expect(editTask?.kind === "item" && editTask.disabled).toBe(true);
+@@ -261,7 +261,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+ 
+     const keys = entryKeys(entries);
+     const sendToIndex = keys.indexOf("send-to-workflow");
+-    const primaryIndex = keys.indexOf(`plugin-primary-${PLUGIN_ID}%quick-tag`);
++    const primaryIndex = keys.indexOf(`plugin-primary-${PLUGIN_ID}:quick-tag`);
+     const archiveIndex = keys.indexOf("archive");
+ 
+     expect(sendToIndex).toBeGreaterThanOrEqual(0);
+@@ -289,7 +289,7 @@ describe("buildKanbanCardMenuEntries — 'primary' group plugin actions", () =>
+ 
+     const entries = buildKanbanCardMenuEntries({ workflows: [], stepsByWorkflowId: {} });
+ 
+-    expect(entryKeys(entries)).not.toContain(`plugin-primary-${PLUGIN_ID}%quick-tag`);
++    expect(entryKeys(entries)).not.toContain(`plugin-primary-${PLUGIN_ID}:quick-tag`);
+   });
+ 
+   it("leaves the 'edit' group submenu unaffected by 'primary' group registrations", () => {
+diff --git a/apps/web/components/kanban-card-plugin-context.test.tsx b/apps/web/components/kanban-card-plugin-context.test.tsx
+index be1aa278c..979b8a748 100644
+--- a/apps/web/components/kanban-card-plugin-context.test.tsx
++++ b/apps/web/components/kanban-card-plugin-context.test.tsx
+@@ -27,7 +27,7 @@ async function invokePluginAction(presentation: "desktop" | "mobile") {
+   if (entry.kind !== "submenu") throw new Error("expected Edit submenu");
+   const action = entry.children.find(
+     (child) =>
+-      child.kind === "item" && child.key === `plugin-edit-${PLUGIN_ID}%action-${presentation}`,
++      child.kind === "item" && child.key === `plugin-edit-${PLUGIN_ID}:action-${presentation}`,
+   );
+   if (action?.kind !== "item") throw new Error("expected plugin action");
+ 
+diff --git a/apps/web/components/kanban-card-plugin-entries.test.tsx b/apps/web/components/kanban-card-plugin-entries.test.tsx
+index 0beece382..2596c86af 100644
+--- a/apps/web/components/kanban-card-plugin-entries.test.tsx
++++ b/apps/web/components/kanban-card-plugin-entries.test.tsx
+@@ -47,10 +47,10 @@ describe("buildCardPluginEntries", () => {
+ 
+     expect(items).toHaveBeenCalledTimes(1);
+     const fromDropdown = dropdown.find(
+-      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`,
++      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}:add-tag`,
+     );
+     const fromContext = contextMenu.find(
+-      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`,
++      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}:add-tag`,
+     );
+     expect(fromDropdown).toBeDefined();
+     expect(fromContext).toBe(fromDropdown);
+@@ -91,6 +91,6 @@ describe("buildCardPluginEntries", () => {
+     });
+ 
+     expect(items).toHaveBeenCalledTimes(1);
+-    expect(entries.some((entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`)).toBe(true);
++    expect(entries.some((entry) => entry.key === `plugin-primary-${PLUGIN_ID}:add-tag`)).toBe(true);
+   });
+ });
+diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
+index 659fe8016..843d1cedd 100644
+--- a/apps/web/components/plugins/task-menu-actions.test.tsx
++++ b/apps/web/components/plugins/task-menu-actions.test.tsx
+@@ -18,7 +18,7 @@ import { buildPrimaryPluginEntries } from "./task-menu-actions";
+ const PLUGIN_ID = "kandev-plugin-tags";
+ const ACTION_ID = "add-tag";
+ const ACTION_LABEL = "Add tag";
+-const ACTION_KEY = `plugin-primary-${PLUGIN_ID}%${ACTION_ID}`;
++const ACTION_KEY = `plugin-primary-${PLUGIN_ID}:${ACTION_ID}`;
+ 
+ const CONTEXT: PluginTaskMenuContext = {
+   workspaceId: "ws-1",
+@@ -310,7 +310,7 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%duplicated#dup`,
++      `plugin-primary-${PLUGIN_ID}:duplicated#dup`,
+     ]);
+     expect(consoleErrorSpy).toHaveBeenCalledWith(
+       expect.stringContaining("repeated a child id"),
+@@ -351,8 +351,8 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%null-optionals#null-icon`,
+-      `plugin-primary-${PLUGIN_ID}%null-optionals#null-disabled`,
++      `plugin-primary-${PLUGIN_ID}:null-optionals#null-icon`,
++      `plugin-primary-${PLUGIN_ID}:null-optionals#null-disabled`,
+     ]);
+   });
+ 
+@@ -373,8 +373,8 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%icon-shapes#null-icon`,
+-      `plugin-primary-${PLUGIN_ID}%icon-shapes#no-icon`,
++      `plugin-primary-${PLUGIN_ID}:icon-shapes#null-icon`,
++      `plugin-primary-${PLUGIN_ID}:icon-shapes#no-icon`,
+     ]);
+     // The two unusable shapes are one defect of the same kind: one report.
+     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+@@ -399,7 +399,7 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     const child = entry.children[0];
+-    expect(child.key).toBe(`plugin-primary-${PLUGIN_ID}%component-icon#child`);
++    expect(child.key).toBe(`plugin-primary-${PLUGIN_ID}:component-icon#child`);
+     expect(child.kind).toBe("item");
+     if (child.kind !== "item") return;
+     expect((child.icon as { type?: unknown } | undefined)?.type).toBe(ForwardIcon);
+@@ -419,9 +419,9 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+     );
+ 
+     expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%quick%23x`,
+-      `plugin-primary-${PLUGIN_ID}%quick`,
+-      `plugin-primary-${PLUGIN_ID}%quick#x`,
++      `plugin-primary-${PLUGIN_ID}:quick%23x`,
++      `plugin-primary-${PLUGIN_ID}:quick`,
++      `plugin-primary-${PLUGIN_ID}:quick#x`,
+     ]);
+     expect(new Set(keys).size).toBe(keys.length);
+   });
+@@ -444,14 +444,53 @@ describe("buildPrimaryPluginEntries — key uniqueness", () => {
+     );
+ 
+     expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%%D83C`,
+-      `plugin-primary-${PLUGIN_ID}%with-child`,
+-      `plugin-primary-${PLUGIN_ID}%with-child#%D83C`,
++      `plugin-primary-${PLUGIN_ID}:${lone}`,
++      `plugin-primary-${PLUGIN_ID}:with-child`,
++      `plugin-primary-${PLUGIN_ID}:with-child#${lone}`,
+     ]);
+     // A lone surrogate stays distinct from every other id, and nothing threw.
+     expect(new Set(keys).size, "one key per registration").toBe(keys.length);
+   });
+ 
++  it("keeps an id distinct from a percent-escape sequence it contains", () => {
++    // The variable-width flaw the PR owner's reviewer found: a raw U+25E9 and
++    // the three characters `%E9` both encoded to `%25E9` under a
++    // `%XX`-per-code-unit scheme. Escaping only the key's own three special
++    // characters keeps every other character verbatim, so they differ.
++    const boxDrawing = "\u25e9";
++    registerAction({ id: boxDrawing, label: "Box" });
++    registerAction({ id: "%E9", label: "Escape-looking" });
++
++    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}:${boxDrawing}`,
++      `plugin-primary-${PLUGIN_ID}:%25E9`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length);
++  });
++
++  it("keeps two plugins' parts distinct when an id holds the separator escaped", () => {
++    // Plugin `p` with action `E9é` against plugin `pé` with action `E9`: with a
++    // `%`-joined escape scheme both read `p%E9%E9`.
++    const register = (pluginId: string, id: string) =>
++      pluginRegistry.forPlugin(pluginId).registerTaskMenuAction({
++        id,
++        label: id,
++        group: "primary",
++        run: vi.fn(),
++      });
++    register("p", "E9é");
++    register("pé", "E9");
++
++    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
++
++    expect(keys).toEqual(["plugin-primary-p:E9é", "plugin-primary-pé:E9"]);
++    expect(new Set(keys).size).toBe(keys.length);
++    pluginRegistry.unregisterPlugin("p");
++    pluginRegistry.unregisterPlugin("pé");
++  });
++
+   it("keeps a percent-encoded id distinct from the id it spells", () => {
+     // The encoder escapes `%` itself, so an id that looks like an escape
+     // sequence cannot collide with the id it would decode to.
+@@ -461,8 +500,8 @@ describe("buildPrimaryPluginEntries — key uniqueness", () => {
+     const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
+ 
+     expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%a%2523b`,
+-      `plugin-primary-${PLUGIN_ID}%a%23b`,
++      `plugin-primary-${PLUGIN_ID}:a%2523b`,
++      `plugin-primary-${PLUGIN_ID}:a%23b`,
+     ]);
+     expect(new Set(keys).size).toBe(keys.length);
+   });
+@@ -486,7 +525,7 @@ describe("buildPrimaryPluginEntries — key uniqueness", () => {
+ 
+     const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
+ 
+-    expect(keys).toEqual(["plugin-primary-p%q-x", "plugin-primary-p-q%x"]);
++    expect(keys).toEqual(["plugin-primary-p:q-x", "plugin-primary-p-q:x"]);
+     expect(new Set(keys).size).toBe(keys.length);
+     pluginRegistry.unregisterPlugin("p");
+     pluginRegistry.unregisterPlugin("p-q");
+@@ -505,8 +544,8 @@ describe("buildPrimaryPluginEntries — key uniqueness", () => {
+     );
+ 
+     expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%quick#pick-x`,
+-      `plugin-primary-${PLUGIN_ID}%quick-pick#x`,
++      `plugin-primary-${PLUGIN_ID}:quick#pick-x`,
++      `plugin-primary-${PLUGIN_ID}:quick-pick#x`,
+     ]);
+     expect(new Set(keys).size).toBe(keys.length);
+   });
+@@ -551,8 +590,8 @@ describe("buildPrimaryPluginEntries — children the host cannot read", () => {
+     const entry = entries[0];
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%partly-broken#gone`,
+-      `plugin-primary-${PLUGIN_ID}%partly-broken#ok`,
++      `plugin-primary-${PLUGIN_ID}:partly-broken#gone`,
++      `plugin-primary-${PLUGIN_ID}:partly-broken#ok`,
+     ]);
+     consoleErrorSpy.mockRestore();
+   });
+@@ -625,7 +664,7 @@ describe("buildPrimaryPluginEntries — unusable registrations and array-likes",
+     expect(entry.kind).toBe("submenu");
+     if (entry.kind !== "submenu") return;
+     expect(entry.children.map((child) => child.key)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%hostile-array#child`,
++      `plugin-primary-${PLUGIN_ID}:hostile-array#child`,
+     ]);
+   });
+ 
+@@ -635,7 +674,7 @@ describe("buildPrimaryPluginEntries — unusable registrations and array-likes",
+     for (const flag of ["disabled", "isDeleting", "isArchiving", "isDetaching"] as const) {
+       const inputs = { pluginMenuContext: CONTEXT, [flag]: true };
+       const prebuilt = buildCardPluginEntries(inputs).primary.find(
+-        (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%flagged`,
++        (entry) => entry.key === `plugin-primary-${PLUGIN_ID}:flagged`,
+       );
+       const internal = buildPrimaryPluginEntries({ context: CONTEXT, disabled: true })[0];
+       // Both paths must agree, and a submenu's children inherit the state.
+@@ -663,7 +702,7 @@ describe("buildPrimaryPluginEntries — mixed registrations", () => {
+     expect(entries.map((entry) => entry.kind)).toEqual(["submenu", "item"]);
+     expect(entries.map((entry) => entry.key)).toEqual([
+       ACTION_KEY,
+-      `plugin-primary-${PLUGIN_ID}%other`,
++      `plugin-primary-${PLUGIN_ID}:other`,
+     ]);
+   });
+ });
+diff --git a/apps/web/components/plugins/task-menu-actions.ts b/apps/web/components/plugins/task-menu-actions.ts
+index a8b2bec18..500941ba2 100644
+--- a/apps/web/components/plugins/task-menu-actions.ts
++++ b/apps/web/components/plugins/task-menu-actions.ts
+@@ -77,22 +77,21 @@ function logMenuDefect(
+ }
+ 
+ /**
+- * Percent-encodes one part of a menu key. `encodeURIComponent` cannot be used
+- * here: it raises `URIError` on a lone surrogate, which ordinary plugin data
+- * reaches (`name.slice(0, n)` on an emoji, a truncated astral glyph), and
+- * these keys are built during the card's render -- with no error boundary on
+- * the board, one registration would replace the whole route with the fallback.
++ * Escapes the three characters a menu key gives meaning to: `%` first, so an
++ * escape sequence already inside an id cannot alias one this adds, then the
++ * part separator `:` and the child delimiter `#`. Everything else round-trips
++ * untouched -- an id may hold an emoji, a control character or a lone
++ * surrogate without breaking anything, which is what rules out
++ * `encodeURIComponent` here: it raises `URIError` on an unpaired surrogate,
++ * and these keys are built during a card's render, where an exception takes
++ * the whole board down (no error boundary sits around a card).
+  *
+- * Escaping every code unit outside `encodeURIComponent`'s unreserved set --
+- * `%` included -- is both non-throwing and injective, and keeps the raw
+- * delimiters (`#`, `%`) out of an id. Keys are opaque (React keys, cmdk
+- * values); nothing percent-decodes them, so per-code-unit escapes are fine.
++ * Injective and delimiter-free by construction: every `%` in the result starts
++ * one of exactly three escapes, so decoding is unambiguous, and neither `:`
++ * nor `#` can appear raw inside a part.
+  */
+-function encodeKeyPart(part: string): string {
+-  return part.replace(
+-    /[^A-Za-z0-9\-_.!~*'()]/g,
+-    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
+-  );
++function escapeKeyPart(part: string): string {
++  return part.replace(/%/g, "%25").replace(/:/g, "%3A").replace(/#/g, "%23");
+ }
+ 
+ /** The action's own id, read once and only when it is a non-blank string. */
+@@ -296,7 +295,7 @@ export function pluginMenuEntry(
+   // key is also the palette row's id (cmdk's value). The child id below is
+   // encoded after `#`, which an encoded id cannot contain, so a child key can
+   // never equal a flat action's key either.
+-  const key = `${keyPrefix}-${encodeKeyPart(action.pluginId)}%${encodeKeyPart(actionId)}`;
++  const key = `${keyPrefix}-${escapeKeyPart(action.pluginId)}:${escapeKeyPart(actionId)}`;
+   const items = pluginSubItems(action, context);
+ 
+   if (items) {
+@@ -308,7 +307,7 @@ export function pluginMenuEntry(
+       disabled,
+       children: items.map((item) => ({
+         kind: "item",
+-        key: `${key}#${encodeKeyPart(item.id)}`,
++        key: `${key}#${escapeKeyPart(item.id)}`,
+         icon: pluginMenuIcon(item.icon),
+         label: item.label,
+         disabled: disabled || item.disabled,
+diff --git a/apps/web/components/task-command-choices.test.tsx b/apps/web/components/task-command-choices.test.tsx
+index 3ceb8a095..0c3ce9753 100644
+--- a/apps/web/components/task-command-choices.test.tsx
++++ b/apps/web/components/task-command-choices.test.tsx
+@@ -59,7 +59,7 @@ describe("pluginCommandChoices", () => {
+   });
+ 
+   it("flattens a plugin submenu into its item children, keeping their disabled flag", () => {
+-    const first = item("Blocked", "plugin-primary-tags%add-tag-more");
++    const first = item("Blocked", "plugin-primary-tags:add-tag-more");
+     const second = { ...item("Urgent"), disabled: true };
+     const entry = {
+       kind: "submenu" as const,
+@@ -69,7 +69,7 @@ describe("pluginCommandChoices", () => {
+     };
+ 
+     expect(pluginCommandChoices(entry, "Tasks").map((command) => command.id)).toEqual([
+-      "plugin-primary-tags%add-tag-more",
++      "plugin-primary-tags:add-tag-more",
+       "Urgent",
+     ]);
+     const [more, urgent] = pluginCommandChoices(entry, "Tasks");
+@@ -87,7 +87,7 @@ describe("pluginCommandChoices", () => {
+     // `quick-pick` + `x`), which the escaped key rules out at the source.
+     const child = {
+       kind: "item" as const,
+-      key: "plugin-primary-p%quick#pick-x",
++      key: "plugin-primary-p:quick#pick-x",
+       label: "Pick X",
+       onSelect: vi.fn(),
+     };
+@@ -99,7 +99,7 @@ describe("pluginCommandChoices", () => {
+     };
+ 
+     expect(pluginCommandChoices(submenu, "Tasks").map((command) => command.id)).toEqual([
+-      "plugin-primary-p%quick#pick-x",
++      "plugin-primary-p:quick#pick-x",
+     ]);
+   });
+ 
+diff --git a/apps/web/lib/kanban/task-actions-menu-entries.test.ts b/apps/web/lib/kanban/task-actions-menu-entries.test.ts
+index c38bd8a33..620415a23 100644
+--- a/apps/web/lib/kanban/task-actions-menu-entries.test.ts
++++ b/apps/web/lib/kanban/task-actions-menu-entries.test.ts
+@@ -131,7 +131,7 @@ describe("buildTaskActionsMenuEntries — archived tier", () => {
+ 
+     const entries = buildTaskActionsMenuEntries("archived", baseArgs);
+     expect(itemKeys(entries)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%primary-action`,
++      `plugin-primary-${PLUGIN_ID}:primary-action`,
+       REMOVE_SEPARATOR,
+       "delete",
+     ]);
+@@ -164,7 +164,7 @@ describe("buildTaskActionsMenuEntries — unresolved board row tier", () => {
+ 
+     const entries = buildTaskActionsMenuEntries("unresolved-row", baseArgs);
+     expect(itemKeys(entries)).toEqual([
+-      `plugin-primary-${PLUGIN_ID}%primary-action`,
++      `plugin-primary-${PLUGIN_ID}:primary-action`,
+       REMOVE_SEPARATOR,
+       "archive",
+       "delete",
 -- 
 2.53.0
 
