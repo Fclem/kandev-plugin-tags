@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/15] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/16] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/15] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/16] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/15] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/16] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/15] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/16] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/15] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/16] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/15] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/16] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/15] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/16] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/15] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/16] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/15] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/16] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/15] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/16] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/15] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/16] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/15] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/16] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2895,7 +2895,7 @@ index 8d5c33a90..c1d6a5849 100644
 From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:58:04 +0000
-Subject: [PATCH 13/15] fix(plugins): recognise component-object icons and
+Subject: [PATCH 13/16] fix(plugins): recognise component-object icons and
  escape child keys
 
 Two defects the PR owner found by rebuilding against this patch, both real:
@@ -3258,7 +3258,7 @@ index acaa9883b..8b82f0aaa 100644
 From fbce2e5d42ae5dac9b6dcdfc61574bcb65ed8a76 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:10:56 +0000
-Subject: [PATCH 14/15] fix(plugins): make child keys unforgeable and keep the
+Subject: [PATCH 14/16] fix(plugins): make child keys unforgeable and keep the
  native Edit item
 
 Round 4 filed two findings; both are fixed here.
@@ -3445,7 +3445,7 @@ index 91b4f7539..844e4e757 100644
 From 46b97e6cb98c9b9d14d2a9f02d07247c239ee43a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:15:52 +0000
-Subject: [PATCH 15/15] fix(plugins): drop lazy icons, encode key parts, and
+Subject: [PATCH 15/16] fix(plugins): drop lazy icons, encode key parts, and
  resolve own keys only
 
 Three findings from the PR owner's rounds, all on code this patch owns:
@@ -4100,6 +4100,287 @@ index c1d6a5849..b912f87d7 100644
  `task-card-indicators` (see the named slots table) is the matching read-only
  surface, rendered beside the PR status icon on every card. `task-card-tags`
  is a sibling read-only surface with the same `slotProps` shape, mounted in its
+-- 
+2.53.0
+
+
+From 690b02dc94a3f40cb88d7c8ecc9a4ced16fefb00 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Wed, 23 Sep 2026 00:25:38 +0000
+Subject: [PATCH 16/16] fix(plugins): force the flat Edit item over a prebuilt
+ bundle
+
+Round 9 filed five findings; three were already fixed on this tree (the
+`forwardRef` assertion has been narrowed since the tsc run that flagged it,
+both key id parts are percent-encoded, and the mis-titled throwing-getter
+test was renamed), and two are new:
+
+- a prebuilt `pluginEntries` bundle outranked `forceFlatEdit: true`, so a
+  caller passing both silently undid the "never present the submenu form"
+  contract the field documents. The flag now wins; the test registers a
+  group `edit` action so the prebuilt Edit entry really is a submenu and
+  the assertion fails without the fix.
+- PLUGIN-API.md listed "an array whose entries lack ..." among the results
+  that fall back to the flat item, contradicting the next sentence (and the
+  code): a partly broken array keeps its usable children. It now reads "an
+  array with no usable entry left".
+
+The `buildCardPluginEntries` tests moved to their own file, which also
+brought `kanban-card-menu-items.test.tsx` and the builder back under the
+repo's max-lines limits.
+---
+ .../kanban-card-menu-items.test.tsx           | 69 -------------
+ .../web/components/kanban-card-menu-items.tsx | 23 +++--
+ .../kanban-card-plugin-entries.test.tsx       | 96 +++++++++++++++++++
+ docs/plans/plugins/PLUGIN-API.md              |  8 +-
+ 4 files changed, 113 insertions(+), 83 deletions(-)
+ create mode 100644 apps/web/components/kanban-card-plugin-entries.test.tsx
+
+diff --git a/apps/web/components/kanban-card-menu-items.test.tsx b/apps/web/components/kanban-card-menu-items.test.tsx
+index 8923adcb3..ef77bde78 100644
+--- a/apps/web/components/kanban-card-menu-items.test.tsx
++++ b/apps/web/components/kanban-card-menu-items.test.tsx
+@@ -5,11 +5,9 @@ import { IconFlag } from "@tabler/icons-react";
+ import type { StoreApi } from "zustand";
+ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@kandev/ui/dropdown-menu";
+ import { pluginRegistry } from "@/lib/plugins/registry";
+-import type { PluginTaskMenuContext, TaskMenuSubItemRegistration } from "@/lib/plugins/types";
+ import { StateProvider, useAppStoreApi } from "@/components/state-provider";
+ import type { AppState } from "@/lib/state/store";
+ import {
+-  buildCardPluginEntries,
+   buildKanbanCardMenuEntries,
+   KanbanCardDropdownMenuItems,
+   useKanbanCardMoveTargets,
+@@ -31,73 +29,6 @@ const WORKFLOW_ONE_NAME = "Workflow 1";
+  * twice per render for identical children is the API's own documented
+  * anti-pattern ("memoize anything expensive").
+  */
+-describe("buildCardPluginEntries", () => {
+-  const PLUGIN_ID = "kandev-plugin-tags";
+-  const CONTEXT: PluginTaskMenuContext = {
+-    workspaceId: "ws-1",
+-    taskId: "task-1",
+-    taskTitle: "Fix the bug",
+-    workflowStepId: "step-1",
+-    presentation: "desktop",
+-  };
+-
+-  afterEach(() => {
+-    pluginRegistry.unregisterPlugin(PLUGIN_ID);
+-  });
+-
+-  function registerItemsAction(items: () => readonly TaskMenuSubItemRegistration[]) {
+-    pluginRegistry.forPlugin(PLUGIN_ID).registerTaskMenuAction({
+-      id: "add-tag",
+-      label: "Add tag",
+-      group: "primary",
+-      items,
+-      run: vi.fn(),
+-    });
+-  }
+-
+-  it("evaluates a plugin action's items() once when both variants share the result", () => {
+-    const items = vi.fn(() => [{ id: "more", label: "More tags", run: vi.fn() }]);
+-    registerItemsAction(items);
+-
+-    const pluginEntries = buildCardPluginEntries({ pluginMenuContext: CONTEXT });
+-    const dropdown = buildKanbanCardMenuEntries({
+-      workflows: [],
+-      stepsByWorkflowId: {},
+-      pluginMenuContext: CONTEXT,
+-      pluginEntries,
+-    });
+-    const contextMenu = buildKanbanCardMenuEntries({
+-      workflows: [],
+-      stepsByWorkflowId: {},
+-      pluginMenuContext: CONTEXT,
+-      pluginEntries,
+-    });
+-
+-    expect(items).toHaveBeenCalledTimes(1);
+-    const fromDropdown = dropdown.find(
+-      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`,
+-    );
+-    const fromContext = contextMenu.find(
+-      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`,
+-    );
+-    expect(fromDropdown).toBeDefined();
+-    expect(fromContext).toBe(fromDropdown);
+-  });
+-
+-  it("still builds its own contributions when a caller passes none", () => {
+-    const items = vi.fn(() => [{ id: "more", label: "More tags", run: vi.fn() }]);
+-    registerItemsAction(items);
+-
+-    const entries = buildKanbanCardMenuEntries({
+-      workflows: [],
+-      stepsByWorkflowId: {},
+-      pluginMenuContext: CONTEXT,
+-    });
+-
+-    expect(items).toHaveBeenCalledTimes(1);
+-    expect(entries.some((entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`)).toBe(true);
+-  });
+-});
+ 
+ describe("KanbanCardDropdownMenuItems — click propagation", () => {
+   function renderWithParent(entries: KanbanCardMenuEntry[], parentOnClick: () => void) {
+diff --git a/apps/web/components/kanban-card-menu-items.tsx b/apps/web/components/kanban-card-menu-items.tsx
+index 4de278393..f611ed17c 100644
+--- a/apps/web/components/kanban-card-menu-items.tsx
++++ b/apps/web/components/kanban-card-menu-items.tsx
+@@ -436,16 +436,19 @@ export function buildKanbanCardMenuEntries({
+     onSendToWorkflow,
+   });
+ 
+-  const pluginInputs = {
+-    disabled,
+-    isDeleting,
+-    isArchiving,
+-    isDetaching,
+-    onEdit,
+-    forceFlatEdit,
+-    pluginMenuContext,
+-  };
+-  const pluginContributions = pluginEntries ?? buildCardPluginEntries(pluginInputs);
++  // `forceFlatEdit` outranks a prebuilt bundle: surfaces outside the card set it
++  // so a plugin action never presents the submenu form, and a caller passing
++  // both would otherwise silently undo exactly that. `isProcessing` is the
++  // helper's own OR of the four flags, already reduced here.
++  const pluginContributions =
++    pluginEntries && !forceFlatEdit
++      ? pluginEntries
++      : buildCardPluginEntries({
++          disabled: isProcessing,
++          onEdit,
++          forceFlatEdit,
++          pluginMenuContext,
++        });
+ 
+   const linkEntry = buildLinkSubmenu({
+     disabled: isProcessing,
+diff --git a/apps/web/components/kanban-card-plugin-entries.test.tsx b/apps/web/components/kanban-card-plugin-entries.test.tsx
+new file mode 100644
+index 000000000..0beece382
+--- /dev/null
++++ b/apps/web/components/kanban-card-plugin-entries.test.tsx
+@@ -0,0 +1,96 @@
++import { afterEach, describe, expect, it, vi } from "vitest";
++import { pluginRegistry } from "@/lib/plugins/registry";
++import type { PluginTaskMenuContext, TaskMenuSubItemRegistration } from "@/lib/plugins/types";
++import { buildCardPluginEntries, buildKanbanCardMenuEntries } from "./kanban-card-menu-items";
++
++describe("buildCardPluginEntries", () => {
++  const PLUGIN_ID = "kandev-plugin-tags";
++  const CONTEXT: PluginTaskMenuContext = {
++    workspaceId: "ws-1",
++    taskId: "task-1",
++    taskTitle: "Fix the bug",
++    workflowStepId: "step-1",
++    presentation: "desktop",
++  };
++
++  afterEach(() => {
++    pluginRegistry.unregisterPlugin(PLUGIN_ID);
++  });
++
++  function registerItemsAction(items: () => readonly TaskMenuSubItemRegistration[]) {
++    pluginRegistry.forPlugin(PLUGIN_ID).registerTaskMenuAction({
++      id: "add-tag",
++      label: "Add tag",
++      group: "primary",
++      items,
++      run: vi.fn(),
++    });
++  }
++
++  it("evaluates a plugin action's items() once when both variants share the result", () => {
++    const items = vi.fn(() => [{ id: "more", label: "More tags", run: vi.fn() }]);
++    registerItemsAction(items);
++
++    const pluginEntries = buildCardPluginEntries({ pluginMenuContext: CONTEXT });
++    const dropdown = buildKanbanCardMenuEntries({
++      workflows: [],
++      stepsByWorkflowId: {},
++      pluginMenuContext: CONTEXT,
++      pluginEntries,
++    });
++    const contextMenu = buildKanbanCardMenuEntries({
++      workflows: [],
++      stepsByWorkflowId: {},
++      pluginMenuContext: CONTEXT,
++      pluginEntries,
++    });
++
++    expect(items).toHaveBeenCalledTimes(1);
++    const fromDropdown = dropdown.find(
++      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`,
++    );
++    const fromContext = contextMenu.find(
++      (entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`,
++    );
++    expect(fromDropdown).toBeDefined();
++    expect(fromContext).toBe(fromDropdown);
++  });
++
++  it("ignores a prebuilt bundle when the caller forces the flat Edit item", () => {
++    // Surfaces outside the card set `forceFlatEdit` so the Edit item never
++    // becomes a submenu; a caller that also hands back a bundle must not
++    // silently undo that.
++    // An edit-group action makes the prebuilt Edit entry a submenu, so the
++    // assertion fails if the bundle is honoured.
++    pluginRegistry.forPlugin(PLUGIN_ID).registerTaskMenuAction({
++      id: "edit-action",
++      label: "Edit action",
++      group: "edit",
++      items: () => [{ id: "more", label: "More", run: vi.fn() }],
++      run: vi.fn(),
++    });
++    const entries = buildKanbanCardMenuEntries({
++      workflows: [],
++      stepsByWorkflowId: {},
++      pluginMenuContext: CONTEXT,
++      pluginEntries: buildCardPluginEntries({ pluginMenuContext: CONTEXT }),
++      forceFlatEdit: true,
++    });
++
++    expect(entries.find((entry) => entry.key === "edit")?.kind).toBe("item");
++  });
++
++  it("still builds its own contributions when a caller passes none", () => {
++    const items = vi.fn(() => [{ id: "more", label: "More tags", run: vi.fn() }]);
++    registerItemsAction(items);
++
++    const entries = buildKanbanCardMenuEntries({
++      workflows: [],
++      stepsByWorkflowId: {},
++      pluginMenuContext: CONTEXT,
++    });
++
++    expect(items).toHaveBeenCalledTimes(1);
++    expect(entries.some((entry) => entry.key === `plugin-primary-${PLUGIN_ID}%add-tag`)).toBe(true);
++  });
++});
+diff --git a/docs/plans/plugins/PLUGIN-API.md b/docs/plans/plugins/PLUGIN-API.md
+index 87f972d29..60208a4d0 100644
+--- a/docs/plans/plugins/PLUGIN-API.md
++++ b/docs/plans/plugins/PLUGIN-API.md
+@@ -1587,10 +1587,10 @@ usable children. That boundary is deliberately runtime-defensive, because a
+ bundle is plain JavaScript and these types are not enforced at run time: an
+ empty list, a throw, a promise (the contract is synchronous, and its rejection
+ is observed so it cannot escape as an unhandled rejection), a non-array, and an
+-array whose entries lack a non-blank `id` or `label`, a callable `run`, a
+-boolean `disabled` or a recognizable `icon` (a name, component, element or
+-`null`) all fall back to the flat item instead of crashing the render or
+-producing a trigger nothing can open. Children are read once, inside the same guard, so a
++array with no usable entry left -- every entry lacking a non-blank `id` or
++`label`, a callable `run`, a boolean `disabled` or a recognizable `icon` (a
++name, component, element or `null`) -- all fall back to the flat item instead of
++crashing the render or producing a trigger nothing can open. Children are read once, inside the same guard, so a
+ throwing getter or a Proxy fails that child rather than the card's render;
+ unusable children are dropped when others remain, duplicate ids keep their
+ first occurrence, and each defect is logged once per action and kind rather
 -- 
 2.53.0
 

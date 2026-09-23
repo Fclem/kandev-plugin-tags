@@ -276,7 +276,7 @@ The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
 in the monorepo). That host change is not upstream yet -- it is open as
 kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, fifteen commits against `kdlbs/kandev`:
+`contrib/kandev-plugin-submenus.patch`, sixteen commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -330,6 +330,10 @@ kdlbs/kandev PR #3874 -- and ships here as
     key id parts are percent-encoded so two plugins cannot spell one key, and
     the curated icon map is only read for its own keys (`__proto__`,
     `constructor` and friends no longer reach React).
+16. `fix(plugins): force the flat Edit item over a prebuilt bundle` --
+    `forceFlatEdit` outranks a prebuilt contribution bundle instead of being
+    silently undone by it, and the API doc's fallback list no longer claims a
+    partly broken array falls back whole.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch
