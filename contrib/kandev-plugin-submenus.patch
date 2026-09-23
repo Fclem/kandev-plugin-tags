@@ -4385,7 +4385,7 @@ index 87f972d29..60208a4d0 100644
 2.53.0
 
 
-From cda23707fcbde2ac050dca3b95076c1ac52f0a61 Mon Sep 17 00:00:00 2001
+From f8f3f868c102a84a803ba9d66e102c2891a9dcef Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:30:03 +0000
 Subject: [PATCH 17/18] fix(plugins): encode key parts without throwing on a
@@ -4411,12 +4411,12 @@ Also treats `disabled: null` as absent, matching `icon: null`: both are the
 idiomatic "not set" a JavaScript bundle sends, and only a real type
 mismatch should drop the child.
 ---
- .../plugins/task-menu-actions.test.tsx        | 57 +++++++++++++++++++
+ .../plugins/task-menu-actions.test.tsx        | 58 +++++++++++++++++++
  .../components/plugins/task-menu-actions.ts   | 27 +++++++--
- 2 files changed, 80 insertions(+), 4 deletions(-)
+ 2 files changed, 81 insertions(+), 4 deletions(-)
 
 diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
-index faac3613c..99382306e 100644
+index faac3613c..659fe8016 100644
 --- a/apps/web/components/plugins/task-menu-actions.test.tsx
 +++ b/apps/web/components/plugins/task-menu-actions.test.tsx
 @@ -337,6 +337,25 @@ describe("buildPrimaryPluginEntries — unreadable and repeated children", () =>
@@ -4445,7 +4445,7 @@ index faac3613c..99382306e 100644
    it("keeps a child with an absent or null icon and drops an unusable one", () => {
      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
      registerAction({
-@@ -409,6 +428,44 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+@@ -409,6 +428,45 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
  });
  
  describe("buildPrimaryPluginEntries — key uniqueness", () => {
@@ -4469,7 +4469,8 @@ index faac3613c..99382306e 100644
 +      `plugin-primary-${PLUGIN_ID}%with-child`,
 +      `plugin-primary-${PLUGIN_ID}%with-child#%D83C`,
 +    ]);
-+    expect(new Set(keys).size).toBe(keys.length, "a lone surrogate stays distinct from other ids");
++    // A lone surrogate stays distinct from every other id, and nothing threw.
++    expect(new Set(keys).size, "one key per registration").toBe(keys.length);
 +  });
 +
 +  it("keeps a percent-encoded id distinct from the id it spells", () => {
@@ -4554,7 +4555,7 @@ index 09db20eb5..a8b2bec18 100644
 2.53.0
 
 
-From f336aff04b350d078d8fcf536cebf963fa9e87a6 Mon Sep 17 00:00:00 2001
+From 9d72bec03d28a62bbdc393877c976489aab5154d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:17:55 +0000
 Subject: [PATCH 18/18] docs(plugins): state the action-id uniqueness
