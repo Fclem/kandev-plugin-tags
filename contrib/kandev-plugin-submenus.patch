@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/19] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/20] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/19] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/20] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/19] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/20] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/19] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/20] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/19] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/20] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/19] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/20] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/19] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/20] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/19] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/20] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/19] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/20] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/19] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/20] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/19] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/20] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/19] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/20] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2895,7 +2895,7 @@ index 8d5c33a90..c1d6a5849 100644
 From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:58:04 +0000
-Subject: [PATCH 13/19] fix(plugins): recognise component-object icons and
+Subject: [PATCH 13/20] fix(plugins): recognise component-object icons and
  escape child keys
 
 Two defects the PR owner found by rebuilding against this patch, both real:
@@ -3258,7 +3258,7 @@ index acaa9883b..8b82f0aaa 100644
 From fbce2e5d42ae5dac9b6dcdfc61574bcb65ed8a76 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:10:56 +0000
-Subject: [PATCH 14/19] fix(plugins): make child keys unforgeable and keep the
+Subject: [PATCH 14/20] fix(plugins): make child keys unforgeable and keep the
  native Edit item
 
 Round 4 filed two findings; both are fixed here.
@@ -3445,7 +3445,7 @@ index 91b4f7539..844e4e757 100644
 From 46b97e6cb98c9b9d14d2a9f02d07247c239ee43a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:15:52 +0000
-Subject: [PATCH 15/19] fix(plugins): drop lazy icons, encode key parts, and
+Subject: [PATCH 15/20] fix(plugins): drop lazy icons, encode key parts, and
  resolve own keys only
 
 Three findings from the PR owner's rounds, all on code this patch owns:
@@ -4107,7 +4107,7 @@ index c1d6a5849..b912f87d7 100644
 From 690b02dc94a3f40cb88d7c8ecc9a4ced16fefb00 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:25:38 +0000
-Subject: [PATCH 16/19] fix(plugins): force the flat Edit item over a prebuilt
+Subject: [PATCH 16/20] fix(plugins): force the flat Edit item over a prebuilt
  bundle
 
 Round 9 filed five findings; three were already fixed on this tree (the
@@ -4388,7 +4388,7 @@ index 87f972d29..60208a4d0 100644
 From f8f3f868c102a84a803ba9d66e102c2891a9dcef Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:30:03 +0000
-Subject: [PATCH 17/19] fix(plugins): encode key parts without throwing on a
+Subject: [PATCH 17/20] fix(plugins): encode key parts without throwing on a
  lone surrogate
 
 The PR owner's round 5 found that key building used `encodeURIComponent`,
@@ -4558,7 +4558,7 @@ index 09db20eb5..a8b2bec18 100644
 From 9d72bec03d28a62bbdc393877c976489aab5154d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:17:55 +0000
-Subject: [PATCH 18/19] docs(plugins): state the action-id uniqueness
+Subject: [PATCH 18/20] docs(plugins): state the action-id uniqueness
  requirement
 
 Round 5 of the host loop checked the key space against the freshly escaped
@@ -4639,7 +4639,7 @@ index 60208a4d0..348a05eae 100644
 From 98ce2665fab2c1ea5d01fd38c242877f8be81804 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:23:57 +0000
-Subject: [PATCH 19/19] fix(plugins): make the key escape injective
+Subject: [PATCH 19/20] fix(plugins): make the key escape injective
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -5105,6 +5105,340 @@ index c38bd8a33..620415a23 100644
        REMOVE_SEPARATOR,
        "archive",
        "delete",
+-- 
+2.53.0
+
+
+From 0f6a9ee9fb614a28ecaf5c7bef1752cf3fdfe90b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Wed, 23 Sep 2026 06:29:29 +0000
+Subject: [PATCH 20/20] test(plugins): pin the escaping's width independence
+
+The PR owner asked me to check the one property their own encoder got wrong
+last round: a per-code-unit hex escape with a two-digit minimum makes `%0`
+and U+0250 both encode to `%250`. This encoder escapes only `%`, `:` and
+`#`, so no escape width exists to get wrong -- but the check is worth
+pinning, because the property is what makes the design safe:
+
+- `%0` vs U+0250, and `%` vs `%25`: escaped, so the pairs stay distinct;
+- U+00E9 + "a" vs U+0E9A: untouched, so they cannot collide either;
+- plus the existing `#`-bearing, lone-surrogate, two-plugin and two-child
+  pairs.
+
+The key tests moved to `components/plugins/task-menu-keys.test.tsx` with a
+shared `allKeys()` helper, which also brought the older file back under the
+repo's max-lines limits.
+---
+ .../plugins/task-menu-actions.test.tsx        | 124 -------------
+ .../plugins/task-menu-keys.test.tsx           | 164 ++++++++++++++++++
+ 2 files changed, 164 insertions(+), 124 deletions(-)
+ create mode 100644 apps/web/components/plugins/task-menu-keys.test.tsx
+
+diff --git a/apps/web/components/plugins/task-menu-actions.test.tsx b/apps/web/components/plugins/task-menu-actions.test.tsx
+index 843d1cedd..0b77c4c65 100644
+--- a/apps/web/components/plugins/task-menu-actions.test.tsx
++++ b/apps/web/components/plugins/task-menu-actions.test.tsx
+@@ -427,130 +427,6 @@ describe("buildPrimaryPluginEntries — component icons and child keys", () => {
+   });
+ });
+ 
+-describe("buildPrimaryPluginEntries — key uniqueness", () => {
+-  it("builds a key for a lone surrogate instead of throwing", () => {
+-    // encodeURIComponent raises URIError on an unpaired surrogate, which
+-    // `name.slice(0, n)` on an emoji produces; these keys are built during the
+-    // card's render, so a throw would take the whole board down.
+-    const lone = "\ud83c";
+-    registerAction({ id: lone, label: "Lone surrogate" });
+-    registerAction({ id: "with-child", items: () => [{ id: lone, label: "Child", run: vi.fn() }] });
+-
+-    const entries = buildPrimaryPluginEntries({ context: CONTEXT });
+-    const keys = entries.flatMap((entry) =>
+-      entry.kind === "submenu"
+-        ? [entry.key, ...entry.children.map((child) => child.key)]
+-        : [entry.key],
+-    );
+-
+-    expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}:${lone}`,
+-      `plugin-primary-${PLUGIN_ID}:with-child`,
+-      `plugin-primary-${PLUGIN_ID}:with-child#${lone}`,
+-    ]);
+-    // A lone surrogate stays distinct from every other id, and nothing threw.
+-    expect(new Set(keys).size, "one key per registration").toBe(keys.length);
+-  });
+-
+-  it("keeps an id distinct from a percent-escape sequence it contains", () => {
+-    // The variable-width flaw the PR owner's reviewer found: a raw U+25E9 and
+-    // the three characters `%E9` both encoded to `%25E9` under a
+-    // `%XX`-per-code-unit scheme. Escaping only the key's own three special
+-    // characters keeps every other character verbatim, so they differ.
+-    const boxDrawing = "\u25e9";
+-    registerAction({ id: boxDrawing, label: "Box" });
+-    registerAction({ id: "%E9", label: "Escape-looking" });
+-
+-    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
+-
+-    expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}:${boxDrawing}`,
+-      `plugin-primary-${PLUGIN_ID}:%25E9`,
+-    ]);
+-    expect(new Set(keys).size).toBe(keys.length);
+-  });
+-
+-  it("keeps two plugins' parts distinct when an id holds the separator escaped", () => {
+-    // Plugin `p` with action `E9é` against plugin `pé` with action `E9`: with a
+-    // `%`-joined escape scheme both read `p%E9%E9`.
+-    const register = (pluginId: string, id: string) =>
+-      pluginRegistry.forPlugin(pluginId).registerTaskMenuAction({
+-        id,
+-        label: id,
+-        group: "primary",
+-        run: vi.fn(),
+-      });
+-    register("p", "E9é");
+-    register("pé", "E9");
+-
+-    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
+-
+-    expect(keys).toEqual(["plugin-primary-p:E9é", "plugin-primary-pé:E9"]);
+-    expect(new Set(keys).size).toBe(keys.length);
+-    pluginRegistry.unregisterPlugin("p");
+-    pluginRegistry.unregisterPlugin("pé");
+-  });
+-
+-  it("keeps a percent-encoded id distinct from the id it spells", () => {
+-    // The encoder escapes `%` itself, so an id that looks like an escape
+-    // sequence cannot collide with the id it would decode to.
+-    registerAction({ id: "a%23b", label: "Encoded-looking" });
+-    registerAction({ id: "a#b", label: "Delimiter" });
+-
+-    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
+-
+-    expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}:a%2523b`,
+-      `plugin-primary-${PLUGIN_ID}:a%23b`,
+-    ]);
+-    expect(new Set(keys).size).toBe(keys.length);
+-  });
+-
+-  it("keeps two plugins' keys distinct when their id parts concatenate alike", () => {
+-    // Plugin `p` + action `q-x` and plugin `p-q` + action `x` joined to one key
+-    // under the old dash separator, which is a duplicate React key and one cmdk
+-    // value for two different actions.
+-    pluginRegistry.forPlugin("p").registerTaskMenuAction({
+-      id: "q-x",
+-      label: "First",
+-      group: "primary",
+-      run: vi.fn(),
+-    });
+-    pluginRegistry.forPlugin("p-q").registerTaskMenuAction({
+-      id: "x",
+-      label: "Second",
+-      group: "primary",
+-      run: vi.fn(),
+-    });
+-
+-    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).map((entry) => entry.key);
+-
+-    expect(keys).toEqual(["plugin-primary-p:q-x", "plugin-primary-p-q:x"]);
+-    expect(new Set(keys).size).toBe(keys.length);
+-    pluginRegistry.unregisterPlugin("p");
+-    pluginRegistry.unregisterPlugin("p-q");
+-  });
+-
+-  it("keeps two actions' child keys distinct when their ids concatenate alike", () => {
+-    // Without the escaping, action `quick`'s child `pick-x` and action
+-    // `quick-pick`'s child `x` both spell `plugin-primary-<id>-quick-pick-x`.
+-    // A menu key is also the command id the palette uses, so a repeat makes
+-    // selection and filtering ambiguous.
+-    registerAction({ id: "quick", items: () => [{ id: "pick-x", label: "Pick X", run: vi.fn() }] });
+-    registerAction({ id: "quick-pick", items: () => [{ id: "x", label: "X", run: vi.fn() }] });
+-
+-    const keys = buildPrimaryPluginEntries({ context: CONTEXT }).flatMap((entry) =>
+-      entry.kind === "submenu" ? entry.children.map((child) => child.key) : [],
+-    );
+-
+-    expect(keys).toEqual([
+-      `plugin-primary-${PLUGIN_ID}:quick#pick-x`,
+-      `plugin-primary-${PLUGIN_ID}:quick-pick#x`,
+-    ]);
+-    expect(new Set(keys).size).toBe(keys.length);
+-  });
+-});
+-
+ describe("buildPrimaryPluginEntries — children the host cannot read", () => {
+   it("degrades to the flat item when a child's icon getter throws", () => {
+     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+diff --git a/apps/web/components/plugins/task-menu-keys.test.tsx b/apps/web/components/plugins/task-menu-keys.test.tsx
+new file mode 100644
+index 000000000..f19f734fa
+--- /dev/null
++++ b/apps/web/components/plugins/task-menu-keys.test.tsx
+@@ -0,0 +1,164 @@
++import { afterEach, describe, expect, it, vi } from "vitest";
++import { pluginRegistry } from "@/lib/plugins/registry";
++import type { PluginTaskMenuContext, TaskMenuSubItemRegistration } from "@/lib/plugins/types";
++import { buildPrimaryPluginEntries } from "./task-menu-actions";
++
++const PLUGIN_ID = "kandev-plugin-tags";
++const CONTEXT: PluginTaskMenuContext = {
++  workspaceId: "ws-1",
++  taskId: "task-1",
++  taskTitle: "Fix the bug",
++  workflowStepId: "step-1",
++  presentation: "desktop",
++};
++
++function register(
++  pluginId: string,
++  id: string,
++  label: string,
++  items?: (context: PluginTaskMenuContext) => unknown,
++) {
++  pluginRegistry.forPlugin(pluginId).registerTaskMenuAction({
++    id,
++    label,
++    group: "primary",
++    run: vi.fn(),
++    ...(items
++      ? {
++          items: items as (
++            context: PluginTaskMenuContext,
++          ) => readonly TaskMenuSubItemRegistration[],
++        }
++      : {}),
++  });
++}
++
++/** Every key the builder produced, parents and children alike. */
++function allKeys(): string[] {
++  return buildPrimaryPluginEntries({ context: CONTEXT }).flatMap((entry) =>
++    entry.kind === "submenu"
++      ? [entry.key, ...entry.children.map((child) => child.key)]
++      : [entry.key],
++  );
++}
++
++afterEach(() => {
++  pluginRegistry.unregisterPlugin(PLUGIN_ID);
++});
++
++describe("menu keys — distinct ids stay distinct", () => {
++  it("keeps a flat key and a child key apart when an id carries the delimiter", () => {
++    register(PLUGIN_ID, "quick#x", "Flat");
++    register(PLUGIN_ID, "quick", "Child holder", () => [{ id: "x", label: "Child", run: vi.fn() }]);
++
++    const keys = allKeys();
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}:quick%23x`,
++      `plugin-primary-${PLUGIN_ID}:quick`,
++      `plugin-primary-${PLUGIN_ID}:quick#x`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length);
++  });
++
++  it("builds a key for a lone surrogate instead of throwing", () => {
++    // `encodeURIComponent` raises URIError here, and these keys are built
++    // during a card's render, where the board has no error boundary.
++    const lone = "\ud83c";
++    register(PLUGIN_ID, lone, "Lone surrogate");
++    register(PLUGIN_ID, "with-child", "Holder", () => [{ id: lone, label: "Child", run: vi.fn() }]);
++
++    const keys = allKeys();
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}:${lone}`,
++      `plugin-primary-${PLUGIN_ID}:with-child`,
++      `plugin-primary-${PLUGIN_ID}:with-child#${lone}`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length);
++  });
++
++  it("keeps an id apart from a percent-escape sequence it contains", () => {
++    // A variable-width per-code-unit escape collided here: U+25E9 and `%E9`
++    // both encoded to `%25E9`.
++    const boxDrawing = "\u25e9";
++    register(PLUGIN_ID, boxDrawing, "Box");
++    register(PLUGIN_ID, "%E9", "Escape-looking");
++
++    const keys = allKeys();
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}:${boxDrawing}`,
++      `plugin-primary-${PLUGIN_ID}:%25E9`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length);
++  });
++
++  it("keeps two plugins' parts apart when an id holds the separator escaped", () => {
++    // With a `%`-shaped separator both read `p%E9%E9`.
++    register("p", "E9é", "First");
++    register("pé", "E9", "Second");
++
++    const keys = allKeys();
++
++    expect(keys).toEqual(["plugin-primary-p:E9é", "plugin-primary-pé:E9"]);
++    expect(new Set(keys).size).toBe(keys.length);
++    pluginRegistry.unregisterPlugin("p");
++    pluginRegistry.unregisterPlugin("pé");
++  });
++
++  it("keeps two plugins apart when their ids join alike", () => {
++    register("p", "q-x", "First");
++    register("p-q", "x", "Second");
++
++    const keys = allKeys();
++
++    expect(keys).toEqual(["plugin-primary-p:q-x", "plugin-primary-p-q:x"]);
++    expect(new Set(keys).size).toBe(keys.length);
++    pluginRegistry.unregisterPlugin("p");
++    pluginRegistry.unregisterPlugin("p-q");
++  });
++});
++
++describe("menu keys — escaping", () => {
++  it("keeps two child ids apart when they concatenate alike", () => {
++    register(PLUGIN_ID, "quick", "Holder", () => [{ id: "pick-x", label: "Pick X", run: vi.fn() }]);
++    register(PLUGIN_ID, "quick-pick", "Other", () => [{ id: "x", label: "X", run: vi.fn() }]);
++
++    const keys = allKeys();
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}:quick`,
++      `plugin-primary-${PLUGIN_ID}:quick#pick-x`,
++      `plugin-primary-${PLUGIN_ID}:quick-pick`,
++      `plugin-primary-${PLUGIN_ID}:quick-pick#x`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length);
++  });
++
++  it("leaves every non-special character verbatim, so no escape width can alias it", () => {
++    // A per-code-unit hex escape has a width flaw (`%250` against `%0250`, so
++    // `%0` and U+0250 share a key). Only `%`, `:` and `#` are escaped here, so
++    // every other character reaches the key as itself.
++    const boxDrawing = "\u0250";
++    const eAcute = "\u00e9a";
++    const lao = "\u0e9a";
++    register(PLUGIN_ID, "%0", "Percent zero", () => [
++      { id: boxDrawing, label: "Box", run: vi.fn() },
++    ]);
++    register(PLUGIN_ID, eAcute, "E acute", () => [{ id: lao, label: "Lao", run: vi.fn() }]);
++    register(PLUGIN_ID, "%", "Percent", () => [{ id: "%25", label: "Percent 25", run: vi.fn() }]);
++
++    const keys = allKeys();
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}:%250`,
++      `plugin-primary-${PLUGIN_ID}:%250#${boxDrawing}`,
++      `plugin-primary-${PLUGIN_ID}:${eAcute}`,
++      `plugin-primary-${PLUGIN_ID}:${eAcute}#${lao}`,
++      `plugin-primary-${PLUGIN_ID}:%25`,
++      `plugin-primary-${PLUGIN_ID}:%25#%2525`,
++    ]);
++    expect(new Set(keys).size, keys.join(" | ")).toBe(keys.length);
++  });
++});
 -- 
 2.53.0
 

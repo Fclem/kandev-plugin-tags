@@ -276,7 +276,7 @@ The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
 in the monorepo). That host change is not upstream yet -- it is open as
 kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, nineteen commits against `kdlbs/kandev`:
+`contrib/kandev-plugin-submenus.patch`, twenty commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -348,6 +348,10 @@ kdlbs/kandev PR #3874 -- and ships here as
     + action `E9`); escaping only the key's own three special characters makes
     it injective and delimiter-free by construction while staying
     non-throwing on lone surrogates.
+20. `test(plugins): pin the escaping's width independence` -- the regression
+    pairs a per-code-unit hex escape collides on (`%0` vs U+0250, `%` vs
+    `%25`, U+00E9+"a" vs U+0E9A) are asserted distinct, and the key tests live
+    in their own file.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch
