@@ -19,7 +19,10 @@ agent; they cannot modify a human-created definition. Agent `add_tag` takes a
 `tag_id` from `list_tags` or `create_tag` and may include a note up to 200
 characters. `add_tag`, `remove_tag`, and `list_tags` also accept an optional
 `task_id`, so an agent organising a board — a coordinator, say — can tag cards
-other than its own.
+other than its own. Colors are chosen rather than randomized: a tag created
+without one gets a color derived from its name, `create_tag` accepts an explicit
+hex color when the agent wants a specific one, and an operator can turn the
+derivation off in the plugin's settings (see **Tag colors** below).
 
 When an agent creates or applies a tag, its chip is workspace-shared and shows
 the same yellow robot glyph used for autopilot tasks, as well as a dashed
@@ -44,7 +47,7 @@ agent's own card, which the three task-scoped tools let you override.
 
 | Tool | Purpose | Required input |
 | --- | --- | --- |
-| `create_tag` | Create an agent-owned shared definition. | `name`; optional hex `color` |
+| `create_tag` | Create an agent-owned shared definition. | `name`; optional hex `color` (derived from `name` when omitted, unless the auto-color setting is off) |
 | `list_tags` | Read the shared catalog and a task's applications. | none; optional `task_id` |
 | `update_tag` | Rename and/or recolor an agent-owned definition. | `tag_id`, plus `name` and/or `color` |
 | `add_tag` | Apply an agent-owned tag to a task. | `tag_id`; optional `task_id`, `note` |
@@ -127,7 +130,10 @@ that card. The target must be a task in this workspace.
   that doesn't exist yet enables **Add**, which creates it in your tag
   catalog and applies it to the card) above a scrollable list of your
   existing colored tags rendered as pills -- click a row to apply/remove it
-  from this card; applied tags show a checkmark.
+  from this card; applied tags show a checkmark. A tag created here gets the
+  color its name derives -- or the neutral gray, if the auto-color setting is
+  off (see **Tag colors** below) -- and either way you can recolor it from its
+  swatch in the Tags box.
 - **Filter and manage from one place**: an icon-lg filter-icon button in
   the app's top bar opens the Tags box, a 380px-wide dropdown listing your
   whole tag catalog as grid-aligned rows (color swatch, name pill, delete
@@ -167,6 +173,60 @@ that card. The target must be a task in this workspace.
   with the cascade removal above) showing no chip for it at all, rather
   than a chip labeled with the raw id.
 
+### Tag colors
+
+A new tag's color comes from one of two places, and never from randomness or
+catalog position:
+
+- **Derived from the name** (the default). A tag created without an explicit
+  color -- typed into either Create input, or created by an agent via
+  `create_tag` with no `color` -- gets the color its name hashes to, the way
+  Proxmox tag colors and GitHub label colors work: FNV-1a over the name's
+  UTF-8 bytes picks one of seven palette colors. A given name therefore always
+  *starts* from the same color, in every workspace and whoever creates it, and
+  that no longer depends on which other tags happen to exist (0.14.x assigned
+  colors by catalog position, so creating or deleting one tag could recolor a
+  different one). The color is stored when the tag is created: renaming a tag
+  keeps it, exactly as renaming one with an explicit color does -- nothing
+  re-derives afterwards (re-deriving would silently restyle a tag somebody may
+  already recognise by its color).
+- **Chosen by the person or agent**, by passing an explicit hex `color` or by
+  recoloring the tag afterwards from its swatch in the Tags box (the palette or
+  a custom hex, with a live preview; nothing is written until **Update**). An
+  explicit color is normalized to lowercase hex (the backend also expands the
+  3-digit form to six digits) and then kept as given: it is never re-derived,
+  not by a rename and not by the setting below.
+
+The derivation is controlled by one setting, **Settings > Plugins > Tags >
+Generate a color for new tags** (declared as `auto_color` in the manifest,
+default **on**):
+
+- **On** (default, and what happens when the setting has never been saved): new
+  tags derive their color from their name as described above.
+- **Off**: a new tag with no explicit color starts in the neutral gray, and its
+  color is picked afterward in the Tags box. Agents' `create_tag` follows the
+  same rule; an agent that wants a color passes one.
+- The setting never touches tags that already exist, and never overrides an
+  explicit color, so flipping it cannot restyle an existing board.
+
+Three things are worth knowing:
+
+- Two names can hash to the same color -- seven colors cannot keep a large
+  catalog distinct. That is expected: the chip always shows the name, and the
+  picker is there when the color is meant to carry meaning.
+- The setting is fail-open: if it cannot be read at all (a host error, or a
+  value that is not a boolean), the plugin derives the color, i.e. it behaves as
+  the documented default rather than refusing to create the tag.
+- The setting lives in the plugin's backend, which is what assigns colors when
+  a tag is created. On a host old enough to predate plugin actions, the UI
+  falls back to private browser storage and derives colors itself, where the
+  setting cannot reach it -- such a host always derives.
+
+Tags carried over from the 0.7.x agent status document (workspace state, which
+is what 0.7 actually wrote -- a person's pre-0.8 private tags are never migrated,
+as the compatibility note above says) keep the neutral gray they have always
+rendered as; the upgrade does not restyle an existing board.
+
 ## Install
 
 Building requires a local checkout of the Kandev SDK first -- run `make
@@ -196,7 +256,10 @@ know exactly how many cards carry a tag before deleting it, to strip a
 deleted tag from every one of those cards, and to keep the board filter
 correct even for cards that haven't scrolled into view yet -- on an older
 host without that API this all degrades gracefully (no count, no cascade,
-filter only reasons about cards whose chips have actually rendered).
+filter only reasons about cards whose chips have actually rendered). A scan
+the host had to cap degrades the same way rather than pretending: the
+confirmation says it cannot state a count, and a cascade that could not see
+every card says so instead of reporting a clean sweep.
 Shared tags are visible to everyone who can access the workspace. The host
 authorizes every browser action against the signed-in person and constrains
 each agent invocation to its running task/session. Task-scoped agent tools may
@@ -213,6 +276,11 @@ no chip at all rather than a chip labeled with the raw id.
 Tags does not use, request, or spend LLM tokens, and has no external
 service or analytics integration.
 
+Its one operator setting (`auto_color`, see **Tag colors**) lives in the
+plugin's own configuration on the kandev side, read by the plugin through
+`Host.GetConfig`; it is not stored in the workspace document and is not part
+of a user's private tag storage.
+
 ## Version changes and data safety
 
 Update or roll back by installing the other package over the existing
@@ -221,7 +289,10 @@ replaces the plugin process and package while retaining both its workspace
 state and its per-user compatibility state. The plugin keeps the same
 `agent-tags` workspace document across those process replacements, so
 shared tag definitions, task applications, colors, ownership, agent notes,
-and human/agent provenance remain intact.
+and human/agent provenance remain intact. The operator's `auto_color` setting
+lives in the plugin's kandev-side configuration rather than in that document,
+and survives an in-place version change the same way; only an explicit
+uninstall removes it.
 
 Compatible shared-catalog releases (0.9.0 and newer) can read the same
 document in either direction. A pre-0.9 release cannot display tags created

@@ -2,7 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -655,4 +660,437 @@ func TestConcurrentTargetedWritesAllLand(t *testing.T) {
 	}
 	wg.Wait()
 	require.Len(t, storedTagDoc(t, host, "ws-1").Tasks, n)
+}
+
+// -----------------------------------------------------------------------
+// The derived tag color (shared contract with ui/bundle.js)
+// -----------------------------------------------------------------------
+
+type tagColorFixture struct {
+	Palette []string `json:"palette"`
+	Neutral string   `json:"neutral"`
+	Trim    []string `json:"trim"`
+	Names   []struct {
+		Name  string `json:"name"`
+		Color string `json:"color"`
+	} `json:"names"`
+}
+
+func loadTagColorFixture(t *testing.T) tagColorFixture {
+	t.Helper()
+	raw, err := os.ReadFile("../testdata/tag-colors.json")
+	require.NoError(t, err)
+	var fixture tagColorFixture
+	require.NoError(t, json.Unmarshal(raw, &fixture))
+	require.NotEmpty(t, fixture.Names)
+	return fixture
+}
+
+func tagByName(t *testing.T, doc tagDoc, name string) sharedTag {
+	t.Helper()
+	for _, tag := range doc.Tags {
+		if tag.Name == name {
+			return tag
+		}
+	}
+	t.Fatalf("tag %q not found in catalog", name)
+	return sharedTag{}
+}
+
+// The color of a name is a cross-language contract, not an implementation
+// detail: a tag created in the Tags box and the same name created by an agent
+// through create_tag have to come out identical. These pairs are the same ones
+// ui/bundle.test.js asserts against colorFromName, so changing one hash alone
+// fails one suite or the other. The names cover every branch of the UTF-8
+// encoder (1-, 2-, 3-, and 4-byte sequences), the 22-rune cap, a name that
+// collides with another in this table (accepted and harmless), and the empty
+// string.
+func TestAutoTagColorMatchesSharedFixture(t *testing.T) {
+	for _, want := range loadTagColorFixture(t).Names {
+		require.Equal(t, want.Color, autoTagColor(want.Name), "autoTagColor(%q)", want.Name)
+	}
+}
+
+// A palette reorder on one side alone would silently give the same name two
+// different colors, so both sides are pinned to the fixture's palette as well:
+// here to tagColorPalette, and in ui/bundle.test.js to PALETTE.
+func TestTagColorPaletteMatchesSharedFixture(t *testing.T) {
+	fixture := loadTagColorFixture(t)
+	require.Equal(t, fixture.Palette, tagColorPalette[:])
+	// The neutral default is duplicated in both halves (defaultTagColor here,
+	// DEFAULT_COLOR in ui/bundle.js) and decides what an auto_color-off tag looks
+	// like -- and what any tag looks like on a host that predates plugin actions
+	// -- so it is pinned to the fixture instead of drifting between the two.
+	require.Equal(t, fixture.Neutral, defaultTagColor)
+}
+
+// Legacy v1 names were only trimmed and length-capped, so the migration must
+// title them without destroying characters: capitalizing the first *byte* of a
+// multi-byte rune produced U+FFFD plus fragments, and the next write persisted
+// them. (v1 tags arrive as slugs, so "-" becomes a space and each word is titled.)
+func TestTitleFromSlugKeepsMultiByteNames(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"urgent", "Urgent"},
+		{"waiting-on-design", "Waiting On Design"},
+		{"über-crash", "Über Crash"},
+		{"🚀-launch", "🚀 Launch"},
+		{"界-blocked", "界 Blocked"},
+		{"  spaced  ", "Spaced"},
+		{"", ""},
+	} {
+		require.Equal(t, tc.want, titleFromSlug(tc.in), "%q", tc.in)
+		require.NotContains(t, titleFromSlug(tc.in), "\uFFFD", "%q", tc.in)
+	}
+}
+
+// A stored name that predates the shared trim rule -- 0.14 and earlier trimmed
+// with strings.TrimSpace, which keeps U+FEFF, and the migration copies a legacy
+// tag's own spelling -- must still block a duplicate once normalized, or the
+// catalog ends up with two chips whose names are the same after normalization.
+func TestHasTagNameNormalizesTheStoredName(t *testing.T) {
+	stored := []sharedTag{{ID: "legacy", Name: "bug\uFEFF", Color: defaultTagColor}}
+	require.True(t, hasTagName(stored, "bug", ""), "a BOM-suffixed stored name blocks its normalized duplicate")
+	require.True(t, hasTagName(stored, "BUG", ""), "and the case-insensitive rule still applies")
+	require.False(t, hasTagName(stored, "bug", "legacy"), "a tag never clashes with itself")
+
+	// The candidate is normalized by its caller, so a padded candidate is the
+	// caller's business; the stored side is what this pins.
+	padded := []sharedTag{{ID: "t1", Name: "  docs  ", Color: "#123456"}}
+	require.True(t, hasTagName(padded, "docs", ""))
+}
+
+// The edge-trim set is the other half of the cross-language contract: a
+// character only one side strips is stored under one spelling and looked up
+// under the other (see stripFromEdges). Both implementations enumerate the set
+// explicitly, so this sweeps every code point and compares what this side
+// actually strips against the fixture -- in both directions, so a character
+// added to one list and not the other fails here rather than in production.
+func TestEdgeTrimMatchesSharedFixture(t *testing.T) {
+	want := map[rune]bool{}
+	for _, hex := range loadTagColorFixture(t).Trim {
+		value, err := strconv.ParseInt(hex, 16, 32)
+		require.NoError(t, err, hex)
+		want[rune(value)] = true
+	}
+	require.NotEmpty(t, want)
+
+	got := map[rune]bool{}
+	for r := rune(0); r <= 0x10FFFF; r++ {
+		if r >= 0xD800 && r <= 0xDFFF {
+			// A Go string cannot hold a lone surrogate (encoding one yields
+			// U+FFFD, which is not trimmed); the JS sweep skips the same range.
+			continue
+		}
+		if stripFromEdges(r) {
+			got[r] = true
+		}
+	}
+	require.Equal(t, want, got)
+}
+
+// An unpaired surrogate cannot even be spelled in Go source, but it can arrive
+// on the wire: the JSON decoder replaces it with U+FFFD before normalizeTagName
+// runs, so that -- not the raw surrogate -- is the name the backend stores. The
+// UI folds the same way (foldLoneSurrogates) precisely so its post-create lookup
+// searches for the name that was written.
+func TestUnpairedSurrogateArrivesFolded(t *testing.T) {
+	var args struct {
+		Name string `json:"name"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(`{"name":"a\ud800b"}`), &args))
+	name, err := normalizeTagName(args.Name)
+	require.NoError(t, err)
+	require.Equal(t, "a\ufffdb", name)
+}
+
+// hasTagName is the authoritative duplicate rule, and it is stricter than the
+// UI's lowercased approximation (findTagByName in ui/bundle.js): for the
+// characters whose Unicode simple case folding is not their lowercase form, the
+// server refuses a name the board's local check would have allowed. Pinned here
+// so the asymmetry stays deliberate and documented from both ends -- the UI's
+// half is the test named "findTagByName approximates the backend's case
+// folding", and a refused create surfaces the server's own message.
+func TestHasTagNameUsesSimpleCaseFolding(t *testing.T) {
+	tags := []sharedTag{{ID: "t1", Name: "Σ", Color: "#ef4444"}}
+	for _, tc := range []struct {
+		name string
+		want bool
+	}{
+		// Identical, an ordinary case pair, and final sigma -- which folds to
+		// sigma in Go but does not lowercase to it in JavaScript.
+		{"Σ", true},
+		{"σ", true},
+		{"ς", true},
+		// Long s and the Kelvin sign are not the stored sigma at all.
+		{"ſ", false},
+		{"s", false},
+		{"\u212a", false},
+	} {
+		require.Equal(t, tc.want, hasTagName(tags, tc.name, ""), "%q", tc.name)
+	}
+
+	// The long-s pair, with the long s stored: the mirror of what the UI cannot
+	// predict, since `"ſ".toLowerCase()` stays "ſ" while EqualFold unifies it.
+	require.True(t, hasTagName([]sharedTag{{ID: "t2", Name: "ſ"}}, "s", ""))
+	require.False(t, hasTagName([]sharedTag{{ID: "t3", Name: "İ"}}, "i", ""), "U+0130 has no simple folding to i")
+}
+
+// Colors are trimmed with that same set, so a stray BOM behaves identically on
+// both sides: accepted in front of a hex value, and "not supplied" when it is
+// all there is.
+func TestColorTrimmingMatchesTheUINormalizer(t *testing.T) {
+	color, err := normalizeTagColor("\ufeff#AbC")
+	require.NoError(t, err)
+	require.Equal(t, "#aabbcc", color)
+
+	_, err = normalizeTagColor("\ufeff")
+	require.ErrorContains(t, err, "3- or 6-digit hex")
+
+	p, host := newAgentTagTestPlugin()
+	result, err := p.InvokeAgentTool(context.Background(), agentToolReq("create_tag", map[string]any{"name": "docs", "color": "\ufeff"}))
+	require.NoError(t, err)
+	require.False(t, result.IsError, result.Text)
+	require.Equal(t, autoTagColor("docs"), tagByName(t, storedTagDoc(t, host, "ws-1"), "docs").Color)
+}
+
+// The backend has to strip exactly what the UI strips before it hashes or
+// stores a name: the UI looks a created tag up by its *own* trimmed name, and
+// the "same name, same color" rule assumes both sides agree on what the name
+// is. JavaScript's trim() and Go's strings.TrimSpace differ by exactly two
+// characters, and both directions are covered here -- U+FEFF (a BOM pasted from
+// a spreadsheet) is JS whitespace but not Go's, U+0085 (NEL) is Go's but not
+// JS's. Mirrored by the normalizeName case in ui/bundle.test.js.
+func TestNormalizeTagNameMatchesTheUINormalizer(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"leading BOM", "\ufeffbug", "bug"},
+		{"trailing BOM", "bug\ufeff", "bug"},
+		{"NEL is not JS whitespace", "bug\u0085", "bug\u0085"},
+		{"NBSP and ideographic space", "\u00a0bug\u3000", "bug"},
+		{"ordinary whitespace", "\t bug \n", "bug"},
+		{"unicode space separators", "\u2000urgent\u200a", "urgent"},
+	}
+	for _, tc := range cases {
+		got, err := normalizeTagName(tc.input)
+		require.NoError(t, err, tc.name)
+		require.Equal(t, tc.want, got, tc.name)
+	}
+
+	// Only trimmable characters still means no name at all.
+	_, err := normalizeTagName("\ufeff\u3000\n")
+	require.Error(t, err)
+}
+
+// Creation without a color must derive one, on both entry points an agent or
+// a person uses. An explicit color must still win, and an empty one must not
+// silently become the derived value on the update path.
+//
+// These wiring tests (this one, TestAutoColorSettingControlsDerivedColor, and
+// TestUpdateRejectsEmptyColor) assert through autoTagColor, so they pin the
+// wiring, the setting's effect, and the neutral-gray fallback -- not the hash
+// or the palette themselves: a mutation to either leaves them green and is
+// caught only by the fixture tests above, which is the intended split.
+func TestCreateWithoutColorDerivesNameColor(t *testing.T) {
+	p, host := newAgentTagTestPlugin()
+
+	result, err := p.InvokeAgentTool(context.Background(), agentToolReq("create_tag", map[string]any{"name": "waiting on design"}))
+	require.NoError(t, err)
+	require.False(t, result.IsError, result.Text)
+	require.Equal(t, autoTagColor("waiting on design"), tagByName(t, storedTagDoc(t, host, "ws-1"), "waiting on design").Color)
+
+	result, err = p.InvokeAgentTool(context.Background(), agentToolReq("create_tag", map[string]any{"name": "agent empty", "color": ""}))
+	require.NoError(t, err)
+	require.False(t, result.IsError, result.Text)
+	require.Equal(t, autoTagColor("agent empty"), tagByName(t, storedTagDoc(t, host, "ws-1"), "agent empty").Color)
+
+	_, err = p.HandleAction(context.Background(), actionReq("tag-create", []byte(`{"name":"bug"}`)))
+	require.NoError(t, err)
+	require.Equal(t, autoTagColor("bug"), tagByName(t, storedTagDoc(t, host, "ws-1"), "bug").Color)
+
+	_, err = p.HandleAction(context.Background(), actionReq("tag-create", []byte(`{"name":"urgent","color":"#123456"}`)))
+	require.NoError(t, err)
+	require.Equal(t, "#123456", tagByName(t, storedTagDoc(t, host, "ws-1"), "urgent").Color)
+
+	result, err = p.InvokeAgentTool(context.Background(), agentToolReq("create_tag", map[string]any{"name": "bad color", "color": "not-a-color"}))
+	require.NoError(t, err)
+	require.True(t, result.IsError)
+	require.Contains(t, result.Text, "3- or 6-digit hex")
+}
+
+// The auto_color setting gates the derivation and nothing else: an explicit
+// color survives it (it is a default, not a policy over people's choices), it
+// applies to both creation entry points, and anything but an explicit false --
+// including a config read that fails -- resolves to the documented default of
+// on, so a broken setting can never block tagging.
+func TestAutoColorSettingControlsDerivedColor(t *testing.T) {
+	cases := []struct {
+		name      string
+		config    map[string]any
+		err       error
+		autoColor bool
+	}{
+		{name: "setting on", config: map[string]any{tagColorSettingKey: true}, autoColor: true},
+		{name: "setting off", config: map[string]any{tagColorSettingKey: false}, autoColor: false},
+		{name: "setting never saved", config: map[string]any{}, autoColor: true},
+		{name: "setting malformed", config: map[string]any{tagColorSettingKey: "false"}, autoColor: true},
+		{name: "config read failed", err: errors.New("plugin config unavailable"), autoColor: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			p, host := newAgentTagTestPlugin()
+			host.config = tc.config
+			host.configErr = tc.err
+			wantColor := func(name string) string {
+				if tc.autoColor {
+					return autoTagColor(name)
+				}
+				return defaultTagColor
+			}
+
+			_, err := p.HandleAction(context.Background(), actionReq("tag-create", []byte(`{"name":"bug"}`)))
+			require.NoError(t, err)
+			require.Equal(t, wantColor("bug"), tagByName(t, storedTagDoc(t, host, "ws-1"), "bug").Color)
+
+			result, err := p.InvokeAgentTool(context.Background(), agentToolReq("create_tag", map[string]any{"name": "urgent"}))
+			require.NoError(t, err)
+			require.False(t, result.IsError, result.Text)
+			require.Equal(t, wantColor("urgent"), tagByName(t, storedTagDoc(t, host, "ws-1"), "urgent").Color)
+
+			_, err = p.HandleAction(context.Background(), actionReq("tag-create", []byte(`{"name":"docs","color":"#123456"}`)))
+			require.NoError(t, err)
+			require.Equal(t, "#123456", tagByName(t, storedTagDoc(t, host, "ws-1"), "docs").Color)
+		})
+	}
+}
+
+// An explicitly empty color means "change the color" on the agent tier too, and
+// both tiers answer it the same way: the board's tag-update refuses "" rather
+// than reading it as absent. Creation keeps the opposite convention -- there an
+// empty color means "derive one" -- which is documented on the tool.
+func TestAgentUpdateRejectsAnExplicitEmptyColor(t *testing.T) {
+	p, host := newAgentTagTestPlugin()
+	result, err := p.InvokeAgentTool(context.Background(), agentToolReq("create_tag", map[string]any{"name": "probe"}))
+	require.NoError(t, err)
+	require.False(t, result.IsError, result.Text)
+	id := tagByName(t, storedTagDoc(t, host, "ws-1"), "probe").ID
+	before := tagByName(t, storedTagDoc(t, host, "ws-1"), "probe")
+
+	result, err = p.InvokeAgentTool(context.Background(), agentToolReq("update_tag", map[string]any{"tag_id": id, "name": "probe renamed", "color": ""}))
+	require.NoError(t, err)
+	require.True(t, result.IsError)
+	require.Contains(t, result.Text, "3- or 6-digit hex")
+	require.Equal(t, before.Name, tagByName(t, storedTagDoc(t, host, "ws-1"), "probe").Name, "the rename did not happen")
+
+	// A whitespace-only color is the same request, and an omitted one still means
+	// "leave the color alone".
+	result, err = p.InvokeAgentTool(context.Background(), agentToolReq("update_tag", map[string]any{"tag_id": id, "color": "   "}))
+	require.NoError(t, err)
+	require.True(t, result.IsError)
+	require.Contains(t, result.Text, "3- or 6-digit hex")
+
+	result, err = p.InvokeAgentTool(context.Background(), agentToolReq("update_tag", map[string]any{"tag_id": id, "name": "probe renamed"}))
+	require.NoError(t, err)
+	require.False(t, result.IsError, result.Text)
+	require.Equal(t, before.Color, tagByName(t, storedTagDoc(t, host, "ws-1"), "probe renamed").Color)
+}
+
+// A supplied-but-blank name is refused like a supplied-but-blank color, and like
+// the board: the request is refused whole rather than reported as a success that
+// changed only the color, and a blank name alone does not claim a color was
+// missing.
+func TestAgentUpdateRejectsASuppliedBlankName(t *testing.T) {
+	p, host := newAgentTagTestPlugin()
+	result, err := p.InvokeAgentTool(context.Background(), agentToolReq("create_tag", map[string]any{"name": "probe"}))
+	require.NoError(t, err)
+	require.False(t, result.IsError, result.Text)
+	before := tagByName(t, storedTagDoc(t, host, "ws-1"), "probe")
+
+	for _, args := range []map[string]any{
+		{"tag_id": before.ID, "name": ""},
+		{"tag_id": before.ID, "name": "   "},
+		{"tag_id": before.ID, "name": "", "color": "#123456"},
+		{"tag_id": before.ID, "name": "   ", "color": "#123456"},
+	} {
+		result, err = p.InvokeAgentTool(context.Background(), agentToolReq("update_tag", args))
+		require.NoError(t, err, "%v", args)
+		require.True(t, result.IsError, "%v", args)
+		require.Contains(t, result.Text, "tag name is required", "%v", args)
+	}
+	require.Equal(t, before, tagByName(t, storedTagDoc(t, host, "ws-1"), "probe"), "nothing changed")
+
+	// Whichever field is omitted still means "leave it alone".
+	result, err = p.InvokeAgentTool(context.Background(), agentToolReq("update_tag", map[string]any{"tag_id": before.ID, "name": "probe renamed"}))
+	require.NoError(t, err)
+	require.False(t, result.IsError, result.Text)
+	after := tagByName(t, storedTagDoc(t, host, "ws-1"), "probe renamed")
+	require.Equal(t, before.Color, after.Color)
+	require.NotEqual(t, before.Name, after.Name)
+}
+
+// A duplicate name is a domain conflict, not an invocation failure. The host
+// reports a Go error from a browser action as a generic 503 ("plugin action
+// unavailable", the message going to the log instead), so the refusal has to
+// come back as a status and body the host relays verbatim -- otherwise the board
+// can only say "please try again", advice that can never work for the
+// case-folding pairs its local check cannot predict (see
+// TestHasTagNameUsesSimpleCaseFolding).
+func TestDuplicateNameIsRefusedAsADomainConflict(t *testing.T) {
+	p, host := newAgentTagTestPlugin()
+	_, err := p.HandleAction(context.Background(), actionReq("tag-create", []byte(`{"name":"Σ"}`)))
+	require.NoError(t, err)
+	_, err = p.HandleAction(context.Background(), actionReq("tag-create", []byte(`{"name":"omicron"}`)))
+	require.NoError(t, err)
+	original := storedTagDoc(t, host, "ws-1")
+
+	response, err := p.HandleAction(context.Background(), actionReq("tag-create", []byte(`{"name":"ς"}`)))
+	require.NoError(t, err, "a refused duplicate is a response, not an invocation error")
+	require.Equal(t, http.StatusConflict, response.Status)
+	var body map[string]string
+	require.NoError(t, json.Unmarshal(response.Body, &body))
+	require.Equal(t, `a tag named "ς" already exists`, body["error"])
+	require.Equal(t, "application/json", response.Headers["Content-Type"])
+	require.Equal(t, original, storedTagDoc(t, host, "ws-1"), "the refusal writes nothing")
+
+	// Renaming a *different* tag onto an existing name answers the same way (a tag
+	// renamed to its own current name is not a conflict), and writes nothing either.
+	id := tagByName(t, original, "omicron").ID
+	response, err = p.HandleAction(context.Background(), actionReq("tag-update", []byte(`{"id":"`+id+`","name":"Σ"}`)))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusConflict, response.Status)
+	require.Equal(t, original, storedTagDoc(t, host, "ws-1"))
+
+	// Agent tools keep the plain message: their result is text the agent reads,
+	// with no transport in between to lose it.
+	result, err := p.InvokeAgentTool(context.Background(), agentToolReq("create_tag", map[string]any{"name": "ς"}))
+	require.NoError(t, err)
+	require.True(t, result.IsError)
+	require.Contains(t, result.Text, `a tag named "ς" already exists`)
+}
+
+// An update never derives: a stored color is replaced only by a validated
+// one, so an explicit empty color is rejected rather than quietly reset, and
+// an update that omits the color leaves the tag's existing one alone (even
+// when that color came from the name rather than an explicit pick).
+func TestUpdateRejectsEmptyColor(t *testing.T) {
+	p, host := newAgentTagTestPlugin()
+	_, err := p.HandleAction(context.Background(), actionReq("tag-create", []byte(`{"name":"bug","color":"#123456"}`)))
+	require.NoError(t, err)
+	id := tagByName(t, storedTagDoc(t, host, "ws-1"), "bug").ID
+
+	_, err = p.HandleAction(context.Background(), actionReq("tag-update", []byte(`{"id":"`+id+`","color":""}`)))
+	require.ErrorContains(t, err, "3- or 6-digit hex")
+	require.Equal(t, "#123456", tagByName(t, storedTagDoc(t, host, "ws-1"), "bug").Color)
+
+	result, err := p.InvokeAgentTool(context.Background(), agentToolReq("create_tag", map[string]any{"name": "probe"}))
+	require.NoError(t, err)
+	require.False(t, result.IsError, result.Text)
+	probeID := tagByName(t, storedTagDoc(t, host, "ws-1"), "probe").ID
+
+	result, err = p.InvokeAgentTool(context.Background(), agentToolReq("update_tag", map[string]any{"tag_id": probeID, "name": "probe renamed"}))
+	require.NoError(t, err)
+	require.False(t, result.IsError, result.Text)
+	require.Equal(t, autoTagColor("probe"), tagByName(t, storedTagDoc(t, host, "ws-1"), "probe renamed").Color)
 }
