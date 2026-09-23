@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/17] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/18] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/17] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/18] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/17] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/18] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/17] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/18] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/17] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/18] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/17] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/18] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/17] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/18] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/17] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/18] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/17] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/18] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/17] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/18] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/17] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/18] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/17] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/18] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2895,7 +2895,7 @@ index 8d5c33a90..c1d6a5849 100644
 From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:58:04 +0000
-Subject: [PATCH 13/17] fix(plugins): recognise component-object icons and
+Subject: [PATCH 13/18] fix(plugins): recognise component-object icons and
  escape child keys
 
 Two defects the PR owner found by rebuilding against this patch, both real:
@@ -3258,7 +3258,7 @@ index acaa9883b..8b82f0aaa 100644
 From fbce2e5d42ae5dac9b6dcdfc61574bcb65ed8a76 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:10:56 +0000
-Subject: [PATCH 14/17] fix(plugins): make child keys unforgeable and keep the
+Subject: [PATCH 14/18] fix(plugins): make child keys unforgeable and keep the
  native Edit item
 
 Round 4 filed two findings; both are fixed here.
@@ -3445,7 +3445,7 @@ index 91b4f7539..844e4e757 100644
 From 46b97e6cb98c9b9d14d2a9f02d07247c239ee43a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:15:52 +0000
-Subject: [PATCH 15/17] fix(plugins): drop lazy icons, encode key parts, and
+Subject: [PATCH 15/18] fix(plugins): drop lazy icons, encode key parts, and
  resolve own keys only
 
 Three findings from the PR owner's rounds, all on code this patch owns:
@@ -4107,7 +4107,7 @@ index c1d6a5849..b912f87d7 100644
 From 690b02dc94a3f40cb88d7c8ecc9a4ced16fefb00 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:25:38 +0000
-Subject: [PATCH 16/17] fix(plugins): force the flat Edit item over a prebuilt
+Subject: [PATCH 16/18] fix(plugins): force the flat Edit item over a prebuilt
  bundle
 
 Round 9 filed five findings; three were already fixed on this tree (the
@@ -4388,7 +4388,7 @@ index 87f972d29..60208a4d0 100644
 From cda23707fcbde2ac050dca3b95076c1ac52f0a61 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:30:03 +0000
-Subject: [PATCH 17/17] fix(plugins): encode key parts without throwing on a
+Subject: [PATCH 17/18] fix(plugins): encode key parts without throwing on a
  lone surrogate
 
 The PR owner's round 5 found that key building used `encodeURIComponent`,
@@ -4550,6 +4550,87 @@ index 09db20eb5..a8b2bec18 100644
          icon: pluginMenuIcon(item.icon),
          label: item.label,
          disabled: disabled || item.disabled,
+-- 
+2.53.0
+
+
+From f336aff04b350d078d8fcf536cebf963fa9e87a6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Wed, 23 Sep 2026 06:17:55 +0000
+Subject: [PATCH 18/18] docs(plugins): state the action-id uniqueness
+ requirement
+
+Round 5 of the host loop checked the key space against the freshly escaped
+keys and found the escaping sound but the *requirement* undocumented: two
+registrations sharing a (pluginId, group, id) triple produce one React key
+and one palette row id, and nothing rejects or documents that. The SDK type
+and PLUGIN-API.md now say the id must be unique within the plugin and its
+group, and why the registry does not enforce it (a generation swap
+legitimately re-registers the same ids, so the check belongs with the
+registry's lifecycle rather than a duplicate throw here).
+
+The comment in `pluginCommandChoices` describing the old dash-joined key
+scheme is also corrected: the builder percent-encodes every id part and
+delimits a child with a raw `#` no encoded id can contain.
+---
+ apps/packages/plugin-sdk/src/index.ts        | 7 +++++++
+ apps/web/components/task-command-choices.tsx | 9 +++++----
+ docs/plans/plugins/PLUGIN-API.md             | 4 ++++
+ 3 files changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/apps/packages/plugin-sdk/src/index.ts b/apps/packages/plugin-sdk/src/index.ts
+index 072a53dd4..2b70a795d 100644
+--- a/apps/packages/plugin-sdk/src/index.ts
++++ b/apps/packages/plugin-sdk/src/index.ts
+@@ -419,6 +419,13 @@ export interface TaskMenuSubItemRegistration {
+ }
+ 
+ export interface TaskMenuActionRegistration {
++  /**
++   * Unique within the plugin (and within its `group`): the host derives the
++   * menu entry's React key and the command palette's row id from
++   * `pluginId` + `id`, and a duplicate would make those ambiguous. The registry
++   * does not reject a duplicate today -- a generation swap legitimately
++   * re-registers the same ids -- so keep them unique per registration.
++   */
+   id: string;
+   label: string;
+   icon?: PluginIcon;
+diff --git a/apps/web/components/task-command-choices.tsx b/apps/web/components/task-command-choices.tsx
+index 8e58208ce..408c3c2ea 100644
+--- a/apps/web/components/task-command-choices.tsx
++++ b/apps/web/components/task-command-choices.tsx
+@@ -55,10 +55,11 @@ export function pluginCommandChoices(
+   if (entry.kind !== "item" || typeof entry.label !== "string") return [];
+   return [
+     {
+-      // A child's key is its parent's key plus its own id, both joined with a
+-      // dash, so it can spell a *different* action's key; a palette row's id is
+-      // also cmdk's value, where duplicates make filtering and selection
+-      // ambiguous. The suffix is therefore unforgeable by an action id.
++      // A palette row's id is also cmdk's value, where duplicates make
++      // filtering and selection ambiguous, so it is the entry's key verbatim:
++      // the key builder percent-encodes every id part and delimits a child with
++      // a raw `#` that no encoded id can contain, which is what keeps a child's
++      // id distinct from a sibling action's key.
+       id: entry.key,
+       label: entry.label,
+       group,
+diff --git a/docs/plans/plugins/PLUGIN-API.md b/docs/plans/plugins/PLUGIN-API.md
+index 60208a4d0..348a05eae 100644
+--- a/docs/plans/plugins/PLUGIN-API.md
++++ b/docs/plans/plugins/PLUGIN-API.md
+@@ -1427,6 +1427,10 @@ interface TaskMenuSubItemRegistration {
+ }
+ 
+ interface TaskMenuActionRegistration {
++  // Unique within the plugin and its group: the entry's React key and the
++  // palette row's id are derived from it, so a duplicate is ambiguous. The
++  // registry does not enforce this (a generation swap re-registers the same
++  // ids), so it is the registration's responsibility.
+   id: string;
+   label: string;
+   icon?: PluginIcon;
 -- 
 2.53.0
 
