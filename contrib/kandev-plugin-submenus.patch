@@ -1,7 +1,7 @@
 From ea40afc051ffc32434d0ace7c974e6938122e866 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 01/20] feat(plugins): render a task menu action as a submenu
+Subject: [PATCH 01/21] feat(plugins): render a task menu action as a submenu
 
 A plugin menu action could only ever be one selectable item, so a plugin
 with a short list of frequent choices had nowhere to put them: the tags
@@ -611,7 +611,7 @@ index 11280000f..c051f311a 100644
 From 86f755be5e2599e5ddcdc7a9f46442d6bf7ac2b2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 21:46:31 +0000
-Subject: [PATCH 02/20] fix(plugins): keep element-form plugin menu icons
+Subject: [PATCH 02/21] fix(plugins): keep element-form plugin menu icons
 
 resolvePluginIcon takes a curated icon name or a plugin-owned component.
 An icon registered as a ready-made element -- the shape the contract
@@ -699,7 +699,7 @@ index 0ec7f1a5d..33b129c44 100644
 From a779455632ab2b305b5f982a8abb8906254ec6c8 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:13:35 +0000
-Subject: [PATCH 03/20] fix(plugins): keep a plugin submenu reachable in
+Subject: [PATCH 03/21] fix(plugins): keep a plugin submenu reachable in
  command lists
 
 `useTaskCommandChoices` rebuilt the sidebar/command-palette task commands
@@ -906,7 +906,7 @@ index c051f311a..fea317306 100644
 From 500c7f129c3fba4cb68caa1d7bb96929c80aaa3c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:21:12 +0000
-Subject: [PATCH 04/20] fix(plugins): validate submenu children at the host
+Subject: [PATCH 04/21] fix(plugins): validate submenu children at the host
  boundary
 
 `pluginSubItems` accepted whatever `items()` returned as long as it was a
@@ -1413,7 +1413,7 @@ index fea317306..b0a600ffe 100644
 From 7b3b4d44665a499a356fd03ca9956db7692ef6de Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:22:29 +0000
-Subject: [PATCH 05/20] docs(plugins): document submenu items in the authoring
+Subject: [PATCH 05/21] docs(plugins): document submenu items in the authoring
  guide
 
 apps/web/AGENTS.md and docs/public/plugins-authoring.md still described
@@ -1508,7 +1508,7 @@ index 79d27dba0..8d5c33a90 100644
 From 0eb9b3839736c3f7e6f60e130682fd19cc02e300 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:38:57 +0000
-Subject: [PATCH 06/20] docs(plugins): align the task menu icon type with the
+Subject: [PATCH 06/21] docs(plugins): align the task menu icon type with the
  SDK
 
 The two task menu interface blocks were the only ones in PLUGIN-API.md still
@@ -1552,7 +1552,7 @@ index b0a600ffe..16347590e 100644
 From 2fdf6eeb447cffc64516dadbbfe426cb61ea0e92 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:39:21 +0000
-Subject: [PATCH 07/20] test(plugins): pin the submenu registration in the SDK
+Subject: [PATCH 07/21] test(plugins): pin the submenu registration in the SDK
  contract
 
 sdk-contract.test.ts is where a new public SDK type is pinned against the
@@ -1651,7 +1651,7 @@ index 26af63b36..0a5d2e256 100644
 From 99dfacc5a3b1c3c3bf55b90aac171aeab1d571a7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:49:35 +0000
-Subject: [PATCH 08/20] perf(plugins): build a card's plugin menu entries once
+Subject: [PATCH 08/21] perf(plugins): build a card's plugin menu entries once
  per render
 
 `useKanbanCardMenus` builds the dropdown and the context variant of the
@@ -1936,7 +1936,7 @@ index 8b8ab15e2..48ce473a6 100644
 From 43fbe8b3144f2d4ceedc5e6524b9af2822046c48 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:52:29 +0000
-Subject: [PATCH 09/20] fix(plugins): keep a submenu trigger label in the
+Subject: [PATCH 09/21] fix(plugins): keep a submenu trigger label in the
  command palette
 
 buildSidebarTaskCommands stamped every command with the task title, which
@@ -2000,7 +2000,7 @@ index 9f513678c..f5b4c8096 100644
 From 082e132b9d8e8fd29f95ab3fd8f68a7d528e14ab Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 22:53:21 +0000
-Subject: [PATCH 10/20] fix(plugins): keep flattened palette command ids unique
+Subject: [PATCH 10/21] fix(plugins): keep flattened palette command ids unique
 
 A submenu child's menu key is its parent's key plus its own id, joined with a
 dash, so it can spell a different action's key exactly. A palette row's id is
@@ -2096,7 +2096,7 @@ index 7906f40d4..0d4933367 100644
 From b87048e587acd132dca4b44e8cdf5c4bae2cc848 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:28:44 +0000
-Subject: [PATCH 11/20] fix(plugins): guard the registration's own label and
+Subject: [PATCH 11/21] fix(plugins): guard the registration's own label and
  icon
 
 Round 3 filed four findings; this is the host-side delta.
@@ -2543,7 +2543,7 @@ index b6961bc6f..acaa9883b 100644
 From 4e31e06652d6b3e873b723ea20683a97e7c0a61c Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:40:15 +0000
-Subject: [PATCH 12/20] fix(plugins): keep an explicit null icon, and finish
+Subject: [PATCH 12/21] fix(plugins): keep an explicit null icon, and finish
  the child-filter docs
 
 Round 8 of the plugin-side loop checked the artifact against the claims made
@@ -2895,7 +2895,7 @@ index 8d5c33a90..c1d6a5849 100644
 From bb672a752b0b59641fd413bd9709a4d944f0d551 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Tue, 22 Sep 2026 23:58:04 +0000
-Subject: [PATCH 13/20] fix(plugins): recognise component-object icons and
+Subject: [PATCH 13/21] fix(plugins): recognise component-object icons and
  escape child keys
 
 Two defects the PR owner found by rebuilding against this patch, both real:
@@ -3258,7 +3258,7 @@ index acaa9883b..8b82f0aaa 100644
 From fbce2e5d42ae5dac9b6dcdfc61574bcb65ed8a76 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:10:56 +0000
-Subject: [PATCH 14/20] fix(plugins): make child keys unforgeable and keep the
+Subject: [PATCH 14/21] fix(plugins): make child keys unforgeable and keep the
  native Edit item
 
 Round 4 filed two findings; both are fixed here.
@@ -3445,7 +3445,7 @@ index 91b4f7539..844e4e757 100644
 From 46b97e6cb98c9b9d14d2a9f02d07247c239ee43a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:15:52 +0000
-Subject: [PATCH 15/20] fix(plugins): drop lazy icons, encode key parts, and
+Subject: [PATCH 15/21] fix(plugins): drop lazy icons, encode key parts, and
  resolve own keys only
 
 Three findings from the PR owner's rounds, all on code this patch owns:
@@ -4107,7 +4107,7 @@ index c1d6a5849..b912f87d7 100644
 From 690b02dc94a3f40cb88d7c8ecc9a4ced16fefb00 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:25:38 +0000
-Subject: [PATCH 16/20] fix(plugins): force the flat Edit item over a prebuilt
+Subject: [PATCH 16/21] fix(plugins): force the flat Edit item over a prebuilt
  bundle
 
 Round 9 filed five findings; three were already fixed on this tree (the
@@ -4388,7 +4388,7 @@ index 87f972d29..60208a4d0 100644
 From f8f3f868c102a84a803ba9d66e102c2891a9dcef Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 00:30:03 +0000
-Subject: [PATCH 17/20] fix(plugins): encode key parts without throwing on a
+Subject: [PATCH 17/21] fix(plugins): encode key parts without throwing on a
  lone surrogate
 
 The PR owner's round 5 found that key building used `encodeURIComponent`,
@@ -4558,7 +4558,7 @@ index 09db20eb5..a8b2bec18 100644
 From 9d72bec03d28a62bbdc393877c976489aab5154d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:17:55 +0000
-Subject: [PATCH 18/20] docs(plugins): state the action-id uniqueness
+Subject: [PATCH 18/21] docs(plugins): state the action-id uniqueness
  requirement
 
 Round 5 of the host loop checked the key space against the freshly escaped
@@ -4639,7 +4639,7 @@ index 60208a4d0..348a05eae 100644
 From 98ce2665fab2c1ea5d01fd38c242877f8be81804 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:23:57 +0000
-Subject: [PATCH 19/20] fix(plugins): make the key escape injective
+Subject: [PATCH 19/21] fix(plugins): make the key escape injective
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -5112,7 +5112,7 @@ index c38bd8a33..620415a23 100644
 From 0f6a9ee9fb614a28ecaf5c7bef1752cf3fdfe90b Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
 Date: Wed, 23 Sep 2026 06:29:29 +0000
-Subject: [PATCH 20/20] test(plugins): pin the escaping's width independence
+Subject: [PATCH 20/21] test(plugins): pin the escaping's width independence
 
 The PR owner asked me to check the one property their own encoder got wrong
 last round: a per-code-unit hex escape with a two-digit minimum makes `%0`
@@ -5439,6 +5439,216 @@ index 000000000..f19f734fa
 +    expect(new Set(keys).size, keys.join(" | ")).toBe(keys.length);
 +  });
 +});
+-- 
+2.53.0
+
+
+From 9c6875639257a6387b5a572658703828cabfceba Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20Fiere?= <clement@fiere.fr>
+Date: Wed, 23 Sep 2026 06:32:13 +0000
+Subject: [PATCH 21/21] fix(plugins): resolve a child's icon inside the guard,
+ and finish the null docs
+
+Round 10 filed six findings; two were already fixed on a later revision (the
+`encodeURIComponent` surrogate throw, closed in commit 17, and its
+variable-width successor, closed in commit 19 and pinned in 20), and one more
+was closed in commit 18 (the palette comment). The rest are here:
+
+- `readSubItem` claimed everything the render reads is read inside the catch
+  and nothing twice, but it stored the raw icon and `pluginMenuIcon` read
+  `$$typeof` on it again outside the guard: a getter that answered once and
+  threw afterwards propagated out of `buildPrimaryPluginEntries`. The snapshot
+  now holds the resolved node, so the render never touches the plugin's object
+  again.
+- the three places that list the child filter still said a boolean `disabled`
+  drops a child, while `null` has counted as absent since commit 17; the SDK
+  type, PLUGIN-API.md and the public authoring guide say so now.
+- the docblock about the built-once prebuild sat between an unrelated comment
+  and its describe in `kanban-card-menu-items.test.tsx`; it moved next to the
+  tests it explains, and the keys test file gained the two pairs a
+  width-based escape runs together (`U+D83C` vs `U+00D8`+`3C`, `U+0100` vs
+  `U+0010`+`0`).
+---
+ apps/packages/plugin-sdk/src/index.ts         |  2 ++
+ .../kanban-card-menu-items.test.tsx           |  8 -------
+ .../kanban-card-plugin-entries.test.tsx       |  8 +++++++
+ .../components/plugins/task-menu-actions.ts   | 21 ++++++++++++----
+ .../plugins/task-menu-keys.test.tsx           | 24 +++++++++++++++++++
+ docs/plans/plugins/PLUGIN-API.md              |  4 ++--
+ docs/public/plugins-authoring.md              |  2 +-
+ 7 files changed, 54 insertions(+), 15 deletions(-)
+
+diff --git a/apps/packages/plugin-sdk/src/index.ts b/apps/packages/plugin-sdk/src/index.ts
+index 2b70a795d..349a3c8db 100644
+--- a/apps/packages/plugin-sdk/src/index.ts
++++ b/apps/packages/plugin-sdk/src/index.ts
+@@ -413,7 +413,9 @@ export interface TaskMenuSubItemRegistration {
+   /** Unique within the parent action; contributes to the menu entry's React key. */
+   id: string;
+   label: string;
++  /** A curated name, a component, a ready-made element, or nothing. */
+   icon?: PluginIcon;
++  /** `null` and absent both mean "enabled", since a JS bundle may send either. */
+   disabled?: boolean;
+   run(context: PluginTaskMenuContext): void | Promise<void>;
+ }
+diff --git a/apps/web/components/kanban-card-menu-items.test.tsx b/apps/web/components/kanban-card-menu-items.test.tsx
+index 1a2582a90..2d6240f83 100644
+--- a/apps/web/components/kanban-card-menu-items.test.tsx
++++ b/apps/web/components/kanban-card-menu-items.test.tsx
+@@ -22,14 +22,6 @@ const PluginBitbucketIcon = () => null;
+ const WORKFLOW_ONE_NAME = "Workflow 1";
+ 
+ // Regression: React synthetic events bubble through the fiber tree from a Radix portal; without stopPropagation the parent Card's onClick fires instead of the confirm dialog.
+-/**
+- * A card builds its dropdown and context variants from one render with the
+- * same plugin inputs, so the plugin contributions must be built once: each
+- * plugin's `items()` is a callback into a foreign bundle, and evaluating it
+- * twice per render for identical children is the API's own documented
+- * anti-pattern ("memoize anything expensive").
+- */
+-
+ describe("KanbanCardDropdownMenuItems — click propagation", () => {
+   function renderWithParent(entries: KanbanCardMenuEntry[], parentOnClick: () => void) {
+     return render(
+diff --git a/apps/web/components/kanban-card-plugin-entries.test.tsx b/apps/web/components/kanban-card-plugin-entries.test.tsx
+index 2596c86af..dd51b2224 100644
+--- a/apps/web/components/kanban-card-plugin-entries.test.tsx
++++ b/apps/web/components/kanban-card-plugin-entries.test.tsx
+@@ -3,6 +3,14 @@ import { pluginRegistry } from "@/lib/plugins/registry";
+ import type { PluginTaskMenuContext, TaskMenuSubItemRegistration } from "@/lib/plugins/types";
+ import { buildCardPluginEntries, buildKanbanCardMenuEntries } from "./kanban-card-menu-items";
+ 
++/**
++ * A card builds its dropdown and context variants from one render with the
++ * same plugin inputs, so the plugin contributions must be built once: each
++ * plugin's `items()` is a callback into a foreign bundle, and evaluating it
++ * twice per render for identical children is the API's own documented
++ * anti-pattern ("memoize anything expensive").
++ */
++
+ describe("buildCardPluginEntries", () => {
+   const PLUGIN_ID = "kandev-plugin-tags";
+   const CONTEXT: PluginTaskMenuContext = {
+diff --git a/apps/web/components/plugins/task-menu-actions.ts b/apps/web/components/plugins/task-menu-actions.ts
+index 500941ba2..5732addc3 100644
+--- a/apps/web/components/plugins/task-menu-actions.ts
++++ b/apps/web/components/plugins/task-menu-actions.ts
+@@ -140,11 +140,15 @@ function isUsableIconShape(icon: unknown): boolean {
+   );
+ }
+ 
+-/** One child, read once into the plain values the menu actually renders. */
++/**
++ * One child, read once into the plain values the menu actually renders --
++ * including the resolved icon node, so the render never touches the plugin's
++ * object again.
++ */
+ type SubItemSnapshot = {
+   id: string;
+   label: string;
+-  icon?: PluginIcon;
++  icon?: ReactNode;
+   disabled?: boolean;
+   run: (context: PluginTaskMenuContext) => void | Promise<void>;
+ };
+@@ -167,7 +171,16 @@ function readSubItem(item: unknown): SubItemSnapshot | null {
+     if (typeof run !== "function") return null;
+     if (disabled != null && typeof disabled !== "boolean") return null;
+     if (!isUsableIconShape(icon)) return null;
+-    return { id, label, icon: icon ?? undefined, disabled: disabled ?? undefined, run };
++    // Read the icon through the resolver here, inside the guard: the render
++    // gets a node, so a `$$typeof` getter that answers once and throws after
++    // cannot reach it.
++    return {
++      id,
++      label,
++      icon: icon == null ? undefined : pluginMenuIcon(icon),
++      disabled: disabled ?? undefined,
++      run,
++    };
+   } catch {
+     return null;
+   }
+@@ -308,7 +321,7 @@ export function pluginMenuEntry(
+       children: items.map((item) => ({
+         kind: "item",
+         key: `${key}#${escapeKeyPart(item.id)}`,
+-        icon: pluginMenuIcon(item.icon),
++        icon: item.icon,
+         label: item.label,
+         disabled: disabled || item.disabled,
+         onSelect: () => runPluginCallback(action, item.run, context, ` item "${item.id}"`),
+diff --git a/apps/web/components/plugins/task-menu-keys.test.tsx b/apps/web/components/plugins/task-menu-keys.test.tsx
+index f19f734fa..98655ea5a 100644
+--- a/apps/web/components/plugins/task-menu-keys.test.tsx
++++ b/apps/web/components/plugins/task-menu-keys.test.tsx
+@@ -136,6 +136,30 @@ describe("menu keys — escaping", () => {
+     expect(new Set(keys).size).toBe(keys.length);
+   });
+ 
++  it("keeps ids apart whose escapes would run together under a width scheme", () => {
++    // With a per-code-unit hex escape these collide: U+D83C against U+00D8
++    // followed by `3C` (both `%D83C`), and U+0100 against U+0010 followed by
++    // `0` (both `%100`). Verbatim characters cannot.
++    const lone = "\ud83c";
++    const diaeresis = "\u00d8";
++    const latinA = "\u0100";
++    const dle = "\u0010";
++    register(PLUGIN_ID, lone, "Lone", () => [{ id: latinA, label: "A macron", run: vi.fn() }]);
++    register(PLUGIN_ID, diaeresis + "3C", "Pair", () => [
++      { id: dle + "0", label: "DLE", run: vi.fn() },
++    ]);
++
++    const keys = allKeys();
++
++    expect(keys).toEqual([
++      `plugin-primary-${PLUGIN_ID}:${lone}`,
++      `plugin-primary-${PLUGIN_ID}:${lone}#${latinA}`,
++      `plugin-primary-${PLUGIN_ID}:${diaeresis}3C`,
++      `plugin-primary-${PLUGIN_ID}:${diaeresis}3C#${dle}0`,
++    ]);
++    expect(new Set(keys).size).toBe(keys.length);
++  });
++
+   it("leaves every non-special character verbatim, so no escape width can alias it", () => {
+     // A per-code-unit hex escape has a width flaw (`%250` against `%0250`, so
+     // `%0` and U+0250 share a key). Only `%`, `:` and `#` are escaped here, so
+diff --git a/docs/plans/plugins/PLUGIN-API.md b/docs/plans/plugins/PLUGIN-API.md
+index 348a05eae..f08ad1a8c 100644
+--- a/docs/plans/plugins/PLUGIN-API.md
++++ b/docs/plans/plugins/PLUGIN-API.md
+@@ -1444,7 +1444,7 @@ interface TaskMenuActionRegistration {
+   // order. Must be synchronous, and is evaluated on every menu build (see
+   // "Kanban card contributions"). Nesting stops at this one level. A child
+   // needs a non-blank id and label, a callable run, and optional fields of the
+-  // shapes above (a boolean `disabled`, an `icon` that is a name, component,
++  // shapes above (a boolean `disabled` (or `null`/absent), an `icon` that is a name, component,
+   // element or `null`) -- ids unique within the action: children the host
+   // cannot read or render are dropped (and reported), duplicate ids keep their
+   // first occurrence, and a result with nothing usable left falls back to `run`.
+@@ -1592,7 +1592,7 @@ bundle is plain JavaScript and these types are not enforced at run time: an
+ empty list, a throw, a promise (the contract is synchronous, and its rejection
+ is observed so it cannot escape as an unhandled rejection), a non-array, and an
+ array with no usable entry left -- every entry lacking a non-blank `id` or
+-`label`, a callable `run`, a boolean `disabled` or a recognizable `icon` (a
++`label`, a callable `run`, a boolean `disabled` (or `null`/absent) or a recognizable `icon` (a
+ name, component, element or `null`) -- all fall back to the flat item instead of
+ crashing the render or producing a trigger nothing can open. Children are read once, inside the same guard, so a
+ throwing getter or a Proxy fails that child rather than the card's render;
+diff --git a/docs/public/plugins-authoring.md b/docs/public/plugins-authoring.md
+index b912f87d7..5b4acb00b 100644
+--- a/docs/public/plugins-authoring.md
++++ b/docs/public/plugins-authoring.md
+@@ -2553,7 +2553,7 @@ the flat item a host that predates `items` renders, and the fallback whenever
+ `items` yields nothing usable (a non-array, an empty list, a promise, or a
+ throw, which is caught and logged). A child needs a non-blank, unique `id`, a
+ non-blank `label` and a callable `run`, with optional fields of the shapes the
+-entry builder understands -- a boolean `disabled` and an `icon` that is a curated
++entry builder understands -- a boolean `disabled` (or `null`/absent) and an `icon` that is a curated
+ name, a component, a ready-made element or `null`; a child the host cannot read
+ or render is dropped, and one whose `id` repeats is reported and skipped.
+ 
 -- 
 2.53.0
 

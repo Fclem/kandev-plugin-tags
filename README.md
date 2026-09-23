@@ -276,7 +276,7 @@ The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
 in the monorepo). That host change is not upstream yet -- it is open as
 kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, twenty commits against `kdlbs/kandev`:
+`contrib/kandev-plugin-submenus.patch`, twenty-one commits against `kdlbs/kandev`:
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -352,6 +352,11 @@ kdlbs/kandev PR #3874 -- and ships here as
     pairs a per-code-unit hex escape collides on (`%0` vs U+0250, `%` vs
     `%25`, U+00E9+"a" vs U+0E9A) are asserted distinct, and the key tests live
     in their own file.
+21. `fix(plugins): resolve a child's icon inside the guard, and finish the
+    null docs` -- the snapshot holds the resolved icon node, so a `$$typeof`
+    getter that answers once and throws cannot escape the guard, and the SDK
+    type, PLUGIN-API.md and the authoring guide all say `null`/absent
+    `disabled` means enabled.
 
 ```sh
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch
