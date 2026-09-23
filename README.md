@@ -270,13 +270,33 @@ some-parent-dir/
     └── apps/backend/     (from kdlbs/kandev)
 ```
 
-### Host prerequisite: the menu submenu
+### Host support: the menu submenu (merged upstream)
 
 The card menu's quick pick needs a host that renders plugin submenus
 (`TaskMenuActionRegistration.items`, see `docs/plans/plugins/PLUGIN-API.md`
-in the monorepo). That host change is not upstream yet -- it is open as
-kdlbs/kandev PR #3874 -- and ships here as
-`contrib/kandev-plugin-submenus.patch`, twenty-three commits against `kdlbs/kandev`:
+in the monorepo). That host API is **merged in kandev main**: kdlbs/kandev PR
+[#3874](https://github.com/kdlbs/kandev/pull/3874) ("feat(plugins): render a
+task menu action as a submenu") landed on 2026-09-23 as merge commit
+`f8708da1e0c6261d98229ca2cf1901eee9bfdf2a`, so a host built from that commit
+or a later release renders the quick pick.
+
+A host older than that keeps the flat behaviour, by design: **Add tag...**
+stays the item it has always been and opens the picker modal. The quick pick
+is an addition to that item, never a host-version requirement for installing
+the plugin.
+
+`contrib/kandev-plugin-submenus.patch` is the reference implementation those
+twenty-three commits were reviewed into, kept for the reasoning behind each
+step rather than as a prerequisite. One piece of it is not in the merged
+version: `isPluginIconComponent` there accepts a component by its `$$typeof`
+tag alone, so an object forged to carry `react.memo`/`react.forward_ref` -- or
+a `forward_ref` whose `render` is a class -- reaches `createElement` and
+throws during a render, where the patch validates the payload and refuses
+classes. That only concerns a *malformed* registration; this plugin's are
+well-formed, so it is unaffected either way.
+
+<details>
+<summary>Reference patch commits</summary>
 
 1. `feat(plugins): render a task menu action as a submenu` -- the
    `TaskMenuActionRegistration.items` contract, its menu-entry builder, the
@@ -368,15 +388,12 @@ kdlbs/kandev PR #3874 -- and ships here as
     a cyclic wrapper instead of throwing through surfaces with no error
     boundary, and `getTaskMenuActions` drops a registration it cannot read
     instead of letting its getter escape during a card's render.
+</details>
 
 ```sh
+# only to pick up the payload validation above on a host built before the merge
 git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.patch
 ```
-
-Until that lands -- and on any host that predates it -- the plugin degrades
-by design: **Add tag...** stays the flat item it has always been and opens
-the picker modal. The quick pick is an addition to that item, never a
-host-version requirement for installing the plugin.
 
 ### Setup / Prerequisites
 
