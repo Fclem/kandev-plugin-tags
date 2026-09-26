@@ -9,7 +9,7 @@
     "FNV-1a implementation, and the trim list from the ECMAScript WhiteSpace +",
     "LineTerminator set -- neither from either subject under test."
   ],
-  "palette": ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7", "#ec4899"],
+  "palette": ["#b45309", "#c2410c", "#b91c1c", "#be185d", "#a21caf", "#6d28d9", "#4338ca", "#1d4ed8", "#0369a1", "#0e7490", "#0f766e", "#15803d", "#4d7c0f", "#475569"],
   "neutral": "#6b7280",
   "_trim_comment": [
     "Every code point stripped from both ends of a tag name or a color string, as",
@@ -48,16 +48,16 @@
     "feff"
   ],
   "names": [
-    { "name": "bug", "color": "#3b82f6" },
-    { "name": "Bug", "color": "#eab308" },
-    { "name": "urgent", "color": "#a855f7" },
-    { "name": "waiting on design", "color": "#22c55e" },
-    { "name": "agent:blocked", "color": "#3b82f6" },
-    { "name": "déjà vu", "color": "#ef4444" },
-    { "name": "界", "color": "#a855f7" },
-    { "name": "🚀 launch", "color": "#eab308" },
-    { "name": "tag-42", "color": "#22c55e" },
-    { "name": "aaaaaaaaaaaaaaaaaaaaaa", "color": "#3b82f6" },
-    { "name": "", "color": "#eab308" }
+    { "name": "bug", "color": "#15803d" },
+    { "name": "Bug", "color": "#0e7490" },
+    { "name": "urgent", "color": "#4d7c0f" },
+    { "name": "waiting on design", "color": "#be185d" },
+    { "name": "agent:blocked", "color": "#a21caf" },
+    { "name": "déjà vu", "color": "#1d4ed8" },
+    { "name": "界", "color": "#6d28d9" },
+    { "name": "🚀 launch", "color": "#0e7490" },
+    { "name": "tag-42", "color": "#0f766e" },
+    { "name": "aaaaaaaaaaaaaaaaaaaaaa", "color": "#15803d" },
+    { "name": "", "color": "#0e7490" }
   ]
 }

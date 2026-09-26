@@ -153,18 +153,23 @@
   var PICKER_WRITER_ID = "tags-picker";
   var MANAGER_WRITER_ID = "tags-manager";
 
-  // Plugin-owned color palette (a plugin-owned counterpart to the host's own
-  // task-color palette, `apps/web/lib/task-colors.ts`) -- the picker renders
-  // its swatches from these, and colorFromName indexes them to derive a new
-  // tag's default color from its name.
+  // Curated deeper hues and shades, rather than a handful of loud primaries.
+  // Keep this in sync with server/agent_tags.go and testdata/tag-colors.json.
   var PALETTE = [
-    "#ef4444", // red
-    "#f97316", // orange
-    "#eab308", // yellow
-    "#22c55e", // green
-    "#3b82f6", // blue
-    "#a855f7", // purple
-    "#ec4899", // pink
+    "#b45309", // amber
+    "#c2410c", // burnt orange
+    "#b91c1c", // red
+    "#be185d", // rose
+    "#a21caf", // fuchsia
+    "#6d28d9", // violet
+    "#4338ca", // indigo
+    "#1d4ed8", // blue
+    "#0369a1", // ocean blue
+    "#0e7490", // cyan
+    "#0f766e", // teal
+    "#15803d", // green
+    "#4d7c0f", // olive
+    "#475569", // slate
   ];
   var DEFAULT_COLOR = "#6b7280"; // gray -- used for unresolvable/legacy tags
 

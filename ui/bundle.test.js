@@ -361,20 +361,14 @@ test("contrastRatio of white vs black is 21, and a colour against itself is 1", 
   assert.equal(contrastRatio("#6b7280", "#6b7280"), 1);
 });
 
-test("chipTextColor picks dark text for pale/low-contrast backgrounds, white otherwise", () => {
-  const { chipTextColor } = loadBundle().__internal;
-  // Yellow, green, orange: unreadable in white today (report's D2 table).
-  assert.equal(chipTextColor("#eab308"), "#111827");
-  assert.equal(chipTextColor("#22c55e"), "#111827");
-  assert.equal(chipTextColor("#f97316"), "#111827");
-  // The pale colour named in the report.
+test("chipTextColor selects readable text for nuanced palette and pale custom colors", () => {
+  const { chipTextColor, PALETTE, DEFAULT_COLOR } = loadBundle().__internal;
+  assert.ok(PALETTE.length >= 12, "the generated palette should offer nuanced hue choices");
+  for (const color of PALETTE) {
+    assert.equal(chipTextColor(color), "#ffffff", `${color} should use white text`);
+  }
+  assert.equal(chipTextColor(DEFAULT_COLOR), "#ffffff");
   assert.equal(chipTextColor("#ffffe0"), "#111827");
-  // The remaining palette entries plus DEFAULT_COLOR stay white.
-  assert.equal(chipTextColor("#ef4444"), "#ffffff");
-  assert.equal(chipTextColor("#3b82f6"), "#ffffff");
-  assert.equal(chipTextColor("#a855f7"), "#ffffff");
-  assert.equal(chipTextColor("#ec4899"), "#ffffff");
-  assert.equal(chipTextColor("#6b7280"), "#ffffff");
 });
 
 test("every PALETTE colour plus DEFAULT_COLOR clears the contrast floor on both chip surfaces", () => {

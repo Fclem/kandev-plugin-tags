@@ -11,8 +11,8 @@
   box. Explicit colors are never affected, and no existing tag is recolored by
   changing it.
 - When the setting is on, a tag with no explicit color gets the color its name
-  hashes to: FNV-1a over the name's UTF-8 bytes picks one of seven palette
-  colors, so the same name always renders the same color wherever and by
+  hashes to: FNV-1a over the name's UTF-8 bytes picks one of fourteen curated
+  deeper hues, so the same name always renders the same color wherever and by
   whomever it is created — the Tags box, the Add tag modal, or an agent's
   `create_tag`. The two implementations (`autoTagColor` in
   `server/agent_tags.go`, `colorFromName` in `ui/bundle.js`) are asserted
@@ -24,6 +24,10 @@
 - A tag's color no longer depends on catalog position. 0.14.x assigned
   `PALETTE[catalog.length % PALETTE.length]`, so creating or deleting an
   unrelated tag could silently recolor an existing one.
+- The auto-generated and picker palette now uses fourteen nuanced, deeper hues
+  inspired by Proxmox's richer labeling colors instead of seven loud primaries.
+  This affects future generated colors only; existing tags keep their stored
+  colors.
 - `create_tag`/`tag-create` without a `color` now store the name-derived color
   instead of the neutral gray (while the setting is on). An explicit color
   still wins, and no stored color is ever re-derived -- a rename keeps both the

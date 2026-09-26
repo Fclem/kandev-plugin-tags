@@ -182,14 +182,14 @@ catalog position:
   color -- typed into either Create input, or created by an agent via
   `create_tag` with no `color` -- gets the color its name hashes to, the way
   Proxmox tag colors and GitHub label colors work: FNV-1a over the name's
-  UTF-8 bytes picks one of seven palette colors. A given name therefore always
-  *starts* from the same color, in every workspace and whoever creates it, and
-  that no longer depends on which other tags happen to exist (0.14.x assigned
-  colors by catalog position, so creating or deleting one tag could recolor a
-  different one). The color is stored when the tag is created: renaming a tag
-  keeps it, exactly as renaming one with an explicit color does -- nothing
-  re-derives afterwards (re-deriving would silently restyle a tag somebody may
-  already recognise by its color).
+  UTF-8 bytes picks one of fourteen curated, nuanced hues inspired by Proxmox's
+  richer labeling palette. A given name always *starts* from the same color in
+  every workspace and whoever creates it; it no longer depends on which other
+  tags happen to exist (0.14.x assigned colors by catalog position, so creating
+  or deleting one tag could recolor a different one). The color is stored when
+  the tag is created; renaming a tag keeps it, exactly as with an explicit
+  color -- it is never re-derived afterward, which could silently restyle a tag
+  somebody may already recognize by its color.
 - **Chosen by the person or agent**, by passing an explicit hex `color` or by
   recoloring the tag afterwards from its swatch in the Tags box (the palette or
   a custom hex, with a live preview; nothing is written until **Update**). An
@@ -211,7 +211,7 @@ default **on**):
 
 Three things are worth knowing:
 
-- Two names can hash to the same color -- seven colors cannot keep a large
+- Two names can hash to the same color -- fourteen colors cannot keep a large
   catalog distinct. That is expected: the chip always shows the name, and the
   picker is there when the color is meant to carry meaning.
 - The setting is fail-open: if it cannot be read at all (a host error, or a

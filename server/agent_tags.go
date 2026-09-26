@@ -40,12 +40,12 @@ const (
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$`)
 
 // tagColorPalette is the plugin's color vocabulary and the source of every
-// derived tag color. ui/bundle.js holds the same seven values as PALETTE --
-// the UI renders the picker's swatches from its copy -- so the two lists must
-// stay identical. TestTagColorPaletteMatchesSharedFixture asserts this list
-// against testdata/tag-colors.json, which ui/bundle.test.js asserts PALETTE
-// against, so a reorder on either side alone fails its own suite.
-var tagColorPalette = [7]string{"#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7", "#ec4899"}
+// derived tag color. ui/bundle.js holds the same curated fourteen-color set as
+// PALETTE -- the UI renders the picker's swatches from its copy -- so the two
+// lists must stay identical. TestTagColorPaletteMatchesSharedFixture asserts
+// this list against testdata/tag-colors.json, which ui/bundle.test.js asserts
+// PALETTE against, so a reorder on either side alone fails its own suite.
+var tagColorPalette = [14]string{"#b45309", "#c2410c", "#b91c1c", "#be185d", "#a21caf", "#6d28d9", "#4338ca", "#1d4ed8", "#0369a1", "#0e7490", "#0f766e", "#15803d", "#4d7c0f", "#475569"}
 
 // autoTagColor derives a tag's default color from its name -- the same
 // content-addressed scheme Proxmox tags and GitHub labels use, so a name looks
