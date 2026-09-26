@@ -1426,30 +1426,6 @@
       var privateLoadError =
         (tagIdsLoadError && !tagIdsHaveValue) ||
         (catalogLoadError && !catalogHaveValue);
-      if (privateLoadError) {
-        return jsx(
-          "div",
-          { "data-testid": "kandev-tags-chip-load-error", role: "alert", className: "text-destructive text-xs", style: dense ? DENSE_CHIP_ROW_STYLE : CHIP_ROW_STYLE },
-          withDetail("Could not load tags. Please try again.", privateLoadError),
-          jsx(
-            "button",
-            {
-              type: "button",
-              "data-testid": "kandev-tags-chip-retry",
-              className: "underline",
-              onClick: function (e) {
-                if (e && e.stopPropagation) e.stopPropagation();
-                if (tagIdsLoadError && !tagIdsHaveValue) refreshTagIds();
-                if (catalogLoadError && !catalogHaveValue) refreshCatalog();
-              },
-              onPointerDown: function (e) {
-                if (e && e.stopPropagation) e.stopPropagation();
-              },
-            },
-            "Retry",
-          ),
-        );
-      }
 
       function handleRemove(tag) {
         if (tag.shared) {
@@ -1482,13 +1458,41 @@
       // supersedes a private compatibility entry with the same stable id, so
       // migrated overlap cannot render a second chip or raw generated id.
       resolvedTags = mergeTagRepresentations(sharedTaskTags, resolvedTags, sharedTags.tags);
-      if (resolvedTags.length === 0) return null;
+      if (resolvedTags.length === 0 && !privateLoadError) return null;
 
       var visibleTags = dense ? resolvedTags.slice(0, TASK_ROW_CHIP_LIMIT) : resolvedTags;
       var hiddenCount = resolvedTags.length - visibleTags.length;
       var chipEls = visibleTags.map(function (tag) {
         return chipEl(tag, handleRemove);
       });
+      if (privateLoadError) {
+        // The private compatibility read can fail while the shared action has
+        // already confirmed task tags. Keep those chips and show the private
+        // read error beside them until Retry (or a later refresh) succeeds.
+        chipEls.push(jsx(
+          "span",
+          { key: "private-load-error", "data-testid": "kandev-tags-chip-load-error", role: "alert", className: "text-destructive text-xs" },
+          withDetail("Could not load tags. Please try again.", privateLoadError),
+          jsx(
+            "button",
+            {
+              type: "button",
+              "data-testid": "kandev-tags-chip-retry",
+              className: "underline",
+              style: { marginLeft: "4px" },
+              onClick: function (e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                if (tagIdsLoadError && !tagIdsHaveValue) refreshTagIds();
+                if (catalogLoadError && !catalogHaveValue) refreshCatalog();
+              },
+              onPointerDown: function (e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+              },
+            },
+            "Retry",
+          ),
+        ));
+      }
 
       if (!dense) {
         // Unchanged output shape from before this generalization: exactly
@@ -1500,7 +1504,12 @@
         hiddenCount > 0
           ? jsx("span", { key: "more", "data-testid": "kandev-tags-chip-more", style: CHIP_MORE_STYLE }, "+" + hiddenCount)
           : null;
-      return jsx("div", { "data-testid": "kandev-tags-chip-row", style: DENSE_CHIP_ROW_STYLE }, chipEls, moreEl);
+      // Dense rows normally stay on one line. During a partial read failure,
+      // let the warning wrap so it cannot be clipped after the shared chips.
+      var rowStyle = privateLoadError
+        ? Object.assign({}, DENSE_CHIP_ROW_STYLE, { flexWrap: "wrap", overflow: "visible" })
+        : DENSE_CHIP_ROW_STYLE;
+      return jsx("div", { "data-testid": "kandev-tags-chip-row", style: rowStyle }, chipEls, moreEl);
     };
   }
 

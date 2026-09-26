@@ -2779,6 +2779,13 @@ async function flush() {
 
 function findTestNode(node, testId) {
   if (!node || typeof node !== "object") return null;
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = findTestNode(child, testId);
+      if (found) return found;
+    }
+    return null;
+  }
   if (node.props && node.props["data-testid"] === testId) return node;
   for (const child of node.children || []) {
     const found = findTestNode(child, testId);
@@ -3007,6 +3014,67 @@ test("a cold private task-tag 503 shows chip recovery state and Retry restores s
   assert.equal(timers.size, 0, "unload leaves no private retry behind");
 });
 
+test("confirmed shared chips stay visible beside a cold private read error on cards and dense rows", async () => {
+  for (const options of [
+    { removable: true },
+    { removable: false, dense: true },
+  ]) {
+    for (const failedScope of ["task", "workspace"]) {
+      let available = false;
+      let writes = 0;
+      const plugin = loadBundle(makeFakeConsole().console);
+      const host = makeFakeReactHost();
+      host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+      host.storage = {
+        get(scope) {
+          if (scope === failedScope && !available) {
+            return Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+          }
+          return Promise.resolve({
+            value: scope === "task" ? ["private"] : [{ id: "private", name: "Private saved", color: "#ef4444" }],
+            updatedAt: "t0",
+          });
+        },
+        set() { writes += 1; return Promise.resolve(); },
+        subscribe: () => () => {},
+      };
+      host.api = {
+        invokeAction(key) {
+          assert.equal(key, "shared-tags");
+          return Promise.resolve({
+            tags: [{ id: "shared", name: "Shared saved", color: "#22c55e" }],
+            tasks: { "task-1": [{ id: "shared", name: "Shared saved", color: "#22c55e" }] },
+          });
+        },
+      };
+      const getTree = host.mount(plugin.__internal.makeTagChips(host, options), {
+        slotProps: { taskId: "task-1", workspaceId: "ws-1" },
+      });
+      await flush();
+
+      assert.equal(getTree().props["data-testid"], "kandev-tags-chip-row");
+      assert.ok(findTestNode(getTree(), "kandev-tags-chip"), "confirmed shared chip remains visible");
+      assert.match(JSON.stringify(getTree()), /Shared saved/);
+      assert.ok(findTestNode(getTree(), "kandev-tags-chip-load-error"), "the unknown private layer stays visible");
+      if (options.dense) {
+        assert.equal(getTree().props.style.flexWrap, "wrap", "dense rows leave room for the warning beside shared chips");
+        assert.equal(getTree().props.style.overflow, "visible");
+      }
+      const retry = findTestNode(getTree(), "kandev-tags-chip-retry");
+      assert.ok(retry);
+
+      available = true;
+      retry.props.onClick({ stopPropagation() {} });
+      await flush();
+      assert.match(JSON.stringify(getTree()), /Shared saved/);
+      assert.match(JSON.stringify(getTree()), /Private saved/);
+      assert.equal(findTestNode(getTree(), "kandev-tags-chip-load-error"), null);
+      assert.equal(writes, 0);
+      plugin.destroy();
+    }
+  }
+});
+
 test("destroy ignores a late failed private read without scheduling a retry", async () => {
   const timers = new Map();
   let nextTimer = 0;
@@ -3039,7 +3107,7 @@ test("destroy ignores a late failed private read without scheduling a retry", as
 
 test("a hard reload during a private task-tag 503 restores card and dense row chips after recovery", async () => {
   const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
-  for (const removable of [true, false]) {
+  for (const options of [{ removable: true }, { removable: false, dense: true }]) {
     let available = false;
     let focusListener;
     const plugin = loadBundle(makeFakeConsole().console, {
@@ -3059,7 +3127,7 @@ test("a hard reload during a private task-tag 503 restores card and dense row ch
       },
       subscribe: () => () => {},
     };
-    const Chips = plugin.__internal.makeTagChips(fakeHost, { removable });
+    const Chips = plugin.__internal.makeTagChips(fakeHost, options);
     const getTree = fakeHost.mount(Chips, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
     await flush();
     const error = findTestNode(getTree(), "kandev-tags-chip-load-error");
