@@ -2947,12 +2947,13 @@ test("private catalog retries stop at three attempts and explicit Retry recovers
   plugin.destroy();
 });
 
-test("private task-tag retries exhaust independently and reconnect restores saved chips", async () => {
+test("a cold private task-tag 503 shows chip recovery state and Retry restores saved chips", async () => {
   const timers = new Map();
   const listeners = {};
   let nextTimer = 0;
   let available = false;
   let taskReads = 0;
+  let writes = 0;
   const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
   const plugin = loadBundle(makeFakeConsole().console, {
     setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
@@ -2974,12 +2975,16 @@ test("private task-tag retries exhaust independently and reconnect restores save
         ? Promise.resolve({ value: ["t1"], updatedAt: "t0" })
         : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
     },
+    set() { writes += 1; return Promise.resolve(); },
     subscribe: () => () => {},
   };
   const Chips = plugin.__internal.makeTagChips(host, { removable: false });
   const getTree = host.mount(Chips, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
   await flush();
-  assert.equal(getTree(), null);
+  const error = findTestNode(getTree(), "kandev-tags-chip-load-error");
+  assert.ok(error, "a cold task-tag failure must not look like a confirmed tagless task");
+  assert.match(JSON.stringify(error), /Could not load tags/);
+  assert.ok(findTestNode(getTree(), "kandev-tags-chip-retry"), "chip surfaces offer direct recovery");
 
   for (const delay of [250, 1000, 3000]) {
     assert.equal(timers.size, 1);
@@ -2992,10 +2997,12 @@ test("private task-tag retries exhaust independently and reconnect restores save
   assert.equal(taskReads, 4);
   assert.equal(timers.size, 0);
   available = true;
-  listeners.online();
+  const retry = findTestNode(getTree(), "kandev-tags-chip-retry");
+  retry.props.onClick({ stopPropagation() {} });
   await flush();
   assert.equal(taskReads, 5);
   assert.match(JSON.stringify(getTree()), /urgent/);
+  assert.equal(writes, 0, "recovery reads persisted tags without overwriting them");
   plugin.destroy();
   assert.equal(timers.size, 0, "unload leaves no private retry behind");
 });
@@ -3055,7 +3062,9 @@ test("a hard reload during a private task-tag 503 restores card and dense row ch
     const Chips = plugin.__internal.makeTagChips(fakeHost, { removable });
     const getTree = fakeHost.mount(Chips, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
     await flush();
-    assert.equal(getTree(), null, "an unconfirmed task read cannot render a false chip");
+    const error = findTestNode(getTree(), "kandev-tags-chip-load-error");
+    assert.ok(error, "an unconfirmed task read renders recovery state instead of looking tagless");
+    assert.match(JSON.stringify(error), /Could not load tags/);
 
     available = true;
     focusListener();

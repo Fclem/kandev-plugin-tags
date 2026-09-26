@@ -1398,9 +1398,15 @@
       var tagIdsAndLoaded = useTaskTagIds(host, resolvedWorkspaceId ? taskId : null, CHIPS_WRITER_ID);
       var tagIds = tagIdsAndLoaded[0];
       var tagIdsLoaded = tagIdsAndLoaded[1];
+      var refreshTagIds = tagIdsAndLoaded[2];
+      var tagIdsLoadError = tagIdsAndLoaded[3];
+      var tagIdsHaveValue = tagIdsAndLoaded[4];
       var catalogAndLoaded = useCatalog(host, resolvedWorkspaceId, CHIPS_WRITER_ID);
       var catalog = catalogAndLoaded[0];
       var catalogLoaded = catalogAndLoaded[1];
+      var refreshCatalog = catalogAndLoaded[2];
+      var catalogLoadError = catalogAndLoaded[3];
+      var catalogHaveValue = catalogAndLoaded[4];
       var sharedTagsAndLoaded = useSharedTags(host, resolvedWorkspaceId);
       var sharedTags = sharedTagsAndLoaded[0];
       var sharedTagsLoaded = sharedTagsAndLoaded[1];
@@ -1413,6 +1419,37 @@
       // make the still-authoritative shared tags look deleted. A cached shared
       // value remains safe to render while its retry is in progress.
       if (sharedTagsLoadError && !sharedTagsHaveValue) return null;
+      // A failed cold private read is unknown data, not a confirmed untagged
+      // task. Keep confirmed cached values on the normal chip path, but give
+      // card/sidebar/list surfaces an error and a direct recovery action when
+      // the private catalog or task assignment has never loaded.
+      var privateLoadError =
+        (tagIdsLoadError && !tagIdsHaveValue) ||
+        (catalogLoadError && !catalogHaveValue);
+      if (privateLoadError) {
+        return jsx(
+          "div",
+          { "data-testid": "kandev-tags-chip-load-error", role: "alert", className: "text-destructive text-xs", style: dense ? DENSE_CHIP_ROW_STYLE : CHIP_ROW_STYLE },
+          withDetail("Could not load tags. Please try again.", privateLoadError),
+          jsx(
+            "button",
+            {
+              type: "button",
+              "data-testid": "kandev-tags-chip-retry",
+              className: "underline",
+              onClick: function (e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                if (tagIdsLoadError && !tagIdsHaveValue) refreshTagIds();
+                if (catalogLoadError && !catalogHaveValue) refreshCatalog();
+              },
+              onPointerDown: function (e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+              },
+            },
+            "Retry",
+          ),
+        );
+      }
 
       function handleRemove(tag) {
         if (tag.shared) {
