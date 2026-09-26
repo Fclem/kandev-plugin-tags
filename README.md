@@ -35,6 +35,11 @@ the host intentionally does not expose another user's private storage to the
 plugin backend; create a shared tag when you want agents and teammates to use
 it.
 
+If a temporary backend outage interrupts a private tag read, the Tags box shows
+an error instead of an empty catalog. The plugin retries failed reads when the
+browser regains focus or connectivity and during its 30-second refresh, without
+rewriting saved tags.
+
 ### Agent MCP workflow
 
 The tools are exposed only while an agent is running on a kanban task. Kandev

@@ -1773,12 +1773,14 @@ test("agent tag refresh interval is cleared on re-entrant initialize and destroy
   mountRegisteredRow();
   await flush();
   assert.equal(activeTimers.size, 1, "re-entrant initialize clears the old interval before starting a new one");
-  assert.equal(removedListeners.length, 1, "re-entrant initialize removes the old focus listener");
+  assertStructural.deepEqual(removedListeners.map((item) => item.type), ["focus", "online"],
+    "re-entrant initialize removes both foreground listeners");
 
   plugin.destroy();
   assert.equal(activeTimers.size, 0, "destroy clears the active refresh interval");
-  assert.equal(addedListeners.length, 2);
-  assert.equal(removedListeners.length, 2, "destroy removes the active focus listener");
+  assertStructural.deepEqual(addedListeners.map((item) => item.type), ["focus", "online", "focus", "online"]);
+  assertStructural.deepEqual(removedListeners.map((item) => item.type), ["focus", "online", "focus", "online"],
+    "destroy removes the active foreground listeners");
 });
 
 // -----------------------------------------------------------------------
@@ -2802,6 +2804,170 @@ test("useStorageValue distinguishes a failed load from an empty catalog, logging
   assert.equal(addButtonEl.props.disabled, true, "create control is disabled while the catalog failed to load");
   assert.ok(calls.error.length >= 1, "the failure is logged, not swallowed");
   assert.match(calls.error[0][0], /^\[kandev-plugin-tags\]/);
+});
+
+test("a cold private catalog 503 never looks empty and recovers on the periodic refresh without a write", async () => {
+  let focusListener;
+  let interval;
+  let available = false;
+  let reads = 0;
+  let writes = 0;
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  const plugin = loadBundle(makeFakeConsole().console, {
+    window: {
+      setInterval(fn) { interval = fn; return 1; },
+      clearInterval: () => {},
+      addEventListener(type, listener) { if (type === "focus") focusListener = listener; },
+      removeEventListener: () => {},
+    },
+  });
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = {
+    get() {
+      reads += 1;
+      return available
+        ? Promise.resolve({ value: saved, updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    set() { writes += 1; return Promise.resolve(); },
+    subscribe: () => () => {},
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(fakeHost, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+
+  assert.equal(reads, 1);
+  assert.ok(focusListener, "foreground recovery is registered");
+  assert.match(JSON.stringify(getTree()), /Could not load tags/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /No tags yet/);
+
+  available = true;
+  interval();
+  await flush();
+  assert.equal(reads, 2);
+  assert.match(JSON.stringify(getTree()), /urgent/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /Could not load tags/);
+  assert.equal(writes, 0, "recovery never replaces persisted tags");
+  plugin.destroy();
+});
+
+test("a hard reload during a private task-tag 503 restores card and dense row chips after recovery", async () => {
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  for (const removable of [true, false]) {
+    let available = false;
+    let focusListener;
+    const plugin = loadBundle(makeFakeConsole().console, {
+      window: {
+        setInterval: () => 1,
+        clearInterval: () => {},
+        addEventListener(type, listener) { if (type === "focus") focusListener = listener; },
+        removeEventListener: () => {},
+      },
+    });
+    const fakeHost = makeFakeReactHost();
+    fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+    fakeHost.storage = {
+      get(scope) {
+        if (!available) return Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+        return Promise.resolve({ value: scope === "task" ? ["t1"] : saved, updatedAt: "t0" });
+      },
+      subscribe: () => () => {},
+    };
+    const Chips = plugin.__internal.makeTagChips(fakeHost, { removable });
+    const getTree = fakeHost.mount(Chips, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
+    await flush();
+    assert.equal(getTree(), null, "an unconfirmed task read cannot render a false chip");
+
+    available = true;
+    focusListener();
+    await flush();
+    assert.match(JSON.stringify(getTree()), /urgent/);
+    assert.equal(getTree().props["data-testid"], "kandev-tags-chip-row");
+    plugin.destroy();
+  }
+});
+
+test("private catalog keeps its last confirmed rows across 503 and refreshes on reconnect", async () => {
+  const listeners = {};
+  let notifyStorage;
+  let available = true;
+  let reads = 0;
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  const plugin = loadBundle(makeFakeConsole().console, {
+    window: {
+      setInterval: () => 1,
+      clearInterval: () => {},
+      addEventListener(type, listener) { listeners[type] = listener; },
+      removeEventListener(type) { delete listeners[type]; },
+    },
+  });
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = {
+    get() {
+      reads += 1;
+      return available
+        ? Promise.resolve({ value: saved, updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    subscribe(filter, listener) { notifyStorage = listener; return () => {}; },
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(fakeHost, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+  assert.match(JSON.stringify(getTree()), /urgent/);
+
+  available = false;
+  notifyStorage();
+  await flush();
+  assert.match(JSON.stringify(getTree()), /urgent/, "a failed refresh retains confirmed rows");
+  assert.match(JSON.stringify(getTree()), /Could not load tags/);
+
+  available = true;
+  listeners.online();
+  await flush();
+  assert.equal(reads, 3);
+  assert.match(JSON.stringify(getTree()), /urgent/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /Could not load tags/);
+  plugin.destroy();
+  assert.equal(listeners.online, undefined, "reconnect listener is removed on unload");
+});
+
+test("nontransient private storage errors remain visible without periodic retry", async () => {
+  let interval;
+  let focus;
+  let reads = 0;
+  const plugin = loadBundle(makeFakeConsole().console, {
+    window: {
+      setInterval(fn) { interval = fn; return 1; },
+      clearInterval: () => {},
+      addEventListener(type, listener) { if (type === "focus") focus = listener; },
+      removeEventListener: () => {},
+    },
+  });
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = {
+    get() { reads += 1; return Promise.reject(apiError(403, "plugin storage: get failed with status 403")); },
+    subscribe: () => () => {},
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(fakeHost, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+  interval();
+  focus();
+  await flush();
+  assert.equal(reads, 1);
+  assert.match(JSON.stringify(getTree()), /Could not load tags/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /No tags yet/);
+  plugin.destroy();
 });
 
 test("TagChips resolves catalog colors and stops propagation on remove", async () => {

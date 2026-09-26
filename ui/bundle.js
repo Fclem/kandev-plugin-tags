@@ -1064,15 +1064,41 @@
     return store.inFlight;
   }
 
+  function retryableStorageRead(err) {
+    if (!err) return false;
+    if (err.name === "TypeError") return true;
+    return /^plugin storage: get failed with status (429|502|503|504)$/.test(String(err.message || ""));
+  }
+
+  function refreshFailedPrivateTags(host) {
+    Object.keys(catalogStores).forEach(function (workspaceId) {
+      var store = catalogStores[workspaceId];
+      if (store.listeners.length && store.error && retryableStorageRead(store.error) && !store.inFlight) {
+        fetchCatalog(host, workspaceId);
+      }
+    });
+    Object.keys(taskTagStores).forEach(function (taskId) {
+      var store = taskTagStores[taskId];
+      if (store.listeners.length && store.error && retryableStorageRead(store.error) && !store.inFlight) {
+        fetchTaskTags(host, taskId);
+      }
+    });
+  }
+
   function ensureSharedTagRefresh(host) {
     if (sharedTagRefreshTimer) return;
     if (!window || typeof window.setInterval !== "function" || typeof window.addEventListener !== "function") return;
     sharedTagRefreshTimer = window.setInterval(function () {
       Object.keys(sharedTagStores).forEach(function (workspaceId) { fetchSharedTags(host, workspaceId); });
+      refreshFailedPrivateTags(host);
     }, 30000);
-    function onFocus() { Object.keys(sharedTagStores).forEach(function (workspaceId) { fetchSharedTags(host, workspaceId); }); }
+    function onFocus() {
+      Object.keys(sharedTagStores).forEach(function (workspaceId) { fetchSharedTags(host, workspaceId); });
+      refreshFailedPrivateTags(host);
+    }
     window.addEventListener("focus", onFocus);
-    addDisposable(function () { if (typeof window.clearInterval === "function") window.clearInterval(sharedTagRefreshTimer); sharedTagRefreshTimer = null; window.removeEventListener("focus", onFocus); });
+    window.addEventListener("online", onFocus);
+    addDisposable(function () { if (typeof window.clearInterval === "function") window.clearInterval(sharedTagRefreshTimer); sharedTagRefreshTimer = null; window.removeEventListener("focus", onFocus); window.removeEventListener("online", onFocus); });
   }
 
   function useSharedTags(host, workspaceId) {
@@ -1114,7 +1140,7 @@
    * useStorageValue returned, so every call site (chip rows, modals) keeps
    * working unchanged.
    */
-  function useSharedStore(host, scopeId, getStore, ensureSubscription, fetchFn) {
+  function useSharedStore(host, scopeId, getStore, ensureSubscription, fetchFn, retryFailedRead) {
     var React = host.React;
     var tickState = React.useState(0);
     var setTick = tickState[1];
@@ -1130,7 +1156,7 @@
           });
         }
         store.listeners.push(onChange);
-        if (!store.loaded && !store.inFlight) fetchFn(host, scopeId);
+        if ((!store.loaded || (retryFailedRead && retryableStorageRead(store.error))) && !store.inFlight) fetchFn(host, scopeId);
         return function () {
           var idx = store.listeners.indexOf(onChange);
           if (idx !== -1) store.listeners.splice(idx, 1);
@@ -1158,11 +1184,11 @@
     // filters the shared store's subscribe: there is only one wide
     // subscribe for the whole store (see ensureTaskTagWideSubscription),
     // shared by every writer.
-    return useSharedStore(host, taskId || null, getTaskTagStore, ensureTaskTagWideSubscription, fetchTaskTags);
+    return useSharedStore(host, taskId || null, getTaskTagStore, ensureTaskTagWideSubscription, fetchTaskTags, true);
   }
 
   function useCatalog(host, workspaceId, writerId) {
-    return useSharedStore(host, workspaceId || null, getCatalogStore, ensureCatalogSubscription, fetchCatalog);
+    return useSharedStore(host, workspaceId || null, getCatalogStore, ensureCatalogSubscription, fetchCatalog, true);
   }
 
   /**
@@ -2272,7 +2298,9 @@
           jsx(ui.DropdownMenuSeparator, null),
           !loaded
             ? jsx("div", { className: "text-muted-foreground text-xs px-2 py-1.5" }, "Loading…")
-            : catalog.length === 0
+            : loadError && catalog.length === 0
+              ? null
+              : catalog.length === 0
               ? jsx("div", { className: "text-muted-foreground text-xs px-2 py-1.5" }, "No tags yet.")
               : buildTagRows(),
           displayError ? jsx("div", { "data-testid": "kandev-tags-topbar-error" }, displayError) : null,
