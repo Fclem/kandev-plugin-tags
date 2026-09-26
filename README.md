@@ -145,7 +145,11 @@ that card. The target must be a task in this workspace.
   tag -- **Add tag...** stays a plain item that opens the modal, instead of
   nesting the same modal one level deeper behind an extra click. On a host
   predating plugin submenus the item stays flat and opens the modal, exactly
-  as before.
+  as before, and the manifest states that boundary: `min_kandev_version:
+  "0.96.0"` is the first release carrying the API, so a release host older
+  than that declines to install the package instead of shipping a menu that
+  cannot render the list (a dev/nightly host has no release boundary, skips
+  the check, and keeps the flat item).
 - **Filter and manage from one place**: an icon-lg filter-icon button in
   the app's top bar opens the Tags box, a 380px-wide dropdown listing your
   whole tag catalog as grid-aligned rows (color swatch, name pill, delete
@@ -281,9 +285,15 @@ task menu action as a submenu") landed on 2026-09-23 as merge commit
 or a later release renders the quick pick.
 
 A host older than that keeps the flat behaviour, by design: **Add tag...**
-stays the item it has always been and opens the picker modal. The quick pick
-is an addition to that item, never a host-version requirement for installing
-the plugin.
+stays the item it has always been and opens the picker modal.
+
+The package states the boundary in its manifest: `min_kandev_version:
+"0.96.0"` is the first *release* containing the API -- the merge commit is an
+ancestor of `v0.96.0` and not of `v0.95.1`. Kandev enforces that on install for
+release builds only (`requires kandev >= 0.96.0, running v0.95.1`); a `dev` or
+nightly build carries no release boundary and skips the check, which is where
+the flat fallback above is still reachable -- a host that has the API always
+renders the list, so the fallback is a safety net, not the supported path.
 
 `contrib/kandev-plugin-submenus.patch` is the reference implementation those
 twenty-three commits were reviewed into, kept for the reasoning behind each
