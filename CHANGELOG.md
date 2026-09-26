@@ -5,9 +5,9 @@
 ### Fixed
 
 - Private tag catalogs and task assignments recover after transient storage
-  failures on reload, focus, reconnect, or the 30-second refresh. A failed
-  catalog read shows an error instead of an empty-catalog message, and
-  recovery never rewrites saved tags.
+  failures with bounded automatic retries and later on focus, reconnect,
+  remount, or Retry. A failed catalog read shows an error instead of an
+  empty-catalog message, and recovery never rewrites saved tags.
 
 ## [0.14.1] - 2026-08-30
 

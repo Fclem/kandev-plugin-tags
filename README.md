@@ -36,9 +36,10 @@ plugin backend; create a shared tag when you want agents and teammates to use
 it.
 
 If a temporary backend outage interrupts a private tag read, the Tags box shows
-an error instead of an empty catalog. The plugin retries failed reads when the
-browser regains focus or connectivity and during its 30-second refresh, without
-rewriting saved tags.
+an error instead of an empty catalog. The plugin makes a bounded set of
+automatic retries, then retries again when the browser regains focus or
+connectivity, the view remounts, or the user selects Retry, without rewriting
+saved tags.
 
 ### Agent MCP workflow
 
