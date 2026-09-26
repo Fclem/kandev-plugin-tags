@@ -105,6 +105,10 @@
   // idempotent read, with a small bounded schedule; the regular 30-second
   // refresh/focus hooks remain the long-tail recovery path after it is spent.
   var SHARED_ACTION_RETRY_DELAYS = [250, 1000, 3000];
+  // Private compatibility reads have the same short retry window. After it
+  // is spent, foreground/reconnect, remount, or the visible Retry control can
+  // start a new window; the shared 30-second poll does not touch these stores.
+  var PRIVATE_READ_RETRY_DELAYS = [250, 1000, 3000];
   // Radix Select reserves the empty string for clearing its own value, so
   // use a private non-empty sentinel for the "All tags" UI choice.
   var ALL_TAGS_FILTER_VALUE = "__all_tags__";
@@ -821,6 +825,8 @@
       // arriving mid-flight is never swallowed by the coalescing.
       dirty: false,
       unsubscribe: null,
+      retryAttempt: 0,
+      retryTimer: null,
     };
   }
 
@@ -869,19 +875,40 @@
    * fetch -- last write always wins, the same guarantee the per-component
    * `generation` counter this store layer replaced used to give.
    */
-  function fetchStore(store, issueGet, sanitize, label, refetch) {
+  function clearPrivateReadRetry(store, resetAttempt) {
+    if (store.retryTimer !== null) {
+      clearTimeout(store.retryTimer);
+      store.retryTimer = null;
+    }
+    if (resetAttempt) store.retryAttempt = 0;
+  }
+
+  function fetchStore(store, issueGet, sanitize, label, refetch, isCurrent, resetRetry) {
+    if (resetRetry) clearPrivateReadRetry(store, true);
     if (store.inFlight) {
       store.dirty = true;
       return store.inFlight;
     }
     store.dirty = false;
 
-    function settle(apply) {
+    function settle(apply, retryable) {
+      if (!isCurrent()) return;
       store.inFlight = null;
       apply();
       store.loaded = true;
       notifyStoreListeners(store);
-      if (store.dirty) refetch();
+      if (store.dirty) {
+        clearPrivateReadRetry(store, false);
+        refetch(false);
+      } else if (retryable && store.retryTimer === null && store.retryAttempt < PRIVATE_READ_RETRY_DELAYS.length) {
+        var delay = PRIVATE_READ_RETRY_DELAYS[store.retryAttempt];
+        store.retryAttempt += 1;
+        store.retryTimer = setTimeout(function () {
+          if (!isCurrent()) return;
+          store.retryTimer = null;
+          refetch(false);
+        }, delay);
+      }
     }
 
     store.inFlight = issueGet().then(
@@ -890,29 +917,33 @@
           store.value = sanitize(entry ? entry.value : undefined);
           store.error = null;
           store.hasValue = true;
-        });
+          clearPrivateReadRetry(store, true);
+        }, false);
       },
       function (err) {
+        var retryable = retryableStorageRead(err);
+        logError("load " + label, err);
         settle(function () {
-          logError("load " + label, err);
           store.error = err;
-        });
+          if (!retryable) clearPrivateReadRetry(store, true);
+        }, retryable);
       },
     );
     return store.inFlight;
   }
 
-  function fetchCatalog(host, workspaceId) {
+  function fetchCatalog(host, workspaceId, resetRetry) {
+    var store = getCatalogStore(workspaceId);
     return fetchStore(
-      getCatalogStore(workspaceId),
+      store,
       function () {
         return host.storage.get(CATALOG_SCOPE, workspaceId, CATALOG_KEY);
       },
       sanitizeCatalog,
       CATALOG_SCOPE + "/" + CATALOG_KEY,
-      function () {
-        fetchCatalog(host, workspaceId);
-      },
+      function (reset) { fetchCatalog(host, workspaceId, reset); },
+      function () { return catalogStores[workspaceId] === store; },
+      resetRetry === true,
     );
   }
 
@@ -1064,15 +1095,40 @@
     return store.inFlight;
   }
 
+  function retryableStorageRead(err) {
+    if (!err) return false;
+    if (err.name === "TypeError") return true;
+    return /^plugin storage: get failed with status (429|502|503|504)$/.test(String(err.message || ""));
+  }
+
+  function refreshFailedPrivateTags(host) {
+    Object.keys(catalogStores).forEach(function (workspaceId) {
+      var store = catalogStores[workspaceId];
+      if (store.listeners.length && store.error && retryableStorageRead(store.error) && !store.inFlight) {
+        fetchCatalog(host, workspaceId, true);
+      }
+    });
+    Object.keys(taskTagStores).forEach(function (taskId) {
+      var store = taskTagStores[taskId];
+      if (store.listeners.length && store.error && retryableStorageRead(store.error) && !store.inFlight) {
+        fetchTaskTags(host, taskId, true);
+      }
+    });
+  }
+
   function ensureSharedTagRefresh(host) {
     if (sharedTagRefreshTimer) return;
     if (!window || typeof window.setInterval !== "function" || typeof window.addEventListener !== "function") return;
     sharedTagRefreshTimer = window.setInterval(function () {
       Object.keys(sharedTagStores).forEach(function (workspaceId) { fetchSharedTags(host, workspaceId); });
     }, 30000);
-    function onFocus() { Object.keys(sharedTagStores).forEach(function (workspaceId) { fetchSharedTags(host, workspaceId); }); }
+    function onFocus() {
+      Object.keys(sharedTagStores).forEach(function (workspaceId) { fetchSharedTags(host, workspaceId); });
+      refreshFailedPrivateTags(host);
+    }
     window.addEventListener("focus", onFocus);
-    addDisposable(function () { if (typeof window.clearInterval === "function") window.clearInterval(sharedTagRefreshTimer); sharedTagRefreshTimer = null; window.removeEventListener("focus", onFocus); });
+    window.addEventListener("online", onFocus);
+    addDisposable(function () { if (typeof window.clearInterval === "function") window.clearInterval(sharedTagRefreshTimer); sharedTagRefreshTimer = null; window.removeEventListener("focus", onFocus); window.removeEventListener("online", onFocus); });
   }
 
   function useSharedTags(host, workspaceId) {
@@ -1090,17 +1146,18 @@
     addDisposable(taskTagWideUnsubscribe);
   }
 
-  function fetchTaskTags(host, taskId) {
+  function fetchTaskTags(host, taskId, resetRetry) {
+    var store = getTaskTagStore(taskId);
     return fetchStore(
-      getTaskTagStore(taskId),
+      store,
       function () {
         return host.storage.get(TASK_SCOPE, taskId, TASK_KEY);
       },
       sanitizeTagIdList,
       TASK_SCOPE + "/" + TASK_KEY,
-      function () {
-        fetchTaskTags(host, taskId);
-      },
+      function (reset) { fetchTaskTags(host, taskId, reset); },
+      function () { return taskTagStores[taskId] === store; },
+      resetRetry === true,
     );
   }
 
@@ -1114,7 +1171,7 @@
    * useStorageValue returned, so every call site (chip rows, modals) keeps
    * working unchanged.
    */
-  function useSharedStore(host, scopeId, getStore, ensureSubscription, fetchFn) {
+  function useSharedStore(host, scopeId, getStore, ensureSubscription, fetchFn, retryFailedRead) {
     var React = host.React;
     var tickState = React.useState(0);
     var setTick = tickState[1];
@@ -1129,8 +1186,11 @@
             return t + 1;
           });
         }
+        var firstListener = store.listeners.length === 0;
         store.listeners.push(onChange);
-        if (!store.loaded && !store.inFlight) fetchFn(host, scopeId);
+        if ((!store.loaded || (retryFailedRead && firstListener && retryableStorageRead(store.error))) && !store.inFlight) {
+          fetchFn(host, scopeId, retryFailedRead && firstListener && !!store.error);
+        }
         return function () {
           var idx = store.listeners.indexOf(onChange);
           if (idx !== -1) store.listeners.splice(idx, 1);
@@ -1145,7 +1205,7 @@
       store.value,
       store.loaded,
       function refresh() {
-        fetchFn(host, scopeId);
+        fetchFn(host, scopeId, true);
       },
       store.error,
       store.hasValue,
@@ -1158,19 +1218,17 @@
     // filters the shared store's subscribe: there is only one wide
     // subscribe for the whole store (see ensureTaskTagWideSubscription),
     // shared by every writer.
-    return useSharedStore(host, taskId || null, getTaskTagStore, ensureTaskTagWideSubscription, fetchTaskTags);
+    return useSharedStore(host, taskId || null, getTaskTagStore, ensureTaskTagWideSubscription, fetchTaskTags, true);
   }
 
   function useCatalog(host, workspaceId, writerId) {
-    return useSharedStore(host, workspaceId || null, getCatalogStore, ensureCatalogSubscription, fetchCatalog);
+    return useSharedStore(host, workspaceId || null, getCatalogStore, ensureCatalogSubscription, fetchCatalog, true);
   }
 
   /**
-   * The board-wide Tags filter's cross-card index -- now simply a read of
-   * the shared task-tags store (folded into one source of truth with
-   * useTaskTagIds instead of a second, independently-maintained cache).
-   * Undefined (not merely unloaded) when nothing has ever asked for this
-   * task's tags; callers treat that the same as "no tags" (untagged).
+   * The private compatibility task-tag cache used by legacy chips and
+   * storage-backed filter hosts. Shared-action filter assignments live in
+   * registerTagFilter's separate workspace-scoped index.
    */
   function getTaskTagCacheEntry(taskId) {
     var store = taskTagStores[taskId];
@@ -1188,6 +1246,9 @@
 
   /** Evicts every cached task's tag ids (plugin unload, workspace switch -- D13/AC20). */
   function clearTaskTagCache() {
+    Object.keys(taskTagStores).forEach(function (taskId) {
+      clearPrivateReadRetry(taskTagStores[taskId], true);
+    });
     taskTagStores = {};
   }
 
@@ -1208,6 +1269,9 @@
    */
   function resetSharedStores() {
     sharedTagLifecycleGeneration += 1;
+    Object.keys(catalogStores).forEach(function (workspaceId) {
+      clearPrivateReadRetry(catalogStores[workspaceId], true);
+    });
     catalogStores = {};
     clearTaskTagCache();
     taskTagWideUnsubscribe = null;
@@ -1332,9 +1396,15 @@
       var tagIdsAndLoaded = useTaskTagIds(host, resolvedWorkspaceId ? taskId : null, CHIPS_WRITER_ID);
       var tagIds = tagIdsAndLoaded[0];
       var tagIdsLoaded = tagIdsAndLoaded[1];
+      var refreshTagIds = tagIdsAndLoaded[2];
+      var tagIdsLoadError = tagIdsAndLoaded[3];
+      var tagIdsHaveValue = tagIdsAndLoaded[4];
       var catalogAndLoaded = useCatalog(host, resolvedWorkspaceId, CHIPS_WRITER_ID);
       var catalog = catalogAndLoaded[0];
       var catalogLoaded = catalogAndLoaded[1];
+      var refreshCatalog = catalogAndLoaded[2];
+      var catalogLoadError = catalogAndLoaded[3];
+      var catalogHaveValue = catalogAndLoaded[4];
       var sharedTagsAndLoaded = useSharedTags(host, resolvedWorkspaceId);
       var sharedTags = sharedTagsAndLoaded[0];
       var sharedTagsLoaded = sharedTagsAndLoaded[1];
@@ -1343,10 +1413,17 @@
       var sharedTagsHaveValue = sharedTagsAndLoaded[4];
 
       if (!resolvedWorkspaceId || !tagIdsLoaded || !catalogLoaded || !sharedTagsLoaded) return null;
-      // On a first-load update race, do not render only the legacy layer and
-      // make the still-authoritative shared tags look deleted. A cached shared
-      // value remains safe to render while its retry is in progress.
-      if (sharedTagsLoadError && !sharedTagsHaveValue) return null;
+      // A failed cold private read is unknown data, not a confirmed untagged
+      // task. Keep confirmed cached values on the normal chip path, but give
+      // card/sidebar/list surfaces an error and a direct recovery action when
+      // the private catalog or task assignment has never loaded.
+      var privateLoadError =
+        (tagIdsLoadError && !tagIdsHaveValue) ||
+        (catalogLoadError && !catalogHaveValue);
+      // A cold shared-action failure is also unknown data. Show the same
+      // warning while preserving any private or shared value already loaded.
+      var sharedLoadError = sharedTagsLoadError && !sharedTagsHaveValue;
+      var chipLoadError = privateLoadError || sharedLoadError;
 
       function handleRemove(tag) {
         if (tag.shared) {
@@ -1379,13 +1456,41 @@
       // supersedes a private compatibility entry with the same stable id, so
       // migrated overlap cannot render a second chip or raw generated id.
       resolvedTags = mergeTagRepresentations(sharedTaskTags, resolvedTags, sharedTags.tags);
-      if (resolvedTags.length === 0) return null;
+      if (resolvedTags.length === 0 && !chipLoadError) return null;
 
       var visibleTags = dense ? resolvedTags.slice(0, TASK_ROW_CHIP_LIMIT) : resolvedTags;
       var hiddenCount = resolvedTags.length - visibleTags.length;
       var chipEls = visibleTags.map(function (tag) {
         return chipEl(tag, handleRemove);
       });
+      if (chipLoadError) {
+        // Either source can fail while the other has confirmed task tags.
+        // Keep those chips and show the unknown layer beside them.
+        chipEls.push(jsx(
+          "span",
+          { key: "private-load-error", "data-testid": "kandev-tags-chip-load-error", role: "alert", className: "text-destructive text-xs" },
+          withDetail("Could not load tags. Please try again.", chipLoadError),
+          jsx(
+            "button",
+            {
+              type: "button",
+              "data-testid": "kandev-tags-chip-retry",
+              className: "underline",
+              style: { marginLeft: "4px" },
+              onClick: function (e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                if (tagIdsLoadError && !tagIdsHaveValue) refreshTagIds();
+                if (catalogLoadError && !catalogHaveValue) refreshCatalog();
+                if (sharedLoadError) refreshSharedTags();
+              },
+              onPointerDown: function (e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+              },
+            },
+            "Retry",
+          ),
+        ));
+      }
 
       if (!dense) {
         // Unchanged output shape from before this generalization: exactly
@@ -1397,7 +1502,12 @@
         hiddenCount > 0
           ? jsx("span", { key: "more", "data-testid": "kandev-tags-chip-more", style: CHIP_MORE_STYLE }, "+" + hiddenCount)
           : null;
-      return jsx("div", { "data-testid": "kandev-tags-chip-row", style: DENSE_CHIP_ROW_STYLE }, chipEls, moreEl);
+      // Dense rows normally stay on one line. During a partial read failure,
+      // let the warning wrap so it cannot be clipped after the shared chips.
+      var rowStyle = chipLoadError
+        ? Object.assign({}, DENSE_CHIP_ROW_STYLE, { flexWrap: "wrap", overflow: "visible" })
+        : DENSE_CHIP_ROW_STYLE;
+      return jsx("div", { "data-testid": "kandev-tags-chip-row", style: rowStyle }, chipEls, moreEl);
     };
   }
 
@@ -1629,7 +1739,11 @@
                   );
                 }),
         ),
-        displayError ? jsx("div", { "data-testid": "kandev-tags-picker-error" }, displayError) : null,
+        displayError ? jsx("div", { "data-testid": "kandev-tags-picker-error" }, displayError,
+          loadError ? jsx(ui.Button, { type: "button", size: "sm", "data-testid": "kandev-tags-picker-retry", onClick: function () {
+            if (useShared) refreshSharedTags();
+            else { refreshCatalog(); refreshTagIds(); }
+          } }, "Retry") : null) : null,
       );
     };
   }
@@ -2272,10 +2386,16 @@
           jsx(ui.DropdownMenuSeparator, null),
           !loaded
             ? jsx("div", { className: "text-muted-foreground text-xs px-2 py-1.5" }, "Loading…")
-            : catalog.length === 0
+            : loadError && catalog.length === 0
+              ? null
+              : catalog.length === 0
               ? jsx("div", { className: "text-muted-foreground text-xs px-2 py-1.5" }, "No tags yet.")
               : buildTagRows(),
-          displayError ? jsx("div", { "data-testid": "kandev-tags-topbar-error" }, displayError) : null,
+          displayError ? jsx("div", { "data-testid": "kandev-tags-topbar-error" }, displayError,
+            loadError ? jsx(ui.Button, { type: "button", size: "sm", "data-testid": "kandev-tags-topbar-retry", onClick: function () {
+              if (useShared) refreshSharedTags();
+              else refreshCatalog();
+            } }, "Retry") : null) : null,
         ),
       );
 
@@ -2492,6 +2612,7 @@
     if (!capabilities.taskFilter) return;
 
     var catalog = [];
+    var sharedTaskTagIds = null;
     var currentWorkspaceId = null;
     var unsubscribeStorage = null;
     var unsubscribeSharedTags = null;
@@ -2503,15 +2624,18 @@
       if (!currentWorkspaceId) return;
       var store = getSharedTagStore(currentWorkspaceId);
       if (store.unavailable) {
+        sharedTaskTagIds = null;
         loadPrivateCatalog();
         return;
       }
       if (!store.hasValue) return;
       var payload = store.value || { tags: [], tasks: {} };
       catalog = sanitizeCatalog(payload.tags);
-      clearTaskTagCache();
+      sharedTaskTagIds = {};
       Object.keys(payload.tasks || {}).forEach(function (taskId) {
-        setTaskTagCache(taskId, ((payload.tasks[taskId] || []).map(function (tag) { return tag.id; })));
+        sharedTaskTagIds[taskId] = sanitizeTagIdList(
+          (payload.tasks[taskId] || []).map(function (tag) { return tag && tag.id; }),
+        );
       });
     }
 
@@ -2564,6 +2688,7 @@
       if (workspaceId === currentWorkspaceId) return;
       var previousWorkspaceId = currentWorkspaceId;
       currentWorkspaceId = workspaceId || null;
+      sharedTaskTagIds = null;
       cancelSharedTagRetry(previousWorkspaceId);
       // A tag set gathered under the previous workspace must never inform
       // this one's filter (D13/AC20).
@@ -2649,7 +2774,9 @@
         // Cards that haven't mounted their TagChips yet have no cache entry
         // -- see getTaskTagCacheEntry's comment above. Treat that as "no
         // tags" rather than excluding the card outright.
-        var tagIds = getTaskTagCacheEntry(context.taskId) || [];
+        var tagIds = sharedTaskTagIds
+          ? sharedTaskTagIds[context.taskId] || []
+          : getTaskTagCacheEntry(context.taskId) || [];
         if (selected.indexOf(UNTAGGED_FILTER_VALUE) !== -1 && tagIds.length === 0) return true;
         return tagIds.some(function (id) {
           return selected.indexOf(id) !== -1;
