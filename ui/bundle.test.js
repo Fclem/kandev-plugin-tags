@@ -1259,8 +1259,9 @@ test("filter-primed shared ids do not render as private raw chips after task sto
     consoleCalls.error.some((args) => String(args[1]).includes("404")),
     "the private-state 404 is observed rather than replaced with seeded private data",
   );
-  const chips = getTree().children[0];
+  const chips = getTree().children[0].filter((node) => node.props["data-testid"] === "kandev-tags-chip");
   assert.equal(chips.length, 4, "one chip renders for each of the four canonical shared applications");
+  assert.ok(findTestNode(getTree(), "kandev-tags-chip-load-error"), "an unavailable private compatibility read remains visible");
   assertStructural.deepEqual(
     chips.map((chip) => (chip.props["data-agent"] ? chip.children[1] : chip.children[0])),
     ["Agent ready", "Needs review", "Whitespace", "Human"],
@@ -1773,12 +1774,14 @@ test("agent tag refresh interval is cleared on re-entrant initialize and destroy
   mountRegisteredRow();
   await flush();
   assert.equal(activeTimers.size, 1, "re-entrant initialize clears the old interval before starting a new one");
-  assert.equal(removedListeners.length, 1, "re-entrant initialize removes the old focus listener");
+  assertStructural.deepEqual(removedListeners.map((item) => item.type), ["focus", "online"],
+    "re-entrant initialize removes both foreground listeners");
 
   plugin.destroy();
   assert.equal(activeTimers.size, 0, "destroy clears the active refresh interval");
-  assert.equal(addedListeners.length, 2);
-  assert.equal(removedListeners.length, 2, "destroy removes the active focus listener");
+  assertStructural.deepEqual(addedListeners.map((item) => item.type), ["focus", "online", "focus", "online"]);
+  assertStructural.deepEqual(removedListeners.map((item) => item.type), ["focus", "online", "focus", "online"],
+    "destroy removes the active foreground listeners");
 });
 
 // -----------------------------------------------------------------------
@@ -1982,6 +1985,60 @@ test("bundle registers a Tags task filter when the host supports registerTaskFil
   assert.equal(typeof filterRegistration.matches, "function");
   const options = filterRegistration.getOptions();
   assert.ok(options.some((o) => o.value === "__untagged__"));
+});
+
+test("registered task filter keeps shared assignments separate from private chip assignments", async () => {
+  const plugin = loadBundle();
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }), subscribe: () => () => {} };
+  host.storage = {
+    get(scope) {
+      if (scope === "task") return Promise.resolve({ value: ["private-id"], updatedAt: "t0" });
+      return Promise.resolve({ value: [{ id: "private-id", name: "Legacy saved", color: "#ef4444" }], updatedAt: "t0" });
+    },
+    subscribe: () => () => {},
+  };
+  host.api = {
+    invokeAction(name) {
+      assert.equal(name, "shared-tags");
+      return Promise.resolve({
+        tags: [{ id: "shared-id", name: "Shared saved", color: "#22c55e" }],
+        tasks: { "task-1": [{ id: "shared-id", name: "Shared saved", color: "#22c55e" }] },
+      });
+    },
+  };
+
+  let CardTags;
+  let RowTags;
+  let filter;
+  plugin.initialize(
+    {
+      registerComponent(slot, Component) {
+        if (slot === "task-card-tags") CardTags = Component;
+        if (slot === "task-row-metadata") RowTags = Component;
+      },
+      registerTaskMenuAction() {},
+      registerTaskFilter(registration) { filter = registration; },
+    },
+    host,
+  );
+  await flush();
+
+  assert.ok(filter.matches({ taskId: "task-1" }, ["shared-id"]), "board filter reads the shared assignment index");
+  assert.ok(!filter.matches({ taskId: "task-1" }, ["private-id"]), "private compatibility IDs do not leak into shared filtering");
+
+  const getTree = host.mount(CardTags, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
+  await flush();
+  const rendered = JSON.stringify(getTree());
+  assert.match(rendered, /Shared saved/);
+  assert.match(rendered, /Legacy saved/, "registered chip surfaces retain the private compatibility assignment");
+
+  const getRowTree = host.mount(RowTags, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
+  await flush();
+  const rowRendered = JSON.stringify(getRowTree());
+  assert.match(rowRendered, /Shared saved/);
+  assert.match(rowRendered, /Legacy saved/, "the registered dense task row retains the private compatibility assignment");
+  plugin.destroy();
 });
 
 test("bundle does not throw when the host predates registerTaskFilter (feature detection)", () => {
@@ -2775,6 +2832,23 @@ async function flush() {
   await Promise.resolve();
 }
 
+function findTestNode(node, testId) {
+  if (!node || typeof node !== "object") return null;
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = findTestNode(child, testId);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (node.props && node.props["data-testid"] === testId) return node;
+  for (const child of node.children || []) {
+    const found = findTestNode(child, testId);
+    if (found) return found;
+  }
+  return null;
+}
+
 test("useStorageValue distinguishes a failed load from an empty catalog, logging the failure", async () => {
   const { console: fakeConsole, calls } = makeFakeConsole();
   const plugin = loadBundle(fakeConsole);
@@ -2802,6 +2876,446 @@ test("useStorageValue distinguishes a failed load from an empty catalog, logging
   assert.equal(addButtonEl.props.disabled, true, "create control is disabled while the catalog failed to load");
   assert.ok(calls.error.length >= 1, "the failure is logged, not swallowed");
   assert.match(calls.error[0][0], /^\[kandev-plugin-tags\]/);
+});
+
+test("a cold private catalog 503 never looks empty and recovers on focus without a write", async () => {
+  let focusListener;
+  let interval;
+  let available = false;
+  let reads = 0;
+  let writes = 0;
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  const plugin = loadBundle(makeFakeConsole().console, {
+    window: {
+      setInterval(fn) { interval = fn; return 1; },
+      clearInterval: () => {},
+      addEventListener(type, listener) { if (type === "focus") focusListener = listener; },
+      removeEventListener: () => {},
+    },
+  });
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = {
+    get() {
+      reads += 1;
+      return available
+        ? Promise.resolve({ value: saved, updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    set() { writes += 1; return Promise.resolve(); },
+    subscribe: () => () => {},
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(fakeHost, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+
+  assert.equal(reads, 1);
+  assert.ok(focusListener, "foreground recovery is registered");
+  assert.match(JSON.stringify(getTree()), /Could not load tags/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /No tags yet/);
+
+  available = true;
+  interval();
+  await flush();
+  assert.equal(reads, 1, "the shared poll does not restart an exhausted private read");
+  focusListener();
+  await flush();
+  assert.equal(reads, 2);
+  assert.match(JSON.stringify(getTree()), /urgent/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /Could not load tags/);
+  assert.equal(writes, 0, "recovery never replaces persisted tags");
+  plugin.destroy();
+});
+
+test("private catalog retries stop at three attempts and explicit Retry recovers it", async () => {
+  const timers = new Map();
+  let nextTimer = 0;
+  let interval;
+  let available = false;
+  let reads = 0;
+  let writes = 0;
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  const plugin = loadBundle(makeFakeConsole().console, {
+    setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    window: {
+      setInterval(fn) { interval = fn; return 1; },
+      clearInterval() {},
+      addEventListener() {},
+      removeEventListener() {},
+    },
+  });
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  host.storage = {
+    get() {
+      reads += 1;
+      return available
+        ? Promise.resolve({ value: saved, updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    set() { writes += 1; return Promise.resolve(); },
+    subscribe: () => () => {},
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(host, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  const getTree = host.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+
+  // The board may mount several tag surfaces while the same failed store is
+  // still observed. Those mounts must join its existing retry window.
+  const otherHosts = [];
+  for (let i = 0; i < 3; i += 1) {
+    const otherHost = makeFakeReactHost();
+    otherHost.store = host.store;
+    otherHost.storage = host.storage;
+    const OtherDropdown = plugin.__internal.makeTagsTopBarDropdown(otherHost, {
+      taskFilter: false, filterSelectionApi: false, scanStorage: false,
+    });
+    otherHost.mount(OtherDropdown, { slotProps: { workspaceId: "ws-1" } });
+    otherHosts.push(otherHost);
+  }
+  await flush();
+  assert.equal(reads, 1, "additional mounted surfaces do not restart the failed read");
+
+  for (const delay of [250, 1000, 3000]) {
+    assert.equal(timers.size, 1, "one automatic retry is pending");
+    const [id, timer] = [...timers.entries()][0];
+    assert.equal(timer.delay, delay);
+    timers.delete(id);
+    timer.fn();
+    await flush();
+  }
+  assert.equal(reads, 4, "the initial read plus three retries exhaust the budget");
+  assert.equal(timers.size, 0);
+  interval();
+  await flush();
+  assert.equal(reads, 4, "the shared poll cannot create an endless private retry loop");
+  assert.match(JSON.stringify(getTree()), /Could not load tags/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /No tags yet/);
+
+  available = true;
+  const retry = findTestNode(getTree(), "kandev-tags-topbar-retry");
+  assert.ok(retry);
+  retry.props.onClick();
+  await flush();
+  assert.equal(reads, 5);
+  assert.match(JSON.stringify(getTree()), /urgent/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /Could not load tags/);
+  assert.equal(writes, 0);
+  plugin.destroy();
+});
+
+test("a cold private task-tag 503 shows chip recovery state and Retry restores saved chips", async () => {
+  const timers = new Map();
+  const listeners = {};
+  let nextTimer = 0;
+  let available = false;
+  let taskReads = 0;
+  let writes = 0;
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  const plugin = loadBundle(makeFakeConsole().console, {
+    setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    window: {
+      setInterval: () => 1,
+      clearInterval() {},
+      addEventListener(type, listener) { listeners[type] = listener; },
+      removeEventListener(type) { delete listeners[type]; },
+    },
+  });
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  host.storage = {
+    get(scope) {
+      if (scope === "workspace") return Promise.resolve({ value: saved, updatedAt: "t0" });
+      taskReads += 1;
+      return available
+        ? Promise.resolve({ value: ["t1"], updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    set() { writes += 1; return Promise.resolve(); },
+    subscribe: () => () => {},
+  };
+  const Chips = plugin.__internal.makeTagChips(host, { removable: false });
+  const getTree = host.mount(Chips, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
+  await flush();
+  const error = findTestNode(getTree(), "kandev-tags-chip-load-error");
+  assert.ok(error, "a cold task-tag failure must not look like a confirmed tagless task");
+  assert.match(JSON.stringify(error), /Could not load tags/);
+  assert.ok(findTestNode(getTree(), "kandev-tags-chip-retry"), "chip surfaces offer direct recovery");
+
+  for (const delay of [250, 1000, 3000]) {
+    assert.equal(timers.size, 1);
+    const [id, timer] = [...timers.entries()][0];
+    assert.equal(timer.delay, delay);
+    timers.delete(id);
+    timer.fn();
+    await flush();
+  }
+  assert.equal(taskReads, 4);
+  assert.equal(timers.size, 0);
+  available = true;
+  const retry = findTestNode(getTree(), "kandev-tags-chip-retry");
+  retry.props.onClick({ stopPropagation() {} });
+  await flush();
+  assert.equal(taskReads, 5);
+  assert.match(JSON.stringify(getTree()), /urgent/);
+  assert.equal(writes, 0, "recovery reads persisted tags without overwriting them");
+  plugin.destroy();
+  assert.equal(timers.size, 0, "unload leaves no private retry behind");
+});
+
+test("confirmed shared chips stay visible beside a cold private read error on cards and dense rows", async () => {
+  for (const options of [
+    { removable: true },
+    { removable: false, dense: true },
+  ]) {
+    for (const failedScope of ["task", "workspace"]) {
+      let available = false;
+      let writes = 0;
+      const plugin = loadBundle(makeFakeConsole().console);
+      const host = makeFakeReactHost();
+      host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+      host.storage = {
+        get(scope) {
+          if (scope === failedScope && !available) {
+            return Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+          }
+          return Promise.resolve({
+            value: scope === "task" ? ["private"] : [{ id: "private", name: "Private saved", color: "#ef4444" }],
+            updatedAt: "t0",
+          });
+        },
+        set() { writes += 1; return Promise.resolve(); },
+        subscribe: () => () => {},
+      };
+      host.api = {
+        invokeAction(key) {
+          assert.equal(key, "shared-tags");
+          return Promise.resolve({
+            tags: [{ id: "shared", name: "Shared saved", color: "#22c55e" }],
+            tasks: { "task-1": [{ id: "shared", name: "Shared saved", color: "#22c55e" }] },
+          });
+        },
+      };
+      const getTree = host.mount(plugin.__internal.makeTagChips(host, options), {
+        slotProps: { taskId: "task-1", workspaceId: "ws-1" },
+      });
+      await flush();
+
+      assert.equal(getTree().props["data-testid"], "kandev-tags-chip-row");
+      assert.ok(findTestNode(getTree(), "kandev-tags-chip"), "confirmed shared chip remains visible");
+      assert.match(JSON.stringify(getTree()), /Shared saved/);
+      assert.ok(findTestNode(getTree(), "kandev-tags-chip-load-error"), "the unknown private layer stays visible");
+      if (options.dense) {
+        assert.equal(getTree().props.style.flexWrap, "wrap", "dense rows leave room for the warning beside shared chips");
+        assert.equal(getTree().props.style.overflow, "visible");
+      }
+      const retry = findTestNode(getTree(), "kandev-tags-chip-retry");
+      assert.ok(retry);
+
+      available = true;
+      retry.props.onClick({ stopPropagation() {} });
+      await flush();
+      assert.match(JSON.stringify(getTree()), /Shared saved/);
+      assert.match(JSON.stringify(getTree()), /Private saved/);
+      assert.equal(findTestNode(getTree(), "kandev-tags-chip-load-error"), null);
+      assert.equal(writes, 0);
+      plugin.destroy();
+    }
+  }
+});
+
+test("simultaneous shared and private 503s show chip recovery instead of an empty slot", async () => {
+  let available = false;
+  let writes = 0;
+  const plugin = loadBundle(makeFakeConsole().console);
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  host.storage = {
+    get(scope) {
+      return available
+        ? Promise.resolve({ value: scope === "task" ? ["private"] : [{ id: "private", name: "Private saved", color: "#ef4444" }], updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    set() { writes += 1; return Promise.resolve(); },
+    subscribe: () => () => {},
+  };
+  host.api = {
+    invokeAction() {
+      return available
+        ? Promise.resolve({ tags: [], tasks: { "task-1": [{ id: "shared", name: "Shared saved", color: "#22c55e" }] } })
+        : Promise.reject(apiError(503, "required persistence is unavailable"));
+    },
+  };
+  const getTree = host.mount(plugin.__internal.makeTagChips(host, { removable: false, dense: true }), {
+    slotProps: { taskId: "task-1", workspaceId: "ws-1" },
+  });
+  await flush();
+  assert.ok(findTestNode(getTree(), "kandev-tags-chip-load-error"));
+  const retry = findTestNode(getTree(), "kandev-tags-chip-retry");
+  assert.ok(retry);
+
+  available = true;
+  retry.props.onClick({ stopPropagation() {} });
+  await flush();
+  assert.match(JSON.stringify(getTree()), /Shared saved/);
+  assert.match(JSON.stringify(getTree()), /Private saved/);
+  assert.equal(findTestNode(getTree(), "kandev-tags-chip-load-error"), null);
+  assert.equal(writes, 0);
+  plugin.destroy();
+});
+
+test("destroy ignores a late failed private read without scheduling a retry", async () => {
+  const timers = new Map();
+  let nextTimer = 0;
+  let rejectRead;
+  const plugin = loadBundle(makeFakeConsole().console, {
+    setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    window: {
+      setInterval: () => 1,
+      clearInterval() {},
+      addEventListener() {},
+      removeEventListener() {},
+    },
+  });
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  host.storage = {
+    get() { return new Promise((_, reject) => { rejectRead = reject; }); },
+    subscribe: () => () => {},
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(host, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  host.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  plugin.destroy();
+  rejectRead(apiError(503, "plugin storage: get failed with status 503"));
+  await flush();
+  assert.equal(timers.size, 0, "the old store cannot schedule a retry after unload");
+});
+
+test("a hard reload during a private task-tag 503 restores card and dense row chips after recovery", async () => {
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  for (const options of [{ removable: true }, { removable: false, dense: true }]) {
+    let available = false;
+    let focusListener;
+    const plugin = loadBundle(makeFakeConsole().console, {
+      window: {
+        setInterval: () => 1,
+        clearInterval: () => {},
+        addEventListener(type, listener) { if (type === "focus") focusListener = listener; },
+        removeEventListener: () => {},
+      },
+    });
+    const fakeHost = makeFakeReactHost();
+    fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+    fakeHost.storage = {
+      get(scope) {
+        if (!available) return Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+        return Promise.resolve({ value: scope === "task" ? ["t1"] : saved, updatedAt: "t0" });
+      },
+      subscribe: () => () => {},
+    };
+    const Chips = plugin.__internal.makeTagChips(fakeHost, options);
+    const getTree = fakeHost.mount(Chips, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
+    await flush();
+    const error = findTestNode(getTree(), "kandev-tags-chip-load-error");
+    assert.ok(error, "an unconfirmed task read renders recovery state instead of looking tagless");
+    assert.match(JSON.stringify(error), /Could not load tags/);
+
+    available = true;
+    focusListener();
+    await flush();
+    assert.match(JSON.stringify(getTree()), /urgent/);
+    assert.equal(getTree().props["data-testid"], "kandev-tags-chip-row");
+    plugin.destroy();
+  }
+});
+
+test("private catalog keeps its last confirmed rows across 503 and refreshes on reconnect", async () => {
+  const listeners = {};
+  let notifyStorage;
+  let available = true;
+  let reads = 0;
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  const plugin = loadBundle(makeFakeConsole().console, {
+    window: {
+      setInterval: () => 1,
+      clearInterval: () => {},
+      addEventListener(type, listener) { listeners[type] = listener; },
+      removeEventListener(type) { delete listeners[type]; },
+    },
+  });
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = {
+    get() {
+      reads += 1;
+      return available
+        ? Promise.resolve({ value: saved, updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    subscribe(filter, listener) { notifyStorage = listener; return () => {}; },
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(fakeHost, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+  assert.match(JSON.stringify(getTree()), /urgent/);
+
+  available = false;
+  notifyStorage();
+  await flush();
+  assert.match(JSON.stringify(getTree()), /urgent/, "a failed refresh retains confirmed rows");
+  assert.match(JSON.stringify(getTree()), /Could not load tags/);
+
+  available = true;
+  listeners.online();
+  await flush();
+  assert.equal(reads, 3);
+  assert.match(JSON.stringify(getTree()), /urgent/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /Could not load tags/);
+  plugin.destroy();
+  assert.equal(listeners.online, undefined, "reconnect listener is removed on unload");
+});
+
+test("nontransient private storage errors remain visible without periodic retry", async () => {
+  let interval;
+  let focus;
+  let reads = 0;
+  const plugin = loadBundle(makeFakeConsole().console, {
+    window: {
+      setInterval(fn) { interval = fn; return 1; },
+      clearInterval: () => {},
+      addEventListener(type, listener) { if (type === "focus") focus = listener; },
+      removeEventListener: () => {},
+    },
+  });
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = {
+    get() { reads += 1; return Promise.reject(apiError(403, "plugin storage: get failed with status 403")); },
+    subscribe: () => () => {},
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(fakeHost, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+  interval();
+  focus();
+  await flush();
+  assert.equal(reads, 1);
+  assert.match(JSON.stringify(getTree()), /Could not load tags/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /No tags yet/);
+  plugin.destroy();
 });
 
 test("TagChips resolves catalog colors and stops propagation on remove", async () => {
