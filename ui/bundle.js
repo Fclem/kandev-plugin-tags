@@ -1415,10 +1415,6 @@
       var sharedTagsHaveValue = sharedTagsAndLoaded[4];
 
       if (!resolvedWorkspaceId || !tagIdsLoaded || !catalogLoaded || !sharedTagsLoaded) return null;
-      // On a first-load update race, do not render only the legacy layer and
-      // make the still-authoritative shared tags look deleted. A cached shared
-      // value remains safe to render while its retry is in progress.
-      if (sharedTagsLoadError && !sharedTagsHaveValue) return null;
       // A failed cold private read is unknown data, not a confirmed untagged
       // task. Keep confirmed cached values on the normal chip path, but give
       // card/sidebar/list surfaces an error and a direct recovery action when
@@ -1426,6 +1422,10 @@
       var privateLoadError =
         (tagIdsLoadError && !tagIdsHaveValue) ||
         (catalogLoadError && !catalogHaveValue);
+      // A cold shared-action failure is also unknown data. Show the same
+      // warning while preserving any private or shared value already loaded.
+      var sharedLoadError = sharedTagsLoadError && !sharedTagsHaveValue;
+      var chipLoadError = privateLoadError || sharedLoadError;
 
       function handleRemove(tag) {
         if (tag.shared) {
@@ -1458,21 +1458,20 @@
       // supersedes a private compatibility entry with the same stable id, so
       // migrated overlap cannot render a second chip or raw generated id.
       resolvedTags = mergeTagRepresentations(sharedTaskTags, resolvedTags, sharedTags.tags);
-      if (resolvedTags.length === 0 && !privateLoadError) return null;
+      if (resolvedTags.length === 0 && !chipLoadError) return null;
 
       var visibleTags = dense ? resolvedTags.slice(0, TASK_ROW_CHIP_LIMIT) : resolvedTags;
       var hiddenCount = resolvedTags.length - visibleTags.length;
       var chipEls = visibleTags.map(function (tag) {
         return chipEl(tag, handleRemove);
       });
-      if (privateLoadError) {
-        // The private compatibility read can fail while the shared action has
-        // already confirmed task tags. Keep those chips and show the private
-        // read error beside them until Retry (or a later refresh) succeeds.
+      if (chipLoadError) {
+        // Either source can fail while the other has confirmed task tags.
+        // Keep those chips and show the unknown layer beside them.
         chipEls.push(jsx(
           "span",
           { key: "private-load-error", "data-testid": "kandev-tags-chip-load-error", role: "alert", className: "text-destructive text-xs" },
-          withDetail("Could not load tags. Please try again.", privateLoadError),
+          withDetail("Could not load tags. Please try again.", chipLoadError),
           jsx(
             "button",
             {
@@ -1484,6 +1483,7 @@
                 if (e && e.stopPropagation) e.stopPropagation();
                 if (tagIdsLoadError && !tagIdsHaveValue) refreshTagIds();
                 if (catalogLoadError && !catalogHaveValue) refreshCatalog();
+                if (sharedLoadError) refreshSharedTags();
               },
               onPointerDown: function (e) {
                 if (e && e.stopPropagation) e.stopPropagation();
@@ -1506,7 +1506,7 @@
           : null;
       // Dense rows normally stay on one line. During a partial read failure,
       // let the warning wrap so it cannot be clipped after the shared chips.
-      var rowStyle = privateLoadError
+      var rowStyle = chipLoadError
         ? Object.assign({}, DENSE_CHIP_ROW_STYLE, { flexWrap: "wrap", overflow: "visible" })
         : DENSE_CHIP_ROW_STYLE;
       return jsx("div", { "data-testid": "kandev-tags-chip-row", style: rowStyle }, chipEls, moreEl);

@@ -3075,6 +3075,46 @@ test("confirmed shared chips stay visible beside a cold private read error on ca
   }
 });
 
+test("simultaneous shared and private 503s show chip recovery instead of an empty slot", async () => {
+  let available = false;
+  let writes = 0;
+  const plugin = loadBundle(makeFakeConsole().console);
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  host.storage = {
+    get(scope) {
+      return available
+        ? Promise.resolve({ value: scope === "task" ? ["private"] : [{ id: "private", name: "Private saved", color: "#ef4444" }], updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    set() { writes += 1; return Promise.resolve(); },
+    subscribe: () => () => {},
+  };
+  host.api = {
+    invokeAction() {
+      return available
+        ? Promise.resolve({ tags: [], tasks: { "task-1": [{ id: "shared", name: "Shared saved", color: "#22c55e" }] } })
+        : Promise.reject(apiError(503, "required persistence is unavailable"));
+    },
+  };
+  const getTree = host.mount(plugin.__internal.makeTagChips(host, { removable: false, dense: true }), {
+    slotProps: { taskId: "task-1", workspaceId: "ws-1" },
+  });
+  await flush();
+  assert.ok(findTestNode(getTree(), "kandev-tags-chip-load-error"));
+  const retry = findTestNode(getTree(), "kandev-tags-chip-retry");
+  assert.ok(retry);
+
+  available = true;
+  retry.props.onClick({ stopPropagation() {} });
+  await flush();
+  assert.match(JSON.stringify(getTree()), /Shared saved/);
+  assert.match(JSON.stringify(getTree()), /Private saved/);
+  assert.equal(findTestNode(getTree(), "kandev-tags-chip-load-error"), null);
+  assert.equal(writes, 0);
+  plugin.destroy();
+});
+
 test("destroy ignores a late failed private read without scheduling a retry", async () => {
   const timers = new Map();
   let nextTimer = 0;
