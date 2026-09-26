@@ -96,6 +96,14 @@
   now strip exactly the same set, and both are asserted against it in
   `testdata/tag-colors.json`. The same set trims a supplied color.
 
+## [0.14.2] - 2026-09-26
+
+### Fixed
+
+- Private tag catalogs and task assignments recover after transient storage
+  failures with bounded automatic retries and later on focus, reconnect,
+  remount, or Retry. A failed catalog read shows an error instead of an
+  empty-catalog message, and recovery never rewrites saved tags.
 
 ## [0.14.1] - 2026-08-30
 
