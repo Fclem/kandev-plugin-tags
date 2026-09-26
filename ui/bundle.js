@@ -105,6 +105,10 @@
   // idempotent read, with a small bounded schedule; the regular 30-second
   // refresh/focus hooks remain the long-tail recovery path after it is spent.
   var SHARED_ACTION_RETRY_DELAYS = [250, 1000, 3000];
+  // Private compatibility reads have the same short retry window. After it
+  // is spent, foreground/reconnect, remount, or the visible Retry control can
+  // start a new window; the shared 30-second poll does not touch these stores.
+  var PRIVATE_READ_RETRY_DELAYS = [250, 1000, 3000];
   // Radix Select reserves the empty string for clearing its own value, so
   // use a private non-empty sentinel for the "All tags" UI choice.
   var ALL_TAGS_FILTER_VALUE = "__all_tags__";
@@ -821,6 +825,8 @@
       // arriving mid-flight is never swallowed by the coalescing.
       dirty: false,
       unsubscribe: null,
+      retryAttempt: 0,
+      retryTimer: null,
     };
   }
 
@@ -869,19 +875,40 @@
    * fetch -- last write always wins, the same guarantee the per-component
    * `generation` counter this store layer replaced used to give.
    */
-  function fetchStore(store, issueGet, sanitize, label, refetch) {
+  function clearPrivateReadRetry(store, resetAttempt) {
+    if (store.retryTimer !== null) {
+      clearTimeout(store.retryTimer);
+      store.retryTimer = null;
+    }
+    if (resetAttempt) store.retryAttempt = 0;
+  }
+
+  function fetchStore(store, issueGet, sanitize, label, refetch, isCurrent, resetRetry) {
+    if (resetRetry) clearPrivateReadRetry(store, true);
     if (store.inFlight) {
       store.dirty = true;
       return store.inFlight;
     }
     store.dirty = false;
 
-    function settle(apply) {
+    function settle(apply, retryable) {
+      if (!isCurrent()) return;
       store.inFlight = null;
       apply();
       store.loaded = true;
       notifyStoreListeners(store);
-      if (store.dirty) refetch();
+      if (store.dirty) {
+        clearPrivateReadRetry(store, false);
+        refetch(true);
+      } else if (retryable && store.retryTimer === null && store.retryAttempt < PRIVATE_READ_RETRY_DELAYS.length) {
+        var delay = PRIVATE_READ_RETRY_DELAYS[store.retryAttempt];
+        store.retryAttempt += 1;
+        store.retryTimer = setTimeout(function () {
+          if (!isCurrent()) return;
+          store.retryTimer = null;
+          refetch(false);
+        }, delay);
+      }
     }
 
     store.inFlight = issueGet().then(
@@ -890,29 +917,33 @@
           store.value = sanitize(entry ? entry.value : undefined);
           store.error = null;
           store.hasValue = true;
-        });
+          clearPrivateReadRetry(store, true);
+        }, false);
       },
       function (err) {
+        var retryable = retryableStorageRead(err);
+        logError("load " + label, err);
         settle(function () {
-          logError("load " + label, err);
           store.error = err;
-        });
+          if (!retryable) clearPrivateReadRetry(store, true);
+        }, retryable);
       },
     );
     return store.inFlight;
   }
 
-  function fetchCatalog(host, workspaceId) {
+  function fetchCatalog(host, workspaceId, resetRetry) {
+    var store = getCatalogStore(workspaceId);
     return fetchStore(
-      getCatalogStore(workspaceId),
+      store,
       function () {
         return host.storage.get(CATALOG_SCOPE, workspaceId, CATALOG_KEY);
       },
       sanitizeCatalog,
       CATALOG_SCOPE + "/" + CATALOG_KEY,
-      function () {
-        fetchCatalog(host, workspaceId);
-      },
+      function (reset) { fetchCatalog(host, workspaceId, reset); },
+      function () { return catalogStores[workspaceId] === store; },
+      resetRetry !== false,
     );
   }
 
@@ -1090,7 +1121,6 @@
     if (!window || typeof window.setInterval !== "function" || typeof window.addEventListener !== "function") return;
     sharedTagRefreshTimer = window.setInterval(function () {
       Object.keys(sharedTagStores).forEach(function (workspaceId) { fetchSharedTags(host, workspaceId); });
-      refreshFailedPrivateTags(host);
     }, 30000);
     function onFocus() {
       Object.keys(sharedTagStores).forEach(function (workspaceId) { fetchSharedTags(host, workspaceId); });
@@ -1116,17 +1146,18 @@
     addDisposable(taskTagWideUnsubscribe);
   }
 
-  function fetchTaskTags(host, taskId) {
+  function fetchTaskTags(host, taskId, resetRetry) {
+    var store = getTaskTagStore(taskId);
     return fetchStore(
-      getTaskTagStore(taskId),
+      store,
       function () {
         return host.storage.get(TASK_SCOPE, taskId, TASK_KEY);
       },
       sanitizeTagIdList,
       TASK_SCOPE + "/" + TASK_KEY,
-      function () {
-        fetchTaskTags(host, taskId);
-      },
+      function (reset) { fetchTaskTags(host, taskId, reset); },
+      function () { return taskTagStores[taskId] === store; },
+      resetRetry !== false,
     );
   }
 
@@ -1214,6 +1245,9 @@
 
   /** Evicts every cached task's tag ids (plugin unload, workspace switch -- D13/AC20). */
   function clearTaskTagCache() {
+    Object.keys(taskTagStores).forEach(function (taskId) {
+      clearPrivateReadRetry(taskTagStores[taskId], true);
+    });
     taskTagStores = {};
   }
 
@@ -1234,6 +1268,9 @@
    */
   function resetSharedStores() {
     sharedTagLifecycleGeneration += 1;
+    Object.keys(catalogStores).forEach(function (workspaceId) {
+      clearPrivateReadRetry(catalogStores[workspaceId], true);
+    });
     catalogStores = {};
     clearTaskTagCache();
     taskTagWideUnsubscribe = null;
@@ -1655,7 +1692,11 @@
                   );
                 }),
         ),
-        displayError ? jsx("div", { "data-testid": "kandev-tags-picker-error" }, displayError) : null,
+        displayError ? jsx("div", { "data-testid": "kandev-tags-picker-error" }, displayError,
+          loadError ? jsx(ui.Button, { type: "button", size: "sm", "data-testid": "kandev-tags-picker-retry", onClick: function () {
+            if (useShared) refreshSharedTags();
+            else { refreshCatalog(); refreshTagIds(); }
+          } }, "Retry") : null) : null,
       );
     };
   }
@@ -2303,7 +2344,11 @@
               : catalog.length === 0
               ? jsx("div", { className: "text-muted-foreground text-xs px-2 py-1.5" }, "No tags yet.")
               : buildTagRows(),
-          displayError ? jsx("div", { "data-testid": "kandev-tags-topbar-error" }, displayError) : null,
+          displayError ? jsx("div", { "data-testid": "kandev-tags-topbar-error" }, displayError,
+            loadError ? jsx(ui.Button, { type: "button", size: "sm", "data-testid": "kandev-tags-topbar-retry", onClick: function () {
+              if (useShared) refreshSharedTags();
+              else refreshCatalog();
+            } }, "Retry") : null) : null,
         ),
       );
 

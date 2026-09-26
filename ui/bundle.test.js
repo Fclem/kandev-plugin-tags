@@ -2777,6 +2777,16 @@ async function flush() {
   await Promise.resolve();
 }
 
+function findTestNode(node, testId) {
+  if (!node || typeof node !== "object") return null;
+  if (node.props && node.props["data-testid"] === testId) return node;
+  for (const child of node.children || []) {
+    const found = findTestNode(child, testId);
+    if (found) return found;
+  }
+  return null;
+}
+
 test("useStorageValue distinguishes a failed load from an empty catalog, logging the failure", async () => {
   const { console: fakeConsole, calls } = makeFakeConsole();
   const plugin = loadBundle(fakeConsole);
@@ -2806,7 +2816,7 @@ test("useStorageValue distinguishes a failed load from an empty catalog, logging
   assert.match(calls.error[0][0], /^\[kandev-plugin-tags\]/);
 });
 
-test("a cold private catalog 503 never looks empty and recovers on the periodic refresh without a write", async () => {
+test("a cold private catalog 503 never looks empty and recovers on focus without a write", async () => {
   let focusListener;
   let interval;
   let available = false;
@@ -2847,11 +2857,161 @@ test("a cold private catalog 503 never looks empty and recovers on the periodic 
   available = true;
   interval();
   await flush();
+  assert.equal(reads, 1, "the shared poll does not restart an exhausted private read");
+  focusListener();
+  await flush();
   assert.equal(reads, 2);
   assert.match(JSON.stringify(getTree()), /urgent/);
   assert.doesNotMatch(JSON.stringify(getTree()), /Could not load tags/);
   assert.equal(writes, 0, "recovery never replaces persisted tags");
   plugin.destroy();
+});
+
+test("private catalog retries stop at three attempts and explicit Retry recovers it", async () => {
+  const timers = new Map();
+  let nextTimer = 0;
+  let interval;
+  let available = false;
+  let reads = 0;
+  let writes = 0;
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  const plugin = loadBundle(makeFakeConsole().console, {
+    setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    window: {
+      setInterval(fn) { interval = fn; return 1; },
+      clearInterval() {},
+      addEventListener() {},
+      removeEventListener() {},
+    },
+  });
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  host.storage = {
+    get() {
+      reads += 1;
+      return available
+        ? Promise.resolve({ value: saved, updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    set() { writes += 1; return Promise.resolve(); },
+    subscribe: () => () => {},
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(host, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  const getTree = host.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+
+  for (const delay of [250, 1000, 3000]) {
+    assert.equal(timers.size, 1, "one automatic retry is pending");
+    const [id, timer] = [...timers.entries()][0];
+    assert.equal(timer.delay, delay);
+    timers.delete(id);
+    timer.fn();
+    await flush();
+  }
+  assert.equal(reads, 4, "the initial read plus three retries exhaust the budget");
+  assert.equal(timers.size, 0);
+  interval();
+  await flush();
+  assert.equal(reads, 4, "the shared poll cannot create an endless private retry loop");
+  assert.match(JSON.stringify(getTree()), /Could not load tags/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /No tags yet/);
+
+  available = true;
+  const retry = findTestNode(getTree(), "kandev-tags-topbar-retry");
+  assert.ok(retry);
+  retry.props.onClick();
+  await flush();
+  assert.equal(reads, 5);
+  assert.match(JSON.stringify(getTree()), /urgent/);
+  assert.doesNotMatch(JSON.stringify(getTree()), /Could not load tags/);
+  assert.equal(writes, 0);
+  plugin.destroy();
+});
+
+test("private task-tag retries exhaust independently and reconnect restores saved chips", async () => {
+  const timers = new Map();
+  const listeners = {};
+  let nextTimer = 0;
+  let available = false;
+  let taskReads = 0;
+  const saved = [{ id: "t1", name: "urgent", color: "#ef4444" }];
+  const plugin = loadBundle(makeFakeConsole().console, {
+    setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    window: {
+      setInterval: () => 1,
+      clearInterval() {},
+      addEventListener(type, listener) { listeners[type] = listener; },
+      removeEventListener(type) { delete listeners[type]; },
+    },
+  });
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  host.storage = {
+    get(scope) {
+      if (scope === "workspace") return Promise.resolve({ value: saved, updatedAt: "t0" });
+      taskReads += 1;
+      return available
+        ? Promise.resolve({ value: ["t1"], updatedAt: "t0" })
+        : Promise.reject(apiError(503, "plugin storage: get failed with status 503"));
+    },
+    subscribe: () => () => {},
+  };
+  const Chips = plugin.__internal.makeTagChips(host, { removable: false });
+  const getTree = host.mount(Chips, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
+  await flush();
+  assert.equal(getTree(), null);
+
+  for (const delay of [250, 1000, 3000]) {
+    assert.equal(timers.size, 1);
+    const [id, timer] = [...timers.entries()][0];
+    assert.equal(timer.delay, delay);
+    timers.delete(id);
+    timer.fn();
+    await flush();
+  }
+  assert.equal(taskReads, 4);
+  assert.equal(timers.size, 0);
+  available = true;
+  listeners.online();
+  await flush();
+  assert.equal(taskReads, 5);
+  assert.match(JSON.stringify(getTree()), /urgent/);
+  plugin.destroy();
+  assert.equal(timers.size, 0, "unload leaves no private retry behind");
+});
+
+test("destroy ignores a late failed private read without scheduling a retry", async () => {
+  const timers = new Map();
+  let nextTimer = 0;
+  let rejectRead;
+  const plugin = loadBundle(makeFakeConsole().console, {
+    setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    window: {
+      setInterval: () => 1,
+      clearInterval() {},
+      addEventListener() {},
+      removeEventListener() {},
+    },
+  });
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  host.storage = {
+    get() { return new Promise((_, reject) => { rejectRead = reject; }); },
+    subscribe: () => () => {},
+  };
+  const Dropdown = plugin.__internal.makeTagsTopBarDropdown(host, {
+    taskFilter: false, filterSelectionApi: false, scanStorage: false,
+  });
+  host.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  plugin.destroy();
+  rejectRead(apiError(503, "plugin storage: get failed with status 503"));
+  await flush();
+  assert.equal(timers.size, 0, "the old store cannot schedule a retry after unload");
 });
 
 test("a hard reload during a private task-tag 503 restores card and dense row chips after recovery", async () => {
