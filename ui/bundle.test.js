@@ -2903,6 +2903,22 @@ test("private catalog retries stop at three attempts and explicit Retry recovers
   const getTree = host.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
   await flush();
 
+  // The board may mount several tag surfaces while the same failed store is
+  // still observed. Those mounts must join its existing retry window.
+  const otherHosts = [];
+  for (let i = 0; i < 3; i += 1) {
+    const otherHost = makeFakeReactHost();
+    otherHost.store = host.store;
+    otherHost.storage = host.storage;
+    const OtherDropdown = plugin.__internal.makeTagsTopBarDropdown(otherHost, {
+      taskFilter: false, filterSelectionApi: false, scanStorage: false,
+    });
+    otherHost.mount(OtherDropdown, { slotProps: { workspaceId: "ws-1" } });
+    otherHosts.push(otherHost);
+  }
+  await flush();
+  assert.equal(reads, 1, "additional mounted surfaces do not restart the failed read");
+
   for (const delay of [250, 1000, 3000]) {
     assert.equal(timers.size, 1, "one automatic retry is pending");
     const [id, timer] = [...timers.entries()][0];

@@ -899,7 +899,7 @@
       notifyStoreListeners(store);
       if (store.dirty) {
         clearPrivateReadRetry(store, false);
-        refetch(true);
+        refetch(false);
       } else if (retryable && store.retryTimer === null && store.retryAttempt < PRIVATE_READ_RETRY_DELAYS.length) {
         var delay = PRIVATE_READ_RETRY_DELAYS[store.retryAttempt];
         store.retryAttempt += 1;
@@ -943,7 +943,7 @@
       CATALOG_SCOPE + "/" + CATALOG_KEY,
       function (reset) { fetchCatalog(host, workspaceId, reset); },
       function () { return catalogStores[workspaceId] === store; },
-      resetRetry !== false,
+      resetRetry === true,
     );
   }
 
@@ -1105,13 +1105,13 @@
     Object.keys(catalogStores).forEach(function (workspaceId) {
       var store = catalogStores[workspaceId];
       if (store.listeners.length && store.error && retryableStorageRead(store.error) && !store.inFlight) {
-        fetchCatalog(host, workspaceId);
+        fetchCatalog(host, workspaceId, true);
       }
     });
     Object.keys(taskTagStores).forEach(function (taskId) {
       var store = taskTagStores[taskId];
       if (store.listeners.length && store.error && retryableStorageRead(store.error) && !store.inFlight) {
-        fetchTaskTags(host, taskId);
+        fetchTaskTags(host, taskId, true);
       }
     });
   }
@@ -1157,7 +1157,7 @@
       TASK_SCOPE + "/" + TASK_KEY,
       function (reset) { fetchTaskTags(host, taskId, reset); },
       function () { return taskTagStores[taskId] === store; },
-      resetRetry !== false,
+      resetRetry === true,
     );
   }
 
@@ -1186,8 +1186,11 @@
             return t + 1;
           });
         }
+        var firstListener = store.listeners.length === 0;
         store.listeners.push(onChange);
-        if ((!store.loaded || (retryFailedRead && retryableStorageRead(store.error))) && !store.inFlight) fetchFn(host, scopeId);
+        if ((!store.loaded || (retryFailedRead && firstListener && retryableStorageRead(store.error))) && !store.inFlight) {
+          fetchFn(host, scopeId, retryFailedRead && firstListener && !!store.error);
+        }
         return function () {
           var idx = store.listeners.indexOf(onChange);
           if (idx !== -1) store.listeners.splice(idx, 1);
@@ -1202,7 +1205,7 @@
       store.value,
       store.loaded,
       function refresh() {
-        fetchFn(host, scopeId);
+        fetchFn(host, scopeId, true);
       },
       store.error,
       store.hasValue,
