@@ -1259,8 +1259,9 @@ test("filter-primed shared ids do not render as private raw chips after task sto
     consoleCalls.error.some((args) => String(args[1]).includes("404")),
     "the private-state 404 is observed rather than replaced with seeded private data",
   );
-  const chips = getTree().children[0];
+  const chips = getTree().children[0].filter((node) => node.props["data-testid"] === "kandev-tags-chip");
   assert.equal(chips.length, 4, "one chip renders for each of the four canonical shared applications");
+  assert.ok(findTestNode(getTree(), "kandev-tags-chip-load-error"), "an unavailable private compatibility read remains visible");
   assertStructural.deepEqual(
     chips.map((chip) => (chip.props["data-agent"] ? chip.children[1] : chip.children[0])),
     ["Agent ready", "Needs review", "Whitespace", "Human"],
@@ -1984,6 +1985,60 @@ test("bundle registers a Tags task filter when the host supports registerTaskFil
   assert.equal(typeof filterRegistration.matches, "function");
   const options = filterRegistration.getOptions();
   assert.ok(options.some((o) => o.value === "__untagged__"));
+});
+
+test("registered task filter keeps shared assignments separate from private chip assignments", async () => {
+  const plugin = loadBundle();
+  const host = makeFakeReactHost();
+  host.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }), subscribe: () => () => {} };
+  host.storage = {
+    get(scope) {
+      if (scope === "task") return Promise.resolve({ value: ["private-id"], updatedAt: "t0" });
+      return Promise.resolve({ value: [{ id: "private-id", name: "Legacy saved", color: "#ef4444" }], updatedAt: "t0" });
+    },
+    subscribe: () => () => {},
+  };
+  host.api = {
+    invokeAction(name) {
+      assert.equal(name, "shared-tags");
+      return Promise.resolve({
+        tags: [{ id: "shared-id", name: "Shared saved", color: "#22c55e" }],
+        tasks: { "task-1": [{ id: "shared-id", name: "Shared saved", color: "#22c55e" }] },
+      });
+    },
+  };
+
+  let CardTags;
+  let RowTags;
+  let filter;
+  plugin.initialize(
+    {
+      registerComponent(slot, Component) {
+        if (slot === "task-card-tags") CardTags = Component;
+        if (slot === "task-row-metadata") RowTags = Component;
+      },
+      registerTaskMenuAction() {},
+      registerTaskFilter(registration) { filter = registration; },
+    },
+    host,
+  );
+  await flush();
+
+  assert.ok(filter.matches({ taskId: "task-1" }, ["shared-id"]), "board filter reads the shared assignment index");
+  assert.ok(!filter.matches({ taskId: "task-1" }, ["private-id"]), "private compatibility IDs do not leak into shared filtering");
+
+  const getTree = host.mount(CardTags, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
+  await flush();
+  const rendered = JSON.stringify(getTree());
+  assert.match(rendered, /Shared saved/);
+  assert.match(rendered, /Legacy saved/, "registered chip surfaces retain the private compatibility assignment");
+
+  const getRowTree = host.mount(RowTags, { slotProps: { taskId: "task-1", workspaceId: "ws-1" } });
+  await flush();
+  const rowRendered = JSON.stringify(getRowTree());
+  assert.match(rowRendered, /Shared saved/);
+  assert.match(rowRendered, /Legacy saved/, "the registered dense task row retains the private compatibility assignment");
+  plugin.destroy();
 });
 
 test("bundle does not throw when the host predates registerTaskFilter (feature detection)", () => {

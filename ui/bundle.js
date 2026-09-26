@@ -1226,11 +1226,9 @@
   }
 
   /**
-   * The board-wide Tags filter's cross-card index -- now simply a read of
-   * the shared task-tags store (folded into one source of truth with
-   * useTaskTagIds instead of a second, independently-maintained cache).
-   * Undefined (not merely unloaded) when nothing has ever asked for this
-   * task's tags; callers treat that the same as "no tags" (untagged).
+   * The private compatibility task-tag cache used by legacy chips and
+   * storage-backed filter hosts. Shared-action filter assignments live in
+   * registerTagFilter's separate workspace-scoped index.
    */
   function getTaskTagCacheEntry(taskId) {
     var store = taskTagStores[taskId];
@@ -2614,6 +2612,7 @@
     if (!capabilities.taskFilter) return;
 
     var catalog = [];
+    var sharedTaskTagIds = null;
     var currentWorkspaceId = null;
     var unsubscribeStorage = null;
     var unsubscribeSharedTags = null;
@@ -2625,15 +2624,18 @@
       if (!currentWorkspaceId) return;
       var store = getSharedTagStore(currentWorkspaceId);
       if (store.unavailable) {
+        sharedTaskTagIds = null;
         loadPrivateCatalog();
         return;
       }
       if (!store.hasValue) return;
       var payload = store.value || { tags: [], tasks: {} };
       catalog = sanitizeCatalog(payload.tags);
-      clearTaskTagCache();
+      sharedTaskTagIds = {};
       Object.keys(payload.tasks || {}).forEach(function (taskId) {
-        setTaskTagCache(taskId, ((payload.tasks[taskId] || []).map(function (tag) { return tag.id; })));
+        sharedTaskTagIds[taskId] = sanitizeTagIdList(
+          (payload.tasks[taskId] || []).map(function (tag) { return tag && tag.id; }),
+        );
       });
     }
 
@@ -2686,6 +2688,7 @@
       if (workspaceId === currentWorkspaceId) return;
       var previousWorkspaceId = currentWorkspaceId;
       currentWorkspaceId = workspaceId || null;
+      sharedTaskTagIds = null;
       cancelSharedTagRetry(previousWorkspaceId);
       // A tag set gathered under the previous workspace must never inform
       // this one's filter (D13/AC20).
@@ -2771,7 +2774,9 @@
         // Cards that haven't mounted their TagChips yet have no cache entry
         // -- see getTaskTagCacheEntry's comment above. Treat that as "no
         // tags" rather than excluding the card outright.
-        var tagIds = getTaskTagCacheEntry(context.taskId) || [];
+        var tagIds = sharedTaskTagIds
+          ? sharedTaskTagIds[context.taskId] || []
+          : getTaskTagCacheEntry(context.taskId) || [];
         if (selected.indexOf(UNTAGGED_FILTER_VALUE) !== -1 && tagIds.length === 0) return true;
         return tagIds.some(function (id) {
           return selected.indexOf(id) !== -1;
