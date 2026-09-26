@@ -9,6 +9,13 @@
   remount, or Retry. A failed catalog read shows an error instead of an
   empty-catalog message, and recovery never rewrites saved tags.
 
+## Unreleased
+
+### Changed
+
+- Mark the first recent-tag submenu child as a new group so hosts with
+  `separatorBefore` support render a divider after **More tags...**.
+
 ## [0.14.1] - 2026-08-30
 
 ### Changed

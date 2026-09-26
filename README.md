@@ -135,8 +135,10 @@ that card. The target must be a task in this workspace.
   existing colored tags rendered as pills -- click a row to apply/remove it
   from this card; applied tags show a checkmark.
 - **Quick pick**: on a host that renders plugin submenus, **Add tag...** is
-  a submenu instead: **More tags...** first (the same modal), then up to five
-  tags used most recently anywhere in the workspace, most recent first.
+  a submenu instead: **More tags...** first (the same modal), then a native
+  separator and up to five tags used most recently anywhere in the workspace,
+  most recent first. The separator requires the host's `separatorBefore`
+  submenu-child support; older hosts keep the same actions without the divider.
   Choosing one applies it to this card in a single click and refreshes the
   chips, so the tag you reach for constantly is one click from the card menu
   and from the sidebar/`/tasks` row menu, wherever that item appears. Tags

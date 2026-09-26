@@ -1951,11 +1951,12 @@
         return a.at === b.at ? a.order - b.order : b.at - a.at;
       })
       .slice(0, QUICK_TAG_LIMIT)
-      .map(function (candidate) {
+      .map(function (candidate, index) {
         var tagId = candidate.tag.id;
         return {
           id: tagId,
           label: candidate.tag.name,
+          separatorBefore: index === 0,
           run: quickTagRun(host, workspaceId, context.taskId, tagId),
         };
       });

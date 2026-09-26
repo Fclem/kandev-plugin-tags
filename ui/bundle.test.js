@@ -4463,6 +4463,9 @@ test("card menu quick list puts More tags first, newest first, and hides never-a
       ["tag-a", "Blocked"],
     ],
   );
+  assert.equal(items[0].separatorBefore, undefined, "More tags stays above the divider");
+  assert.equal(items[1].separatorBefore, true, "the first quick tag starts a separate group");
+  assert.equal(items.slice(2).every((item) => item.separatorBefore === false), true);
   assertStructural.deepEqual(calls, [], "the list is derived from cached state, never fetched");
 });
 
