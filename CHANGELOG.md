@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.16.0] - 2026-09-28
+
+### Changed
+
+- feat: refine generated tag color palette (8721a0f)
+- fix: separate shared and private tag assignment caches (e243a17)
+- fix: show chip recovery when shared tags also fail (2247722)
+- fix: retain shared chips during private tag read failures (41626ca)
+- fix: show private tag read failures on chips (87b3bc2)
+- docs: clarify private tag retry triggers (e170684)
+- fix: preserve private retry budget across mounted surfaces (4b89f4e)
+- fix: bound private tag storage read retries (43101ac)
+- fix: recover private tags after transient storage failure (0e6b999)
+- feat: derive tag colors from the tag name, gated by a setting (140d25d)
+- ci: pin Kandev SDK dependency graph (a630cb9)
+- fix: ignore stale shared tag retries (0f80d21)
+- qa: distinguish action absence from resource misses (e443813)
+- fix: preserve tags across plugin updates (1fe6b78)
+
+
 ## [0.15.0] - 2026-09-23
 
 ### Added
