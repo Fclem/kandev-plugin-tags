@@ -1,5 +1,101 @@
 # Changelog
 
+## [0.15.0] - 2026-09-23
+
+### Added
+
+- A plugin setting, **Settings > Plugins > Tags > Generate a color for new
+  tags** (`auto_color` in the manifest, default on), controls whether a tag
+  created without an explicit color gets a color derived from its name. Off,
+  new tags start in the neutral gray and their color is picked in the Tags
+  box. Explicit colors are never affected, and no existing tag is recolored by
+  changing it.
+- When the setting is on, a tag with no explicit color gets the color its name
+  hashes to: FNV-1a over the name's UTF-8 bytes picks one of fourteen curated
+  deeper hues, so the same name always renders the same color wherever and by
+  whomever it is created — the Tags box, the Add tag modal, or an agent's
+  `create_tag`. The two implementations (`autoTagColor` in
+  `server/agent_tags.go`, `colorFromName` in `ui/bundle.js`) are asserted
+  against one shared fixture (`testdata/tag-colors.json`) so they cannot drift
+  apart.
+
+### Changed
+
+- A tag's color no longer depends on catalog position. 0.14.x assigned
+  `PALETTE[catalog.length % PALETTE.length]`, so creating or deleting an
+  unrelated tag could silently recolor an existing one.
+- The auto-generated and picker palette now uses fourteen nuanced, deeper hues
+  inspired by Proxmox's richer labeling colors instead of seven loud primaries.
+  This affects future generated colors only; existing tags keep their stored
+  colors.
+- `create_tag`/`tag-create` without a `color` now store the name-derived color
+  instead of the neutral gray (while the setting is on). An explicit color
+  still wins, and no stored color is ever re-derived -- a rename keeps both the
+  derived and the explicit one, so a renamed tag can differ from a freshly
+  created tag of the same name.
+- `tag-update`/`update_tag` reject an explicit empty `color` (and `update_tag`
+  an explicit empty `name`) instead of silently ignoring the field or resetting
+  the color to gray, while omitting either field still leaves that property
+  untouched. Both agent tools now declare the accepted color format
+  (`#rgb`/`#rrggbb`) in their schema, so the host refuses a malformed color
+  before the plugin runs rather than leaving the agent to recover from an
+  invocation error.
+- Tags carried over from the 0.7.x agent status document (workspace state -- a
+  person's pre-0.8 private tags are not migrated) keep the neutral gray they have
+  always rendered as; the upgrade does not restyle an existing board.
+- On a host that predates plugin actions, the UI keeps its private-storage
+  fallback and derives colors there itself — the `auto_color` setting is read
+  by the plugin backend and cannot reach that path.
+
+### Fixed
+
+- The migration that titles legacy 0.7.x names now capitalizes the first
+  *character* rather than the first byte, which would have stored any non-ASCII
+  name as U+FFFD plus fragments and persisted that on the next write. v1 itself
+  could only hold its six fixed ASCII slugs, so this is hardening rather than a
+  repair of data you can have.
+- A stored name that predates this release's trim rule (0.14 and earlier trimmed
+  with Go's `strings.TrimSpace`, which keeps a leading U+FEFF, and the migration
+  copies a legacy tag's own spelling) no longer lets a second tag whose name
+  normalizes to the same string through -- that produced two chips with one name,
+  breaking both the duplicate rule and "a name always starts from the same
+  color".
+- A malformed task entry in a `shared-tags` payload is dropped at the boundary
+  instead of reaching the five places that iterate it, where it turned the
+  intended degrade into a thrown error (inside the delete confirmation's count,
+  that meant a stranded modal).
+- Deleting a tag from the Tags box now asks for confirmation on action-capable
+  hosts too, stating how many cards carry it. The shared path used to delete on
+  the first click, even though the confirmation is what the box documents; the
+  backend still performs the cascade atomically on confirm, and the box re-reads
+  the catalog straight away so the deleted tag leaves the list and the filter.
+- A delete confirmation whose card count cannot be read (a failing or capped
+  scan) now says the number is unknown and stays usable, instead of waiting on a
+  count that never arrives with its only button disabled.
+- A `host.storage.listByKey` scan the host had to cap is no longer presented as
+  a complete one: the delete confirmation reports an unknown card count rather
+  than an undercount, and a cascade that could not see every card says so
+  instead of claiming a clean sweep.
+- A refused duplicate name now says so. The board's local duplicate check folds
+  case differently from the backend (final sigma, long s), so it cannot predict
+  every refusal; the server answers those with a domain conflict the UI reports
+  as "A tag named \"X\" already exists." instead of the host's generic "plugin
+  action unavailable" -- advice to retry that could never succeed.
+- The periodic re-read of a workspace's shared tags no longer keeps retrying a
+  failure that will not change: a definitive error (a refusal, rather than the
+  outage or timeout the retry schedule exists for) now cancels a retry an earlier
+  failure had armed and resets the schedule, instead of firing the request the
+  host just rejected and leaving no budget for the next genuine outage.
+- Tag names are now trimmed with the same explicit set of 25 code points the
+  UI strips (the frozen list behind `EDGE_TRIM_RE` in `ui/bundle.js`), instead
+  of by Go's `strings.TrimSpace`. The two differ by U+FEFF (a byte-order mark
+  pasted from a spreadsheet, which the UI stripped and the backend kept) and
+  U+0085 NEL (the reverse): a name in either state was stored under one
+  spelling while the create-and-apply flow looked it up under the other, so the
+  tag was created and the person still saw "Could not create tag". Both sides
+  now strip exactly the same set, and both are asserted against it in
+  `testdata/tag-colors.json`. The same set trims a supplied color.
+
 ## [0.14.2] - 2026-09-26
 
 ### Fixed

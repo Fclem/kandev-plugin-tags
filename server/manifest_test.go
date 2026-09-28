@@ -9,8 +9,9 @@ import (
 )
 
 type testManifest struct {
-	ID           string `yaml:"id"`
-	Version      string `yaml:"version"`
+	ID           string         `yaml:"id"`
+	Version      string         `yaml:"version"`
+	ConfigSchema map[string]any `yaml:"config_schema"`
 	Capabilities struct {
 		State     bool `yaml:"state"`
 		UserState bool `yaml:"user_state"`
@@ -113,4 +114,48 @@ func TestManifestDeclaresOptionalTaskIDOnTaskScopedAgentTools(t *testing.T) {
 		require.NotContains(t, tool.InputSchema.Properties, "task_id",
 			name+" acts on the catalog, not a task")
 	}
+}
+
+// An agent reads these schemas, not the README: the host validates input against
+// them before the plugin ever runs, so a color field with no stated format turns
+// a preventable mistake into an invocation error the agent has to recover from.
+func TestManifestStatesTheAgentColorFormat(t *testing.T) {
+	manifest := loadTestManifest(t)
+	var checked int
+	for i := range manifest.AgentTools {
+		tool := manifest.AgentTools[i]
+		property, ok := tool.InputSchema.Properties["color"]
+		if !ok {
+			continue
+		}
+		checked++
+		require.Equal(t, "string", property["type"], tool.Name)
+		require.Equal(t, `^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$`, property["pattern"], tool.Name)
+		require.Contains(t, property["description"].(string), "#rgb", tool.Name)
+	}
+	require.Equal(t, 2, checked, "create_tag and update_tag both take a color")
+}
+
+// The settings form at Settings > Plugins > Tags is generated from this
+// schema, and the plugin reads the saved values through Host.GetConfig keyed by
+// the same property name (tagColorSettingKey), so a renamed or retyped property
+// would leave the operator's toggle accepted-but-ignored -- silently deriving
+// colors they turned off.
+func TestManifestDeclaresAutoColorSetting(t *testing.T) {
+	manifest := loadTestManifest(t)
+	properties, ok := manifest.ConfigSchema["properties"].(map[string]any)
+	require.True(t, ok, "config_schema.properties must be declared for the settings form to exist")
+
+	setting, ok := properties[tagColorSettingKey].(map[string]any)
+	require.True(t, ok, "config_schema must declare the property the plugin reads")
+	require.Equal(t, "boolean", setting["type"])
+	// The backend serves only saved values, so the behavior behind this
+	// declaration comes from the plugin's own fallback (pinned by
+	// TestAutoColorSettingControlsDerivedColor). `default` is not decorative
+	// either: the web settings form seeds an unset boolean from it
+	// (apps/web/lib/plugins/config-schema.ts buildInitialValues falls back to
+	// false when no default is declared), so dropping it would render the
+	// Switch off while the plugin kept deriving colors -- a visible control
+	// that says the opposite of what happens.
+	require.Equal(t, true, setting["default"])
 }

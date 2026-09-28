@@ -31,6 +31,14 @@
  * tag's name/color be edited or a tag be reused across many cards without
  * rewriting every card's storage entry.
  *
+ * A tag's color is explicit when a person (or `create_tag`) supplied one;
+ * otherwise it is derived from the tag's name by `colorFromName` -- the same
+ * content-addressed hash the backend applies (autoTagColor in
+ * server/agent_tags.go), so a name created from the board and the same name
+ * created by an agent come out identical. The operator can turn that off
+ * (the manifest's auto_color setting); the picker in the Tags box is where a
+ * color is chosen instead.
+ *
  * Back-compat: v1 stored a card's tags as a plain array of tag-name strings
  * (no catalog, no color). Those entries are still valid task-scope values --
  * `resolveTag` treats any id that isn't found in the catalog as a legacy
@@ -56,8 +64,11 @@
  * Every write races against a concurrent write from another tab/surface, so
  * all mutations read-modify-write against the entry's `updatedAt` via
  * `ifUnmodifiedSince`, retrying on a PluginStorageConflictError (HTTP 409) by
- * re-reading and reapplying the caller's intent once. Uses only
- * host.React/host.jsx -- no host.ui primitives, to keep the bundle a single
+ * re-reading and reapplying the caller's intent once. The chip rows and the
+ * icon glyphs are hand-built from host.React/host.jsx; the picker modal and the
+ * Tags box manager use host.ui primitives (Input, Button, ScrollArea, the
+ * DropdownMenu and Select families), so the bundle needs no build step but does
+ * assume those named components exist on the host. A single
  * dependency-free file (matches the v1 convention).
  */
 (function () {
@@ -77,6 +88,14 @@
   // guard bounds the second at 12px/char (264px), so an all-wide-glyph name
   // overshoots by ~4px during the font-load window only -- see the
   // calibration note on the regression test.
+  //
+  // The unit is UTF-16 code units, not code points, and the backend's cap
+  // (maxTagNameRunes) counts runes -- so this side is the stricter one for
+  // astral characters: a 12-emoji name is refused here and accepted by
+  // create_tag. That direction is deliberate and safe: the cap is calibrated
+  // against the input's width above, an agent-created name never goes through
+  // this input, and a name this side refuses can never reach the post-create
+  // lookup that requires the two normalizations to agree.
   var MAX_TAG_LENGTH = 22;
 
   // Tags box geometry. These three are one budget, so they live together:
@@ -98,6 +117,11 @@
   // (`z-40`) when Radix constrains the content near the viewport bottom.
   var TOPBAR_DROPDOWN_Z_INDEX = 60;
   var MAX_TAGS_PER_TASK = 12;
+  // One page of the host's cross-scope scan (`host.storage.listByKey`), and the
+  // only page we can see: a result whose `truncated` flag is set means more
+  // entries exist than this, which the delete confirmation and its cascade treat
+  // as "not the whole picture" rather than as a count (see countTasksWithTag).
+  var TAG_SCAN_LIMIT = 1000;
   var CONFLICT_RETRY_LIMIT = 1;
   // A plugin update briefly replaces the backend process. Reads issued in
   // that window can receive 502/503/504 (or a network error) even though the
@@ -133,17 +157,23 @@
   var PICKER_WRITER_ID = "tags-picker";
   var MANAGER_WRITER_ID = "tags-manager";
 
-  // Plugin-owned color palette (a plugin-owned counterpart to the host's own
-  // task-color palette, `apps/web/lib/task-colors.ts`) -- new catalog tags
-  // cycle through these before a user picks/types a custom hex.
+  // Curated deeper hues and shades, rather than a handful of loud primaries.
+  // Keep this in sync with server/agent_tags.go and testdata/tag-colors.json.
   var PALETTE = [
-    "#ef4444", // red
-    "#f97316", // orange
-    "#eab308", // yellow
-    "#22c55e", // green
-    "#3b82f6", // blue
-    "#a855f7", // purple
-    "#ec4899", // pink
+    "#b45309", // amber
+    "#c2410c", // burnt orange
+    "#b91c1c", // red
+    "#be185d", // rose
+    "#a21caf", // fuchsia
+    "#6d28d9", // violet
+    "#4338ca", // indigo
+    "#1d4ed8", // blue
+    "#0369a1", // ocean blue
+    "#0e7490", // cyan
+    "#0f766e", // teal
+    "#15803d", // green
+    "#4d7c0f", // olive
+    "#475569", // slate
   ];
   var DEFAULT_COLOR = "#6b7280"; // gray -- used for unresolvable/legacy tags
 
@@ -542,10 +572,53 @@
   // Exposed via __internal for ui/bundle.test.js.
   // ---------------------------------------------------------------------
 
-  /** Trims a raw tag name, rejects empty or over-MAX_TAG_LENGTH. Null if invalid. */
+  /**
+   * The characters stripped from both ends of a user-supplied string -- a tag
+   * name or a color: ECMAScript's WhiteSpace set plus its line terminators,
+   * which is exactly what String.prototype.trim removes today.
+   *
+   * Written out rather than delegating to trim() so both ends of the contract
+   * are frozen at the same set: the backend's counterpart (stripFromEdges in
+   * server/agent_tags.go) is an explicit list, and trim() is defined by
+   * reference to Unicode's Zs property, so a future Unicode revision could widen
+   * the engine's set and silently desynchronize the two sides again -- which is
+   * precisely the bug this replaced (Go's strings.TrimSpace vs this set differ
+   * by U+FEFF and U+0085, and a name in either state was stored under one
+   * spelling while the create-and-apply lookup used the other).
+   *
+   * testdata/tag-colors.json ("trim") carries the same code points as the shared
+   * contract, asserted from both suites.
+   *
+   * Only ever used with String.replace: a /g/ regex carries lastIndex state, so
+   * it is unsafe with test/exec.
+   */
+  var EDGE_TRIM_RE = /^[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+|[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+$/g;
+
+  /** Trims a name or color of exactly the characters both backends agree on. */
+  function trimEdges(text) {
+    return text.replace(EDGE_TRIM_RE, "");
+  }
+
+  /**
+   * Replaces an unpaired UTF-16 surrogate with U+FFFD -- what Go's JSON decoder
+   * already substitutes, so it is the string the backend stores for such a name.
+   * Without this the client would keep the raw surrogate and compare it against
+   * a stored name it can never equal, which is the same class of miss the edge
+   * trim above exists to prevent (the create-and-apply lookup reports "Could not
+   * create tag" while the tag sits in the catalog). Paired surrogates -- any
+   * astral character -- are kept verbatim, and a name can only contain an
+   * unpaired one by pasting or by a malformed import.
+   */
+  function foldLoneSurrogates(text) {
+    return text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDFFF]/g, function (pair) {
+      return pair.length === 2 ? pair : "\uFFFD";
+    });
+  }
+
+  /** Normalizes a raw tag name (foldLoneSurrogates + trimEdges), rejecting empty or over-MAX_TAG_LENGTH. Null if invalid. */
   function normalizeName(raw) {
     if (typeof raw !== "string") return null;
-    var trimmed = raw.trim();
+    var trimmed = trimEdges(foldLoneSurrogates(raw));
     if (trimmed.length === 0 || trimmed.length > MAX_TAG_LENGTH) return null;
     return trimmed;
   }
@@ -553,7 +626,7 @@
   /** Validates/normalizes a hex color string (3 or 6 digit, `#` required). Null if invalid. */
   function normalizeColor(raw) {
     if (typeof raw !== "string") return null;
-    var trimmed = raw.trim();
+    var trimmed = trimEdges(raw);
     if (!HEX_COLOR_RE.test(trimmed)) return null;
     return trimmed.toLowerCase();
   }
@@ -563,18 +636,115 @@
     return "tag-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
   }
 
-  /** Next palette color for a catalog of the given current size, cycling through PALETTE. */
-  function nextPaletteColor(catalog) {
-    return PALETTE[catalog.length % PALETTE.length];
+  /**
+   * One FNV-1a step over a single byte. `Math.imul` is what keeps the 32-bit
+   * multiply exact: `hash * 16777619` would round away the low bits once the
+   * product passes 2^53, and every caller compares against Go's uint32
+   * arithmetic (`autoTagColor` in server/agent_tags.go).
+   */
+  function fnvByte(hash, byte) {
+    return Math.imul(hash ^ byte, 16777619);
   }
 
-  /** Case-insensitive name lookup within a catalog array. */
+  /**
+   * A new tag's default color, derived from its name -- the content-addressed
+   * scheme Proxmox tags and GitHub labels use, so the same name looks the same
+   * wherever and by whomever it is created. The rule this replaced assigned
+   * colors by catalog length (`PALETTE[catalog.length % PALETTE.length]`), so
+   * creating or deleting any *other* tag silently recolored an existing one.
+   *
+   * On a host with plugin actions this mirrors what the backend already did
+   * (this function is the private-storage fallback's copy of the rule); the
+   * operator can turn the derivation off with the auto_color setting, which
+   * this legacy path cannot read -- see the README's "Tag colors".
+   *
+   * FNV-1a (32-bit) over the name's UTF-8 bytes, reduced to an index into
+   * PALETTE. It must match autoTagColor (server/agent_tags.go) byte for byte:
+   * a person creating a tag in the Tags box and an agent calling create_tag
+   * with the same name have to land on the same color, so neither the hash nor
+   * the palette may drift. Two guards keep them in step: testdata/tag-colors.json
+   * pins the expected color of every name in the fixture (both suites assert
+   * it), and both suites also assert their own palette against the fixture's.
+   *
+   * The encoder is written out rather than delegating to TextEncoder so this
+   * stays dependency-free and allocation-free in the vm realm the UI tests
+   * evaluate the bundle in. A lone surrogate encodes as U+FFFD because that is
+   * what Go's JSON decoder substitutes before the server ever sees the name;
+   * paired surrogates (any emoji) encode as their real 4-byte sequence.
+   *
+   * `name` is hashed exactly as it is stored: trimmed, case preserved. Names
+   * differing only in case cannot coexist in one catalog anyway.
+   */
+  function colorFromName(name) {
+    var hash = 2166136261; // FNV-1a 32-bit offset basis
+    for (var i = 0; i < name.length; i++) {
+      var code = name.charCodeAt(i);
+      if (code < 0x80) {
+        hash = fnvByte(hash, code);
+      } else if (code < 0x800) {
+        hash = fnvByte(hash, 0xc0 | (code >> 6));
+        hash = fnvByte(hash, 0x80 | (code & 0x3f));
+      } else if (code >= 0xd800 && code <= 0xdfff) {
+        var low = code <= 0xdbff && i + 1 < name.length ? name.charCodeAt(i + 1) : 0;
+        if (low >= 0xdc00 && low <= 0xdfff) {
+          var astral = 0x10000 + ((code - 0xd800) << 10) + (low - 0xdc00);
+          hash = fnvByte(hash, 0xf0 | (astral >> 18));
+          hash = fnvByte(hash, 0x80 | ((astral >> 12) & 0x3f));
+          hash = fnvByte(hash, 0x80 | ((astral >> 6) & 0x3f));
+          hash = fnvByte(hash, 0x80 | (astral & 0x3f));
+          i++;
+        } else {
+          // Lone surrogate: U+FFFD, as Go's JSON decoder already substituted.
+          hash = fnvByte(hash, 0xef);
+          hash = fnvByte(hash, 0xbf);
+          hash = fnvByte(hash, 0xbd);
+        }
+      } else {
+        hash = fnvByte(hash, 0xe0 | (code >> 12));
+        hash = fnvByte(hash, 0x80 | ((code >> 6) & 0x3f));
+        hash = fnvByte(hash, 0x80 | (code & 0x3f));
+      }
+    }
+    return PALETTE[(hash >>> 0) % PALETTE.length];
+  }
+
+  /**
+   * Case-insensitive name lookup within a catalog array.
+   *
+   * An *approximation* of the backend's rule, not the same rule: the server
+   * compares names with Go's strings.EqualFold (Unicode simple case folding)
+   * while this lowers both sides, and the two disagree for the characters whose
+   * folding is not their lowercase form -- the classic pair being final sigma
+   * ("\u03c2" folds to "\u03c3" but lowercases to itself) and long s. Both
+   * directions follow: this check can call a name free that the server then
+   * refuses as a duplicate (the common case, and the one that gets a create
+   * through to an honest "already exists" -- see isDuplicateNameError), and it can
+   * refuse one the server would accept, because a stored "i" plus a combining dot
+   * lowercases to the same string as "\u0130" while EqualFold keeps them apart.
+   * The server stays authoritative -- reproducing its rule here would mean
+   * shipping Unicode's fold table into the bundle.
+   */
   function findTagByName(catalog, name) {
-    var lower = String(name).toLowerCase();
+    var key = nameKey(name);
+    if (key === null) return null;
     for (var i = 0; i < catalog.length; i++) {
-      if (catalog[i].name.toLowerCase() === lower) return catalog[i];
+      if (nameKey(catalog[i].name) === key) return catalog[i];
     }
     return null;
+  }
+
+  /**
+   * The key two names are compared by: normalized the way every write path
+   * normalizes a name, then lowercased. Comparing keys rather than raw strings
+   * means a catalog entry that slipped in unnormalized -- sanitizeCatalog checks
+   * a tag's *shape* only, so private or imported storage can hold " urgent " --
+   * still blocks its own normalized duplicate, which is the invariant the README
+   * documents. Names that do not normalize at all (empty after trimming, or over
+   * the length cap) have no key and match nothing.
+   */
+  function nameKey(name) {
+    var normalized = normalizeName(name);
+    return normalized === null ? null : normalized.toLowerCase();
   }
 
   function findTagById(catalog, id) {
@@ -589,13 +759,24 @@
    * `{ catalog, tag }` (a new catalog array plus the created entry) or
    * `null` when the name is invalid or already exists case-insensitively
    * (callers should treat an existing match as "nothing to create" and use
-   * the existing tag's id instead).
+   * the existing tag's id instead). A missing or invalid `rawColor` falls back
+   * to colorFromName(name) -- the derived default, not a positional palette
+   * color.
+   *
+   * This is the private-storage layer, reached only on hosts without plugin
+   * actions, and it derives unconditionally: a UI bundle has no channel to the
+   * operator's `auto_color` setting (the plugin config is backend-only, and the
+   * host's plugin API exposes none), so the choice here is between ignoring an
+   * explicit opt-out and ignoring the documented default for everyone on that
+   * tier. It keeps the default -- and the tier's previous behaviour, which was
+   * always colored -- and the setting's own description tells the operator that
+   * such a host derives.
    */
   function addCatalogTag(catalog, rawName, rawColor) {
     var name = normalizeName(rawName);
     if (name === null) return null;
     if (findTagByName(catalog, name)) return null;
-    var color = normalizeColor(rawColor) || nextPaletteColor(catalog);
+    var color = normalizeColor(rawColor) || colorFromName(name);
     var tag = { id: makeTagId(), name: name, color: color };
     return { catalog: catalog.concat([tag]), tag: tag };
   }
@@ -698,6 +879,29 @@
   }
 
   /**
+   * True when a shared `tag-create`/`tag-update` was refused because the
+   * workspace already holds that name -- the backend rejecting a duplicate the
+   * local check could not predict (see findTagByName).
+   *
+   * The plugin answers that refusal as a 409 whose body is `{"error":"a tag
+   * named \"X\" already exists"}` (actionError in server/actions.go), because a
+   * Go error would reach the browser only as the host's generic 503 "plugin
+   * action unavailable" and the wording would be lost. Matching the text rather
+   * than the 409 alone is deliberate: a conflict status says something clashed,
+   * not what, and every other conflict this plugin can produce (a storage
+   * version clash, say) must keep its own handling. `ApiError.message` is the
+   * response body's `error` field; the body is read too so a client that wraps
+   * it differently still lands here.
+   */
+  function isDuplicateNameError(err) {
+    if (!err) return false;
+    var body = err.body;
+    var detail = body && typeof body === "object" && typeof body.error === "string" ? body.error : "";
+    var message = typeof err.message === "string" ? err.message : "";
+    return /already exists/i.test(detail) || /already exists/i.test(message);
+  }
+
+  /**
    * Single choke point for surfacing a storage-boundary failure: logs
    * `[kandev-plugin-tags] <context>` plus the underlying Error to the
    * console so the real HTTP status (embedded in host.storage's rejection
@@ -766,11 +970,23 @@
     });
   }
 
-  /** Drops catalog entries that don't look like `{ id, name, color }`. */
+  /**
+   * Drops catalog entries that don't look like `{ id, name, color }`. The id must
+   * be a non-empty string, the same rule sanitizeTagIdList applies to the ids a
+   * card stores: an entry with an empty id is a definition nothing can reference
+   * (every write that would apply it refuses `""`), so keeping it would only offer
+   * an unusable row in the picker and the manager.
+   */
   function sanitizeCatalog(raw) {
     if (!Array.isArray(raw)) return [];
     return raw.filter(function (t) {
-      return t && typeof t.id === "string" && typeof t.name === "string" && typeof t.color === "string";
+      return (
+        t &&
+        typeof t.id === "string" &&
+        t.id.length > 0 &&
+        typeof t.name === "string" &&
+        typeof t.color === "string"
+      );
     });
   }
 
@@ -797,13 +1013,39 @@
   // every task, which invalidates just the one taskId that changed.
   // ---------------------------------------------------------------------
 
-  var catalogStores = {}; // workspaceId -> store
-  var taskTagStores = {}; // taskId -> store
+  /**
+   * A map keyed by a host-supplied opaque id (a workspace id, a task id) -- never
+   * an ordinary object. An id of "__proto__" is legal input -- the backend
+   * accepts an unvalidated task id, and the README documents that an invented one
+   * is accepted -- and on an ordinary object `map["__proto__"] = store` would
+   * write onto the realm's Object.prototype instead of storing an entry, so every
+   * later `map[id]` read would find Object.prototype (truthy) and the store
+   * writes would land on the prototype the whole page shares. Always create these
+   * maps with this helper, including when resetting them.
+   */
+  function newIdMap() {
+    return Object.create(null);
+  }
+
+  /**
+   * The empty value a shared-tags store starts from. `tasks` is keyed by task id,
+   * so it is built with newIdMap() like every other opaque-id map: a task id of
+   * "__proto__" would otherwise make the read paths (`sharedTags.tasks[taskId]`)
+   * hand back Object.prototype and `.map` a non-function. Host-minted ids are
+   * uuids today, which is why this has never bitten -- the map contract is the
+   * reason it cannot.
+   */
+  function emptySharedValue() {
+    return { tags: [], tasks: newIdMap() };
+  }
+
+  var catalogStores = newIdMap(); // workspaceId -> store
+  var taskTagStores = newIdMap(); // taskId -> store; keyed by task id, see newIdMap
   var taskTagWideUnsubscribe = null;
   // Workspace-shared catalog and task applications. New hosts expose this
   // through plugin actions; the existing host.storage data remains a
   // compatibility fallback for an older host or a user's pre-0.8 catalog.
-  var sharedTagStores = {};
+  var sharedTagStores = newIdMap(); // workspaceId -> store; see newIdMap
   var sharedTagRefreshTimer = null;
   var sharedTagLoadErrorLogged = false;
   // Incremented whenever initialize()/destroy() drops the shared stores. A
@@ -959,7 +1201,7 @@
     var store = sharedTagStores[workspaceId];
     if (!store) {
       store = sharedTagStores[workspaceId] = makeStore();
-      store.value = { tags: [], tasks: {} };
+      store.value = emptySharedValue();
       store.unavailable = false;
       store.retryAttempt = 0;
       store.retryTimer = null;
@@ -967,9 +1209,37 @@
     return store;
   }
 
+  /**
+   * Normalizes one `shared-tags` payload. The task map gets the same treatment as
+   * the catalog, down to the elements: a task's entry must be an array of objects
+   * carrying a non-empty string `id`, because five call sites iterate it and then read
+   * `tag.id` (the chips, the picker, the board filter, the task-list facet and the
+   * delete count -- the cascade reads storage, not this payload), and a malformed
+   * value turns the intended degrade into a throw -- including inside a
+   * store-notify re-render, which no `.catch` can reach, and inside the delete
+   * confirmation's effect, which is the one place that cannot catch its way out.
+   * The id requirement is what keeps those five agreeing: without it a payload
+   * entry of `{"name":"no-id"}` would render a phantom chip with an undefined id
+   * while the facet projections drop the same task, so one card would look tagged
+   * to the chips and untagged to the facet. Dropping the bad parts leaves the task
+   * looking untagged, which is what a host that cannot answer should look like.
+   */
   function sanitizeSharedTags(raw) {
-    if (!raw || !Array.isArray(raw.tags) || !raw.tasks || typeof raw.tasks !== "object") return { tags: [], tasks: {} };
-    return { tags: sanitizeCatalog(raw.tags), tasks: raw.tasks };
+    if (!raw || !Array.isArray(raw.tags) || !raw.tasks || typeof raw.tasks !== "object") return { tags: [], tasks: newIdMap() };
+    var tasks = newIdMap();
+    Object.keys(raw.tasks).forEach(function (taskId) {
+      if (!Array.isArray(raw.tasks[taskId])) return;
+      var entries = raw.tasks[taskId].filter(function (entry) {
+        return (
+          !!entry &&
+          typeof entry === "object" &&
+          typeof entry.id === "string" &&
+          entry.id.length > 0 // the rule the readers apply, so all five agree
+        );
+      });
+      if (entries.length > 0) tasks[taskId] = entries;
+    });
+    return { tags: sanitizeCatalog(raw.tags), tasks: tasks };
   }
 
   function sharedTagsAvailable(host) {
@@ -1032,7 +1302,7 @@
     var lifecycleGeneration = sharedTagLifecycleGeneration;
     if (!host.api || typeof host.api.invokeAction !== "function") {
       clearSharedTagRetry(store, true);
-      store.unavailable = true; store.value = { tags: [], tasks: {} }; store.loaded = true; store.error = null; store.hasValue = false; notifyStoreListeners(store);
+      store.unavailable = true; store.value = emptySharedValue(); store.loaded = true; store.error = null; store.hasValue = false; notifyStoreListeners(store);
       return Promise.resolve();
     }
     if (store.inFlight) {
@@ -1075,10 +1345,16 @@
           if (unsupported) {
             clearSharedTagRetry(store, true);
             store.unavailable = true;
-            store.value = { tags: [], tasks: {} };
+            store.value = emptySharedValue();
             store.error = null;
             store.hasValue = false;
           } else {
+            // A definitive failure -- neither "this host has no such action" nor
+            // a retryable transport error -- must also drop any timer an earlier
+            // outage armed: leaving it running fires the action the host just
+            // rejected for good, and the spent retry budget would then be missing
+            // for the next genuine outage.
+            if (!retryable) clearSharedTagRetry(store, true);
             // Preserve the last confirmed shared value. In particular, never
             // make a transient update race authorize writes to legacy private
             // storage merely because the replacement process is not ready.
@@ -1249,7 +1525,7 @@
     Object.keys(taskTagStores).forEach(function (taskId) {
       clearPrivateReadRetry(taskTagStores[taskId], true);
     });
-    taskTagStores = {};
+    taskTagStores = newIdMap();
   }
 
   /**
@@ -1272,13 +1548,13 @@
     Object.keys(catalogStores).forEach(function (workspaceId) {
       clearPrivateReadRetry(catalogStores[workspaceId], true);
     });
-    catalogStores = {};
+    catalogStores = newIdMap();
     clearTaskTagCache();
     taskTagWideUnsubscribe = null;
     Object.keys(sharedTagStores).forEach(function (workspaceId) {
       clearSharedTagRetry(sharedTagStores[workspaceId], true);
     });
-    sharedTagStores = {};
+    sharedTagStores = newIdMap();
     sharedTagRefreshTimer = null;
     sharedTagLoadErrorLogged = false;
   }
@@ -1621,7 +1897,11 @@
             return host.api.invokeAction("task-tag-add", { taskId: taskId, body: { tagId: created.id } });
           }).then(refreshSharedTags).catch(function (err) {
             logError("create shared tag", err);
-            setError(withDetail("Could not create tag. Please try again.", err));
+            setError(
+              isDuplicateNameError(err)
+                ? 'A tag named "' + name + '" already exists.'
+                : withDetail("Could not create tag. Please try again.", err),
+            );
           });
           return;
         }
@@ -1865,7 +2145,7 @@
    */
   function primeTaskTagCache(host) {
     if (typeof host.storage.listByKey !== "function") return Promise.resolve();
-    return host.storage.listByKey(TASK_SCOPE, TASK_KEY, { limit: 1000 }).then(
+    return host.storage.listByKey(TASK_SCOPE, TASK_KEY, { limit: TAG_SCAN_LIMIT }).then(
       function (result) {
         result.entries.forEach(function (entry) {
           setTaskTagCache(entry.scopeId, sanitizeTagIdList(entry.value));
@@ -1880,11 +2160,34 @@
   /** Counts how many tasks currently carry `tagId`. Null if the host can't scan (degrades the delete copy). */
   function countTasksWithTag(host, tagId) {
     if (typeof host.storage.listByKey !== "function") return Promise.resolve(null);
-    return host.storage.listByKey(TASK_SCOPE, TASK_KEY, { limit: 1000 }).then(function (result) {
+    return host.storage.listByKey(TASK_SCOPE, TASK_KEY, { limit: TAG_SCAN_LIMIT }).then(function (result) {
+      // A page the host had to cap is not a count: reporting its length would
+      // promise a delete "from N cards" while more sit past the page, so the
+      // caller is told the truth -- the number is unknown.
+      if (result.truncated) return null;
       return result.entries.filter(function (entry) {
         return sanitizeTagIdList(entry.value).indexOf(tagId) !== -1;
       }).length;
     });
+  }
+
+  /**
+   * Counts the tasks the loaded shared catalog records as carrying `tagId`.
+   *
+   * The shared counterpart of countTasksWithTag, and deliberately synchronous:
+   * the payload is already in hand (the catalog and its applications arrive in
+   * one `shared-tags` response), so the delete confirmation needs no second
+   * round trip to say how many cards it is about to touch. The count is exact
+   * for what the backend records -- a task past its own cap is not represented
+   * there and not presented as a card either.
+   */
+  function countSharedTasksWithTag(sharedTags, tagId) {
+    var tasks = (sharedTags && sharedTags.tasks) || {};
+    return Object.keys(tasks).filter(function (taskId) {
+      return (tasks[taskId] || []).some(function (tag) {
+        return !!tag && tag.id === tagId;
+      });
+    }).length;
   }
 
   /**
@@ -1893,8 +2196,10 @@
    * one failure doesn't block the rest; returns how many succeeded/failed.
    */
   function cascadeRemoveTagFromTasks(host, tagId) {
-    if (typeof host.storage.listByKey !== "function") return Promise.resolve({ succeeded: 0, failed: 0 });
-    return host.storage.listByKey(TASK_SCOPE, TASK_KEY, { limit: 1000 }).then(function (result) {
+    if (typeof host.storage.listByKey !== "function") {
+      return Promise.resolve({ succeeded: 0, failed: 0, truncated: false });
+    }
+    return host.storage.listByKey(TASK_SCOPE, TASK_KEY, { limit: TAG_SCAN_LIMIT }).then(function (result) {
       var affected = result.entries.filter(function (entry) {
         return sanitizeTagIdList(entry.value).indexOf(tagId) !== -1;
       });
@@ -1914,7 +2219,7 @@
             },
           );
         });
-      }, Promise.resolve({ succeeded: 0, failed: 0 }));
+      }, Promise.resolve({ succeeded: 0, failed: 0, truncated: result.truncated === true }));
     });
   }
 
@@ -1922,7 +2227,25 @@
   // Delete-tag confirmation (nested modal, opened from the top-bar dropdown)
   // ---------------------------------------------------------------------
 
-  function makeDeleteTagConfirm(host, tag, workspaceId, onDeleted) {
+  /**
+   * The delete confirmation, shared by both host tiers. It is parameterized
+   * (`countTasks` and `remove`) rather than hard-wired to the private storage
+   * layer, because the *confirmation* is what the Tags box promises on every
+   * host: an action-capable host's cascade runs atomically on the backend, but
+   * that is a reason for the delete to need fewer round trips, not for a
+   * destructive, irreversible action to lose its "Remove "x" from N cards?"
+   * step.
+   *
+   * `countTasks` resolves to a number, or null when the number cannot be known
+   * (no scan available, or a scan the host had to cap). `remove` performs the
+   * removal and resolves to `{ succeeded, failed, truncated }` -- `truncated`
+   * meaning the removal could not see every card, which is reported instead of
+   * being passed off as a complete cascade. It may also reject, which surfaces
+   * as a retryable error.
+   */
+  function makeDeleteTagConfirm(options) {
+    var host = options.host;
+    var tag = options.tag;
     var React = host.React;
     var jsx = host.jsx;
     var ui = host.ui;
@@ -1939,27 +2262,53 @@
       var setBusy = busyState[1];
 
       React.useEffect(function () {
-        countTasksWithTag(host, tag.id).then(function (result) {
-          setCount(result === null ? "unknown" : result);
-        });
+        options
+          .countTasks()
+          .then(function (result) {
+            setCount(result === null ? "unknown" : result);
+          })
+          .catch(function (err) {
+            // A failed count must not strand the confirmation: Delete stays
+            // disabled while the count is still loading, and this modal has no
+            // cancel of its own, so a rejection without this arm would leave the
+            // person stuck on "Checking how many cards use ..." with no way
+            // forward. Unknown is the honest answer, and it is the same wording a
+            // host without a scan already produces.
+            logError("count cards for tag", err);
+            setCount("unknown");
+          });
       }, []);
 
       function handleConfirm() {
         setBusy(true);
-        cascadeRemoveTagFromTasks(host, tag.id)
+        options
+          .remove()
           .then(function (result) {
-            return readModifyWriteCatalog(host, workspaceId, MANAGER_WRITER_ID, function (current) {
-              return removeCatalogTag(current, tag.id);
-            }).then(function () {
-              if (result.failed > 0) {
-                setError(
-                  "Removed from " + result.succeeded + " card(s); " + result.failed + " card(s) failed to update.",
-                );
-                setBusy(false);
-                return;
-              }
-              onDeleted();
-            });
+            var remained = result.failed > 0;
+            // Built once and reported once: a cascade can both fail some cards and
+            // have been unable to see the rest (the scan stopped at
+            // TAG_SCAN_LIMIT entries), and two setError calls in one tick would
+            // leave the second -- the only one a person ever sees -- as a copy of
+            // the first with a clause appended.
+            var clauses = [];
+            if (remained) {
+              clauses.push(
+                "Removed from " + result.succeeded + " card(s); " + result.failed + " card(s) failed to update.",
+              );
+            }
+            if (result.truncated) {
+              clauses.push(
+                "This host's scan stops at " +
+                  TAG_SCAN_LIMIT +
+                  " entries, so cards beyond it may still reference the tag.",
+              );
+            }
+            if (clauses.length > 0) {
+              setError(clauses.join(" "));
+              setBusy(false);
+              return;
+            }
+            options.onDeleted();
           })
           .catch(function (err) {
             logError("delete tag", err);
@@ -2096,7 +2445,11 @@
             refreshSharedTags();
           }).catch(function (err) {
             logError("create shared tag", err);
-            setError(withDetail("Could not create tag. Please try again.", err));
+            setError(
+              isDuplicateNameError(err)
+                ? 'A tag named "' + draftName + '" already exists.'
+                : withDetail("Could not create tag. Please try again.", err),
+            );
           });
           return;
         }
@@ -2154,7 +2507,11 @@
           }).catch(function (err) {
             logError("rename shared tag", err);
             setRenamingId(null);
-            setError(withDetail("Could not rename tag. Please try again.", err));
+            setError(
+              isDuplicateNameError(err)
+                ? 'A tag named "' + normalized + '" already exists.'
+                : withDetail("Could not rename tag. Please try again.", err),
+            );
           });
           return;
         }
@@ -2237,19 +2594,56 @@
       }
 
       function openDeleteConfirm(tag) {
+        var modal;
         if (useShared) {
-          host.api.invokeAction("tag-delete", { workspaceId: resolvedWorkspaceId, body: { id: tag.id } }).then(refreshSharedTags).catch(function (err) {
-            logError("delete shared tag", err);
-            setError(withDetail("Could not delete tag. Please try again.", err));
+          modal = host.openModal({
+            title: "Delete tag",
+            size: "sm",
+            content: makeDeleteTagConfirm({
+              host: host,
+              tag: tag,
+              // Counted from the loaded shared payload, so the confirmation is
+              // immediate; the backend still cascades atomically on confirm.
+              countTasks: function () {
+                return Promise.resolve(countSharedTasksWithTag(sharedTags, tag.id));
+              },
+              remove: function () {
+                return host.api
+                  .invokeAction("tag-delete", { workspaceId: resolvedWorkspaceId, body: { id: tag.id } })
+                  .then(function () {
+                    refreshSharedTags();
+                    return { succeeded: 0, failed: 0, truncated: false };
+                  });
+              },
+              onDeleted: function () {
+                modal.close();
+              },
+            }),
           });
           return;
         }
-        var modal = host.openModal({
+        modal = host.openModal({
           title: "Delete tag",
           size: "sm",
-          content: makeDeleteTagConfirm(host, tag, resolvedWorkspaceId, function () {
-            refreshCatalog();
-            modal.close();
+          content: makeDeleteTagConfirm({
+            host: host,
+            tag: tag,
+            countTasks: function () {
+              return countTasksWithTag(host, tag.id);
+            },
+            remove: function () {
+              return cascadeRemoveTagFromTasks(host, tag.id).then(function (result) {
+                return readModifyWriteCatalog(host, resolvedWorkspaceId, MANAGER_WRITER_ID, function (current) {
+                  return removeCatalogTag(current, tag.id);
+                }).then(function () {
+                  refreshCatalog();
+                  return result;
+                });
+              });
+            },
+            onDeleted: function () {
+              modal.close();
+            },
           }),
         });
       }
@@ -2629,7 +3023,7 @@
         return;
       }
       if (!store.hasValue) return;
-      var payload = store.value || { tags: [], tasks: {} };
+      var payload = store.value || emptySharedValue();
       catalog = sanitizeCatalog(payload.tags);
       sharedTaskTagIds = {};
       Object.keys(payload.tasks || {}).forEach(function (taskId) {
@@ -2849,10 +3243,10 @@
       if (sharedTagsAvailable(host)) {
         var store = getSharedTagStore(currentWorkspaceId);
         if (!store.unavailable) {
-          var value = store.value || { tags: [], tasks: {} };
+          var value = store.value || emptySharedValue();
           var tasks = value.tasks || {};
           catalog = value.tags || [];
-          sharedTaskTags = {};
+          sharedTaskTags = newIdMap(); // keyed by task id: see newIdMap
           Object.keys(tasks).forEach(function (taskId) {
             sharedTaskTags[taskId] = sanitizeTagIdList(
               (tasks[taskId] || []).map(function (tag) {
@@ -2959,7 +3353,7 @@
     // A truncated result is still safe: entries we did receive are useful;
     // absent entries retain the explicit untagged/loading fallback above.
     if (typeof host.storage.listByKey === "function") {
-      host.storage.listByKey(TASK_SCOPE, TASK_KEY, { limit: 1000 }).then(
+      host.storage.listByKey(TASK_SCOPE, TASK_KEY, { limit: TAG_SCAN_LIMIT }).then(
         function (result) {
           (result.entries || []).forEach(function (entry) {
             setTaskTagCache(entry.scopeId, sanitizeTagIdList(entry.value));
@@ -3067,7 +3461,7 @@
       normalizeName: normalizeName,
       normalizeColor: normalizeColor,
       makeTagId: makeTagId,
-      nextPaletteColor: nextPaletteColor,
+      colorFromName: colorFromName,
       findTagByName: findTagByName,
       findTagById: findTagById,
       addCatalogTag: addCatalogTag,
@@ -3078,12 +3472,17 @@
       resolveTag: resolveTag,
       mergeTagRepresentations: mergeTagRepresentations,
       isConflictError: isConflictError,
+      isDuplicateNameError: isDuplicateNameError,
       logError: logError,
       resolveWorkspaceId: resolveWorkspaceId,
       setTaskTagCache: setTaskTagCache,
       readModifyWrite: readModifyWrite,
       sanitizeTagIdList: sanitizeTagIdList,
       sanitizeCatalog: sanitizeCatalog,
+      sanitizeSharedTags: sanitizeSharedTags,
+      TAG_SCAN_LIMIT: TAG_SCAN_LIMIT,
+      newIdMap: newIdMap,
+      emptySharedValue: emptySharedValue,
       renderableColor: renderableColor,
       chipStyle: chipStyle,
       denseChipStyle: denseChipStyle,
@@ -3106,6 +3505,7 @@
       makeDeleteTagConfirm: makeDeleteTagConfirm,
       detectHostCapabilities: detectHostCapabilities,
       countTasksWithTag: countTasksWithTag,
+      countSharedTasksWithTag: countSharedTasksWithTag,
       cascadeRemoveTagFromTasks: cascadeRemoveTagFromTasks,
       primeTaskTagCache: primeTaskTagCache,
       actionErrorStatus: actionErrorStatus,
