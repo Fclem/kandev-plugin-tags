@@ -3,7 +3,7 @@
 # the kandev monorepo for the full schema.
 id: "kandev-plugin-tags"
 api_version: 1
-version: "0.14.2"
+version: "0.16.0"
 # The card menu's plugin submenus (TaskMenuActionRegistration.items) landed in
 # kandev v0.96.0 (kdlbs/kandev#3874, merge f8708da1e0c6261d98229ca2cf1901eee9bfdf2a),
 # and the quick pick renders through them. A release build older than that
@@ -12,15 +12,15 @@ version: "0.14.2"
 # falls back to the flat menu entry described in the README.
 min_kandev_version: "0.96.0"
 display_name: "Tags"
-description: "Create and apply workspace-shared colored tags from the board or an agent. Humans manage every shared tag; agents manage only agent-created tags, which display a bot marker when applied. On compatible hosts, the Tags box uses a single-select board filter (All, one tag, or Untagged) and contributes page-local Tag Sort/Group options to /tasks; older hosts retain management and the existing filter fallback."
+description: "Create and apply workspace-shared colored tags from the board or an agent. Humans manage every shared tag; agents manage only agent-created tags, which display a bot marker when applied. A tag created without a color gets one derived from its name, which the plugin's settings can turn off. On compatible hosts, the Tags box uses a single-select board filter (All, one tag, or Untagged) and contributes page-local Tag Sort/Group options to /tasks; older hosts retain management and the existing filter fallback."
 author: "yattdev"
 repo_url: "https://github.com/yattdev/kandev-plugin-tags"
 categories: ["tools"]
 
 # runtime.executables maps each supported platform to the binary kandev
 # spawns as a gRPC subprocess. `make package` cross-compiles all five;
-# `make package-host` builds just the current one. This plugin's backend is a
-# backend serves the workspace-shared tag catalog and its task applications.
+# `make package-host` builds just the current one. This plugin's backend serves
+# the workspace-shared tag catalog and its task applications.
 runtime:
   type: binary
   executables:
@@ -29,6 +29,32 @@ runtime:
     darwin-amd64: "server/plugin-darwin-amd64"
     darwin-arm64: "server/plugin-darwin-arm64"
     windows-amd64: "server/plugin-windows-amd64.exe"
+
+# Operator-editable settings, rendered by kandev at Settings > Plugins > Tags
+# and read by the plugin with Host.GetConfig (ungated). The backend serves only
+# saved values -- it does not seed a schema default -- so the plugin resolves an
+# absent key itself (tagColorAutoEnabled in server/agent_tags.go, default on).
+# The web settings form DOES seed the control from `default`
+# (apps/web/lib/plugins/config-schema.ts buildInitialValues: an unset boolean
+# falls back to the property's default, else false), so `default: true` here is
+# what makes an untouched Switch read as on instead of showing an off toggle
+# while the plugin derives colors anyway.
+config_schema:
+  type: object
+  properties:
+    auto_color:
+      type: boolean
+      title: "Generate a color for new tags"
+      description: >-
+        On: a tag created without an explicit color gets the color derived from
+        its name, so every tag of a given name starts the same color (renames
+        keep it). Off: a new tag starts in the neutral gray and its color is
+        picked in the Tags box. Existing
+        tags are never recolored by this setting. The plugin's backend applies
+        this; on a host old enough to predate plugin actions the browser half
+        creates tags instead and cannot read this setting, so such a host always
+        derives a color.
+      default: true
 
 # user_state remains enabled to render a user's pre-0.8 legacy tags without
 # data loss. New tags use the workspace state/actions declared below.
@@ -70,6 +96,13 @@ agent_tools:
           maxLength: 22
         color:
           type: string
+          pattern: "^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$"
+          description: >-
+            Hex color, exactly #rgb or #rrggbb (no surrounding whitespace).
+            Omit it to get the color derived from the tag name -- the same
+            deterministic color a person creating that name from the board gets
+            -- unless the operator turned name-derived colors off, in which case
+            an omitted color means the neutral gray.
     annotations:
       read_only_hint: false
       destructive_hint: false
@@ -87,8 +120,17 @@ agent_tools:
         name:
           type: string
           maxLength: 22
+          description: >-
+            New name for the tag. Omit the field to leave the name as it is; an
+            explicitly empty value is refused, because an agent that sends one
+            means to change something.
         color:
           type: string
+          pattern: "^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$"
+          description: >-
+            New hex color for the tag, exactly #rgb or #rrggbb. Omit the field
+            to leave the color as it is; an explicitly empty value is refused,
+            because an agent that sends one means to change something.
     annotations:
       read_only_hint: false
       destructive_hint: false
@@ -184,8 +226,12 @@ agent_tools:
 # (a fixed-width delete column regardless of tag name length) with a
 # swatch-button color picker -- palette/hex swatches, a live preview, and
 # explicit Update/Cancel commit buttons, so a color never applies until you
-# choose to commit it. The Tags box's filter/manage behavior depends on
-# what the host supports (detectHostCapabilities in ui/bundle.js):
+# choose to commit it. New tags created without a color store the one derived
+# from their name (autoTagColor in server/agent_tags.go, mirrored by
+# colorFromName in ui/bundle.js for hosts that predate plugin actions) unless
+# the operator turns that off with the auto_color setting above. The Tags
+# box's filter/manage behavior depends on what the host supports
+# (detectHostCapabilities in ui/bundle.js):
 #   - host predates registerTaskFilter: manage-only (rename/recolor/delete;
 #     no filtering is possible on this host at all).
 #   - host has registerTaskFilter but not host.taskFilters/listByKey: the

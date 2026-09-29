@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/kandev/kandev/pkg/pluginsdk"
@@ -15,6 +16,38 @@ func jsonAction(value any) (*pluginsdk.PluginActionResponse, error) {
 	}
 	return &pluginsdk.PluginActionResponse{Body: body, Headers: map[string]string{"Content-Type": "application/json"}}, nil
 }
+
+// actionError maps a mutation failure to the response the browser should see.
+//
+// A duplicate name is a domain conflict the person has to be able to tell apart
+// from a transient failure -- the board's own duplicate check folds case
+// differently from the backend, so it cannot predict every refusal -- and the
+// host reports a Go error from a browser action only as a generic 503
+// (internal/plugins/action_handlers.go logs the message instead of relaying
+// it). Answering with a status and body the host passes through verbatim is
+// therefore the only way that message reaches the UI, which is also why the
+// status comes from the SDK's own category projection rather than a literal:
+// "conflict" maps to 409 there, and the bundle treats only null/502/503/504 as
+// retryable, so the refusal is never auto-retried.
+//
+// Every other failure keeps the previous behaviour (a transport-level error the
+// host surfaces as 503), which the UI already reports as retryable.
+func actionError(err error) (*pluginsdk.PluginActionResponse, error) {
+	var duplicate duplicateTagNameError
+	if !errors.As(err, &duplicate) {
+		return nil, err
+	}
+	body, marshalErr := json.Marshal(map[string]string{"error": err.Error()})
+	if marshalErr != nil {
+		return nil, marshalErr
+	}
+	return &pluginsdk.PluginActionResponse{
+		Status:  pluginsdk.ActionErrorHTTPStatus(pluginsdk.ActionErrorConflict),
+		Body:    body,
+		Headers: map[string]string{"Content-Type": "application/json"},
+	}, nil
+}
+
 func requireActionWorkspace(req *pluginsdk.PluginActionRequest) error {
 	if req.Context.WorkspaceID == "" {
 		return fmt.Errorf("workspace_id is required")
@@ -39,6 +72,18 @@ func decodeAction(req *pluginsdk.PluginActionRequest, target any) error {
 	}
 	return nil
 }
+
+// workspaceView is the response of shared-tags, tag-create, tag-update and
+// tag-delete. The host rejects an action response above its own byte cap
+// (maxPluginActionResponseBytes, 1 MiB in kandev) with a 502, and the UI
+// classifies a 502 as retryable -- so an over-cap payload stops that workspace's
+// catalog from loading at all and retries forever, which is worse than a partial
+// one. Nothing here bounds the size: tagTaskCap caps task *keys* at 200, entries
+// per task are uncapped, and each note may be 200 runes of up to four bytes, so
+// an extreme agent-written board can cross the cap. Deliberately left as a known
+// risk rather than "fixed" here: shrinking the payload means choosing what to
+// drop (notes, task keys, or a paginated read), which changes the contract for
+// every surface instead of hardening one.
 func workspaceView(doc tagDoc) map[string]any {
 	tasks := map[string]any{}
 	for taskID, entries := range doc.Tasks {
@@ -78,13 +123,13 @@ func (p *tagsPlugin) HandleAction(ctx context.Context, req *pluginsdk.PluginActi
 		if err != nil {
 			return nil, err
 		}
-		color, err := normalizeTagColor(body.Color)
+		color, err := p.newTagColor(ctx, name, body.Color)
 		if err != nil {
 			return nil, err
 		}
 		doc, err := p.mutateTagDoc(ctx, req.Context.WorkspaceID, func(doc *tagDoc) error {
 			if hasTagName(doc.Tags, name, "") {
-				return fmt.Errorf("a tag named %q already exists", name)
+				return duplicateTagNameError{name: name}
 			}
 			id, err := newTagID()
 			if err != nil {
@@ -95,7 +140,7 @@ func (p *tagsPlugin) HandleAction(ctx context.Context, req *pluginsdk.PluginActi
 			return nil
 		})
 		if err != nil {
-			return nil, err
+			return actionError(err)
 		}
 		return jsonAction(workspaceView(doc))
 	case "tag-update":
@@ -128,7 +173,7 @@ func (p *tagsPlugin) HandleAction(ctx context.Context, req *pluginsdk.PluginActi
 					return err
 				}
 				if hasTagName(doc.Tags, name, body.ID) {
-					return fmt.Errorf("a tag named %q already exists", name)
+					return duplicateTagNameError{name: name}
 				}
 				tag.Name = name
 			}
@@ -143,7 +188,7 @@ func (p *tagsPlugin) HandleAction(ctx context.Context, req *pluginsdk.PluginActi
 			return nil
 		})
 		if err != nil {
-			return nil, err
+			return actionError(err)
 		}
 		return jsonAction(workspaceView(doc))
 	case "tag-delete":

@@ -1,0 +1,63 @@
+{
+  "_comment": [
+    "Shared contract for the auto-generated tag color (the ticket's 'color from a",
+    "hash of the tag content') and for the characters both backends strip from",
+    "user-supplied text. server/agent_tags.go (autoTagColor, stripFromEdges) and",
+    "ui/bundle.js (colorFromName, EDGE_TRIM_RE) must agree exactly, so both test",
+    "suites read this file: each asserts every expectation against its own",
+    "implementation. Expected colors were computed from a third, independent",
+    "FNV-1a implementation, and the trim list from the ECMAScript WhiteSpace +",
+    "LineTerminator set -- neither from either subject under test."
+  ],
+  "palette": ["#b45309", "#c2410c", "#b91c1c", "#be185d", "#a21caf", "#6d28d9", "#4338ca", "#1d4ed8", "#0369a1", "#0e7490", "#0f766e", "#15803d", "#4d7c0f", "#475569"],
+  "neutral": "#6b7280",
+  "_trim_comment": [
+    "Every code point stripped from both ends of a tag name or a color string, as",
+    "lowercase hex without the u+ prefix. Both implementations enumerate this set",
+    "explicitly rather than delegating to their language's trim (Go's",
+    "unicode.IsSpace differs by U+0085; a future Unicode revision could widen",
+    "JavaScript's Zs), so the list itself is the contract: each suite sweeps the",
+    "whole code-point range and compares the set it actually strips against this",
+    "one, in both directions."
+  ],
+  "trim": [
+    "0009",
+    "000a",
+    "000b",
+    "000c",
+    "000d",
+    "0020",
+    "00a0",
+    "1680",
+    "2000",
+    "2001",
+    "2002",
+    "2003",
+    "2004",
+    "2005",
+    "2006",
+    "2007",
+    "2008",
+    "2009",
+    "200a",
+    "2028",
+    "2029",
+    "202f",
+    "205f",
+    "3000",
+    "feff"
+  ],
+  "names": [
+    { "name": "bug", "color": "#15803d" },
+    { "name": "Bug", "color": "#0e7490" },
+    { "name": "urgent", "color": "#4d7c0f" },
+    { "name": "waiting on design", "color": "#be185d" },
+    { "name": "agent:blocked", "color": "#a21caf" },
+    { "name": "déjà vu", "color": "#1d4ed8" },
+    { "name": "界", "color": "#6d28d9" },
+    { "name": "🚀 launch", "color": "#0e7490" },
+    { "name": "tag-42", "color": "#0f766e" },
+    { "name": "aaaaaaaaaaaaaaaaaaaaaa", "color": "#15803d" },
+    { "name": "", "color": "#0e7490" }
+  ]
+}

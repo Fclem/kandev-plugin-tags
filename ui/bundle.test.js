@@ -361,20 +361,14 @@ test("contrastRatio of white vs black is 21, and a colour against itself is 1", 
   assert.equal(contrastRatio("#6b7280", "#6b7280"), 1);
 });
 
-test("chipTextColor picks dark text for pale/low-contrast backgrounds, white otherwise", () => {
-  const { chipTextColor } = loadBundle().__internal;
-  // Yellow, green, orange: unreadable in white today (report's D2 table).
-  assert.equal(chipTextColor("#eab308"), "#111827");
-  assert.equal(chipTextColor("#22c55e"), "#111827");
-  assert.equal(chipTextColor("#f97316"), "#111827");
-  // The pale colour named in the report.
+test("chipTextColor selects readable text for nuanced palette and pale custom colors", () => {
+  const { chipTextColor, PALETTE, DEFAULT_COLOR } = loadBundle().__internal;
+  assert.ok(PALETTE.length >= 12, "the generated palette should offer nuanced hue choices");
+  for (const color of PALETTE) {
+    assert.equal(chipTextColor(color), "#ffffff", `${color} should use white text`);
+  }
+  assert.equal(chipTextColor(DEFAULT_COLOR), "#ffffff");
   assert.equal(chipTextColor("#ffffe0"), "#111827");
-  // The remaining palette entries plus DEFAULT_COLOR stay white.
-  assert.equal(chipTextColor("#ef4444"), "#ffffff");
-  assert.equal(chipTextColor("#3b82f6"), "#ffffff");
-  assert.equal(chipTextColor("#a855f7"), "#ffffff");
-  assert.equal(chipTextColor("#ec4899"), "#ffffff");
-  assert.equal(chipTextColor("#6b7280"), "#ffffff");
 });
 
 test("every PALETTE colour plus DEFAULT_COLOR clears the contrast floor on both chip surfaces", () => {
@@ -570,11 +564,260 @@ test("makeTagId returns a unique-looking string id each call", () => {
   assert.match(a, /^tag-/);
 });
 
-test("nextPaletteColor cycles through PALETTE by catalog length", () => {
-  const { nextPaletteColor, PALETTE } = loadBundle().__internal;
-  assert.equal(nextPaletteColor([]), PALETTE[0]);
-  assert.equal(nextPaletteColor(new Array(1)), PALETTE[1]);
-  assert.equal(nextPaletteColor(new Array(PALETTE.length)), PALETTE[0]);
+// The color of a name is a cross-language contract, not an implementation
+// detail: a tag created in the Tags box and the same name created by an agent
+// through create_tag have to come out identical. This file and
+// server/agent_tags_test.go assert the *same* pairs from
+// testdata/tag-colors.json, so changing one hash alone fails one suite or the
+// other. The names cover 1-, 2-, 3- and 4-byte UTF-8 sequences, the
+// 22-character cap, a pair that deliberately collides, and the empty string;
+// lone surrogates are not among them, because a JSON fixture cannot carry one
+// honestly -- they are pinned by the dedicated cases below (colorFromName's
+// U+FFFD convention, normalizeName's fold, and the Go wire test).
+const tagColorFixture = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "..", "testdata", "tag-colors.json"), "utf8"),
+);
+
+test("colorFromName matches the shared fixture both backends derive colors from", () => {
+  const { colorFromName } = loadBundle().__internal;
+  // A count floor, because a pair silently dropped from the fixture leaves the
+  // loop below green: this list is the only thing pinning the JS hash (the Go
+  // suite has its own require.NotEmpty, and this is a little tighter).
+  assert.ok(tagColorFixture.names.length >= 11, "the fixture must keep the whole name/color table");
+  tagColorFixture.names.forEach(({ name, color }) => {
+    assert.equal(colorFromName(name), color, `colorFromName(${JSON.stringify(name)})`);
+  });
+});
+
+test("sanitizeCatalog drops a definition whose id nothing could reference", () => {
+  // sanitizeTagIdList -- the rule every reader applies to a card's ids -- keeps
+  // only non-empty strings, and every write path refuses "", so a catalog entry
+  // with an empty id is a row that can never be applied.
+  const { sanitizeCatalog, sanitizeTagIdList } = loadBundle().__internal;
+  const catalog = sanitizeCatalog([
+    { id: "", name: "ghost", color: "#ffffff" },
+    { id: "t1", name: "bug", color: "#ef4444" },
+    { id: 42, name: "numeric", color: "#ffffff" },
+    { id: "t2", name: "no-color" },
+  ]);
+  assertStructural.deepEqual(catalog.map((t) => t.id), ["t1"]);
+  assertStructural.deepEqual(sanitizeTagIdList(["", "t1", 42, null]), ["t1"], "the same rule, on ids");
+});
+
+test("the palette and the neutral default match the shared fixture", () => {
+  // Every expected color above is a palette entry at a hash-chosen index, so a
+  // reorder here (or in the Go palette) silently shifts all of them; the
+  // neutral default is the other duplicated value, deciding what an
+  // auto_color-off tag -- and any tag on a host predating plugin actions --
+  // renders as. Both are pinned to the fixture rather than left to drift.
+  const { PALETTE, DEFAULT_COLOR } = loadBundle().__internal;
+  assertStructural.deepEqual(tagColorFixture.palette, PALETTE);
+  assert.equal(tagColorFixture.neutral, DEFAULT_COLOR);
+});
+
+test("colorFromName is derived from the name alone, not from catalog position", () => {
+  const { colorFromName, addCatalogTag } = loadBundle().__internal;
+  // The bug this replaces: colors came from `PALETTE[catalog.length %
+  // PALETTE.length]`, so creating or deleting any *other* tag recolored an
+  // existing one. The same name must now resolve identically in any catalog.
+  assert.equal(colorFromName("urgent"), colorFromName("urgent"));
+  assert.notEqual(colorFromName("bug"), colorFromName("Bug"), "the hash is case-sensitive, as the name is stored");
+  const first = addCatalogTag([], "urgent", null).tag.color;
+  const afterOthers = addCatalogTag(
+    [
+      { id: "t1", name: "bug", color: "#ef4444" },
+      { id: "t2", name: "docs", color: "#22c55e" },
+    ],
+    "urgent",
+    null,
+  ).tag.color;
+  assert.equal(afterOthers, first, "another tag's presence does not change the derived color");
+});
+
+test("colorFromName encodes a lone surrogate as U+FFFD, the way Go's JSON decoder already stored it", () => {
+  const { colorFromName } = loadBundle().__internal;
+  // Go's json.Unmarshal replaces an unpaired surrogate escape with U+FFFD
+  // before the server hashes the name; the UI has to encode the same bytes or
+  // the two would disagree for such a name.
+  assert.equal(colorFromName("\ud800"), colorFromName("\ufffd"));
+  assert.equal(colorFromName("a\ud800b"), colorFromName("a\ufffdb"));
+  assert.notEqual(colorFromName("\ud83d\ude80"), colorFromName("\ufffd\ufffd"), "a paired surrogate is a real 4-byte emoji");
+});
+
+test("normalizeName and normalizeColor strip exactly the fixture's shared trim set", () => {
+  // The two sides decide what a stored name is, and the create-and-apply flow
+  // looks the created tag up by the *client's* normalization -- so a character
+  // only one side strips turns into "tag not found after create", with the tag
+  // already in the catalog. Neither side delegates to its language's trim: both
+  // enumerate the set explicitly (Go's unicode.IsSpace differs by U+0085, and a
+  // future Unicode revision could widen JS's Zs), so the fixture list IS the
+  // contract. The sweep below compares the set this side actually strips against
+  // it in BOTH directions, and against the engine's own trim() as a reminder of
+  // what the list was frozen from.
+  const { normalizeName, normalizeColor } = loadBundle().__internal;
+  const want = new Set(tagColorFixture.trim);
+  assert.equal(want.size, tagColorFixture.trim.length, "the fixture lists no duplicate code point");
+  assert.equal(want.size, 25);
+
+  // Every fixture entry is stripped -- from both ends, and this side of the
+  // comparison covers any plane, so an astral entry added later is still
+  // checked too. Both ends matter: EDGE_TRIM_RE is two alternatives, and a
+  // single-character probe satisfies either one, so dropping a code point from
+  // the leading half alone used to leave this suite green.
+  tagColorFixture.trim.forEach((hex) => {
+    const ch = String.fromCodePoint(parseInt(hex, 16));
+    assert.equal(normalizeName(ch + "bug"), "bug", "u+" + hex + " must be stripped from the front");
+    assert.equal(normalizeName("bug" + ch), "bug", "u+" + hex + " must be stripped from the back");
+    assert.equal(normalizeName(ch + ch + "bug" + ch + ch), "bug", "u+" + hex + " must be stripped from both ends");
+    assert.equal(normalizeName(ch), null, "u+" + hex + " alone is not a name");
+  });
+
+  // Nothing else is: sweep the BMP, which is where every code point in the
+  // fixture lives, since none of them is astral (the explicit list has no
+  // astral range at all, and the probes below guard the obvious way to add one).
+  const mismatches = [];
+  let stripped = 0;
+  for (let cp = 0; cp <= 0xffff; cp++) {
+    if (cp >= 0xd800 && cp <= 0xdfff) continue; // lone surrogates: no glyph, never whitespace
+    const ch = String.fromCodePoint(cp);
+    const hex = cp.toString(16).padStart(4, "0");
+    const ours = normalizeName(ch) === null; // our explicit set stripped it to nothing
+    if (ours !== want.has(hex)) mismatches.push(hex);
+    if (ours !== (ch.trim() === "")) mismatches.push(hex + " (native trim)");
+    if (ours) stripped += 1;
+  }
+  // A mismatch tagged "(native trim)" means the ENGINE's own set moved away from
+  // the frozen list (this arm is the reminder of what the list was copied from);
+  // an untagged one means this implementation disagrees with the fixture. The
+  // first is a signal to revisit the fixture deliberately, not a claim that the
+  // implementation is wrong.
+  assertStructural.deepEqual(mismatches, []);
+  assert.equal(stripped, want.size, "every code point in the fixture is actually stripped");
+  [0x10000, 0x1d400, 0x1f300, 0x20000, 0x10ffff].forEach((cp) => {
+    assert.notEqual(normalizeName(String.fromCodePoint(cp)), null, "u+" + cp.toString(16) + " is not whitespace");
+  });
+
+  // The two characters the backend's old strings.TrimSpace disagreed on.
+  assert.equal(normalizeName("\ufeffbug"), "bug", "U+FEFF (a BOM pasted from a spreadsheet) is trimmed");
+  assert.equal(normalizeName("bug\ufeff"), "bug");
+  assert.equal(normalizeName("bug\u0085"), "bug\u0085", "U+0085 is NOT whitespace in JavaScript");
+  assert.equal(normalizeName("\u00a0bug\u3000"), "bug", "NBSP and ideographic space are trimmed by both sides");
+
+  // An unpaired surrogate folds to U+FFFD, which is what the backend stores for
+  // it (Go's JSON decoder substitutes before normalizeTagName runs), so the
+  // create-and-apply lookup compares against the name the server actually wrote
+  // instead of a string it can never equal.
+  assert.equal(normalizeName("\ud800"), "\ufffd");
+  assert.equal(normalizeName("a\ud800b"), "a\ufffdb");
+  assert.equal(normalizeName("a\udc00b"), "a\ufffdb", "a lone low surrogate folds the same way");
+  assert.equal(normalizeName("\ud83d\ude80"), "\ud83d\ude80", "a paired surrogate is a real astral character");
+
+  // Colors use the same set, so a stray BOM behaves identically on both sides:
+  // accepted in front of a hex value, and "no color supplied" when it is all
+  // there is (the backend derives then, exactly as addCatalogTag falls back).
+  assert.equal(normalizeColor("\ufeff#AbCdEf"), "#abcdef");
+  assert.equal(normalizeColor("\ufeff"), null);
+  assert.equal(normalizeColor("  "), null);
+});
+
+test("findTagByName approximates the backend's case folding, and the pairs where it cannot", () => {
+  const { findTagByName, addCatalogTag } = loadBundle().__internal;
+  // The backend compares names with Go's strings.EqualFold (Unicode simple case
+  // folding); this side lowers. For the characters whose folding is not their
+  // lowercase form the two disagree, and the local check therefore allows a name
+  // the server refuses as a duplicate -- which is why the create/rename failure
+  // path reports the server's "already exists" instead of asking for a retry.
+  // The Go side pins its half of this in TestHasTagNameUsesSimpleCaseFolding.
+  const catalog = [{ id: "t1", name: "\u03a3", color: "#ef4444" }]; // Σ
+  assert.equal(findTagByName(catalog, "\u03c3"), catalog[0], "Σ/σ: both rules agree");
+  assert.equal(findTagByName(catalog, "\u03c2"), null, "Σ/ς: JS lowering does not fold final sigma");
+  assert.equal(findTagByName(catalog, "\u017f"), null, "long s does not fold to 's' here");
+  assert.equal(findTagByName(catalog, "k"), null);
+  // U+212A KELVIN SIGN lowercases to "k" here and folds to it in Go: an
+  // agreeing pair, which is why only some characters diverge.
+  const kelvin = [{ id: "t2", name: "\u212a", color: "#ef4444" }];
+  assert.equal(findTagByName(kelvin, "k"), kelvin[0]);
+  // The consequence, stated once: the local check can admit a name that goes on
+  // to be refused remotely, and nothing is stored locally either way.
+  assert.ok(addCatalogTag(catalog, "\u03c2", null), "the local check is satisfied");
+});
+
+test("sanitizeSharedTags drops a task entry that is not an array", () => {
+  // Five call sites iterate a task's entries, and the delete count runs inside
+  // the confirmation's effect -- the one place that cannot catch its way out --
+  // so a malformed entry has to be normalized away at the boundary, not guarded
+  // five times.
+  const { sanitizeSharedTags, countSharedTasksWithTag } = loadBundle().__internal;
+  const payload = sanitizeSharedTags({
+    tags: [{ id: "t1", name: "bug", color: "#ef4444" }],
+    tasks: {
+      "task-1": [{ id: "t1" }],
+      "task-2": "not-an-array",
+      "task-3": null,
+      "task-4": { id: "t1" },
+      "task-5": [null],
+      "task-6": [1, "x"],
+      "task-7": [null, { id: "t1" }], // one usable entry survives, the null does not
+      "task-8": [{ name: "no-id" }], // the chips would render a phantom chip for this...
+      "task-9": [{ id: 42, name: "numeric-id" }],
+      "task-10": [{ id: "t1" }, { name: "no-id" }], // ...while the facet dropped the task
+      "task-11": [{ id: "" }], // an empty id is unusable, and sanitizeTagIdList drops it too
+    },
+  });
+  assertStructural.deepEqual(
+    Object.keys(payload.tasks),
+    ["task-1", "task-7", "task-10"],
+    "only well-formed entries survive",
+  );
+  assertStructural.deepEqual(payload.tasks["task-7"], [{ id: "t1" }], "and only their well-formed elements");
+  assertStructural.deepEqual(payload.tasks["task-10"], [{ id: "t1" }], "an entry without a string id is dropped");
+  assert.equal(sanitizeSharedTags(null).tasks && Object.keys(sanitizeSharedTags(null).tasks).length, 0);
+  assert.equal(countSharedTasksWithTag(payload, "t1"), 3, "and the count degrades instead of throwing");
+
+});
+
+test("a task id that collides with an Object prototype key survives sanitization", () => {
+  // Task ids are opaque and agent-supplied -- the backend accepts arbitrary ids,
+  // including one that names an Object prototype member -- so on an ordinary
+  // object `tasks["__proto__"] = entries` would set the map's *prototype* instead
+  // of storing the task, and the UI would show that card as untagged.
+  const { sanitizeSharedTags, countSharedTasksWithTag } = loadBundle().__internal;
+  const payload = JSON.parse(
+    '{"tags":[{"id":"t1","name":"bug","color":"#ef4444"}],' +
+      '"tasks":{"__proto__":[{"id":"t1"}],"normal":[{"id":"t1"}],"constructor":[{"id":"t1"}]}}',
+  );
+  const sanitized = sanitizeSharedTags(payload);
+  assertStructural.deepEqual(Object.keys(sanitized.tasks).sort(), ["__proto__", "constructor", "normal"]);
+  assert.equal(Object.getPrototypeOf(sanitized.tasks), null, "the map absorbs prototype-named keys as data");
+  assert.equal(sanitized.tasks["__proto__"].length, 1, "and that task's entries are readable");
+  assert.equal(countSharedTasksWithTag(sanitized, "t1"), 3, "all three cards count");
+});
+
+test("isDuplicateNameError recognises the backend's refusal and nothing else", () => {
+  const { isDuplicateNameError } = loadBundle().__internal;
+  assert.equal(isDuplicateNameError(apiError(400, 'a tag named "\u03c2" already exists')), true);
+  assert.equal(isDuplicateNameError(apiError(400, "bad request", { error: 'a tag named "x" already exists' })), true);
+  assert.equal(isDuplicateNameError(apiError(400, "color must be a 3- or 6-digit hex value")), false);
+  assert.equal(isDuplicateNameError(apiError(503, "plugin is not active")), false);
+  assert.equal(isDuplicateNameError(new Error("network down")), false);
+  assert.equal(isDuplicateNameError(null), false);
+});
+
+test("the duplicate checks normalize the existing name too, not just the candidate", () => {
+  // sanitizeCatalog checks a tag's shape, not its spelling, so private or
+  // imported storage can hold a padded name. It still has to block its own
+  // normalized duplicate, or the board grows two tags whose names collide the
+  // moment the backend normalizes them.
+  const { findTagByName, addCatalogTag, updateCatalogTag } = loadBundle().__internal;
+  const catalog = [{ id: "t1", name: " urgent ", color: "#fff" }];
+  assert.equal(findTagByName(catalog, "urgent"), catalog[0]);
+  assert.equal(findTagByName(catalog, "  urgent  "), catalog[0]);
+  assert.equal(addCatalogTag(catalog, "urgent", null), null, "no second tag for the same normalized name");
+
+  const two = [{ id: "t1", name: " urgent ", color: "#fff" }, { id: "t2", name: "bug", color: "#000" }];
+  assert.equal(updateCatalogTag(two, "t2", { name: "URGENT" }), two, "a normalized duplicate rename stays a no-op");
+  assert.equal(updateCatalogTag(two, "t1", { name: "  urgent  " })[0].name, "urgent", "and a tag may still rename to its own name");
+  assert.equal(findTagByName(catalog, "   "), null, "a name that normalizes to nothing matches nothing");
 });
 
 test("findTagByName / findTagById are case-insensitive-by-name and exact-by-id", () => {
@@ -587,14 +830,31 @@ test("findTagByName / findTagById are case-insensitive-by-name and exact-by-id",
   assert.equal(findTagById(catalog, "missing"), null);
 });
 
-test("addCatalogTag creates a new tag with a default palette color", () => {
-  const { addCatalogTag, PALETTE } = loadBundle().__internal;
+test("addCatalogTag creates a new tag with the color derived from its name", () => {
+  const { addCatalogTag, colorFromName } = loadBundle().__internal;
   const result = addCatalogTag([], "urgent", null);
   assert.ok(result);
   assert.equal(result.catalog.length, 1);
   assert.equal(result.tag.name, "urgent");
-  assert.equal(result.tag.color, PALETTE[0]);
+  assert.equal(result.tag.color, colorFromName("urgent"));
   assert.ok(result.tag.id);
+});
+
+test("addCatalogTag falls back to the derived color for a missing or invalid one", () => {
+  const { addCatalogTag, colorFromName } = loadBundle().__internal;
+  assert.equal(addCatalogTag([], "urgent", undefined).tag.color, colorFromName("urgent"));
+  assert.equal(addCatalogTag([], "urgent", "").tag.color, colorFromName("urgent"));
+  assert.equal(addCatalogTag([], "urgent", "not-a-color").tag.color, colorFromName("urgent"));
+
+  // Callers hand in the raw draft (the picker modal and the Tags box both do),
+  // so the fallback has to hash what will be stored -- the normalized name -- or
+  // one visible name would get a different color from the board than from the
+  // backend, which hashes its own normalized name. This layer derives even when
+  // the operator set auto_color off: it only runs on hosts without plugin
+  // actions, where no channel exposes the setting (see addCatalogTag's note).
+  const padded = addCatalogTag([], "  urgent  ", null);
+  assert.equal(padded.tag.name, "urgent");
+  assert.equal(padded.tag.color, colorFromName("urgent"));
 });
 
 test("addCatalogTag honors an explicit valid hex color", () => {
@@ -909,6 +1169,77 @@ function makeMinimalHost(overrides) {
     overrides,
   );
 }
+
+test("a prototype-named id never reaches the bundle realm's Object.prototype", async () => {
+  // loadBundle evaluates the bundle with vm.runInNewContext, so it owns its own
+  // Object.prototype: a literal written in this file can never observe pollution
+  // there, and an assertion on it would be inert. The probe therefore has to be an
+  // object the bundle itself built (resolveTag returns one).
+  const plugin = loadBundle();
+  const { resolveTag } = plugin.__internal;
+  const probe = () => resolveTag([], "probe");
+  // Self-check that the probe can fail for the reason this test names: write a
+  // marker through its own prototype chain, observe it, remove it. (A literal from
+  // this file could never see the bundle realm's prototype, which is how the
+  // earlier version of this test managed to be inert.)
+  const realmProto = Object.getPrototypeOf(probe());
+  assert.notEqual(realmProto, null, "the probe inherits from the bundle realm's Object.prototype");
+  realmProto.__loopProbe = 1;
+  assert.equal(probe().__loopProbe, 1, "and it observes that prototype");
+  delete realmProto.__loopProbe;
+  assert.equal(probe().__loopProbe, undefined, "cleaned up");
+  assert.equal(probe().value, undefined, "and starts clean");
+
+  const payload = JSON.parse(
+    '{"tags":[{"id":"t1","name":"bug","color":"#ef4444"}],' +
+      '"tasks":{"__proto__":[{"id":"t1"}],"normal":[{"id":"t1"}]}}',
+  );
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }), subscribe: () => () => {} };
+  fakeHost.storage = {
+    get: () => Promise.resolve({ value: [], updatedAt: "t0" }),
+    subscribe: () => () => {},
+    listByKey: () => Promise.resolve({ entries: [], truncated: false }),
+  };
+  fakeHost.api = { invokeAction: () => Promise.resolve(payload) };
+  let TaskCardTags = null;
+  const registry = {
+    registerComponent(slot, Component) {
+      if (slot === "task-card-tags") TaskCardTags = Component;
+    },
+    registerTaskMenuAction() {},
+    registerTaskFilter() {},
+  };
+
+  // (a) initialize adopts the payload, which clears the task-tag map and then
+  // primes it with the payload's ids -- including "__proto__".
+  plugin.initialize(registry, fakeHost);
+  for (let i = 0; i < 8; i++) await flush();
+  assert.equal(probe().value, undefined, "the task-tag prime did not land on the realm prototype");
+  assert.equal(probe().loaded, undefined);
+  assert.equal(probe().error, undefined);
+
+  // (b) destroy (which resets those maps) and re-enable with a workspace id of
+  // "__proto__": that exercises getSharedTagStore/catalogStores through the reset
+  // sites, which is where the invariant was lost the first time.
+  plugin.destroy();
+  await flush();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "__proto__" } }), subscribe: () => () => {} };
+  plugin.initialize(registry, fakeHost);
+  for (let i = 0; i < 8; i++) await flush();
+  // Mounting a chip row is what creates the workspace-keyed catalog store, so it
+  // is the step that exercises catalogStores through the reset.
+  assert.ok(TaskCardTags, "the chip component registered");
+  fakeHost.mount(TaskCardTags, { slotProps: { taskId: "task-1", workspaceId: "__proto__" } });
+  for (let i = 0; i < 8; i++) await flush();
+  assert.equal(probe().value, undefined, "a prototype-named workspace id did not pollute either");
+  assert.equal(probe().tags, undefined);
+  assert.equal(probe().loaded, undefined);
+
+  // And the empty store value the fetch paths fall back to is keyed by task id too.
+  assert.equal(Object.getPrototypeOf(plugin.__internal.newIdMap()), null, "every id map is prototype-free");
+  assert.equal(Object.getPrototypeOf(plugin.__internal.emptySharedValue().tasks), null, "including the empty shared value");
+});
 
 test("bundle registers the task-card-tags slot, the main-top-bar button, and the add-tag menu action", () => {
   const registered = { components: [], menuActions: [] };
@@ -3680,6 +4011,79 @@ test("makeFakeReactHost re-runs changed dependency effects and cleans up", () =>
   assertStructural.deepEqual(events, ["run:one", "cleanup:one", "run:two"]);
 });
 
+test("shared-tags: a definitive failure cancels the retry an earlier outage armed", async () => {
+  // A 503 arms the retry timer. A later *definitive* failure (a refusal, not a
+  // transport blip and not "this host has no such action") has to drop it: the
+  // armed timer would otherwise fire the action the host just rejected for good,
+  // and the spent retry budget would be missing for the next real outage.
+  let focusListener;
+  const timers = new Map();
+  const cleared = [];
+  let nextTimerId = 1;
+  const { console: fakeConsole, calls: logCalls } = makeFakeConsole();
+  const plugin = loadBundle(fakeConsole, {
+    setTimeout(callback, delay) {
+      const id = nextTimerId++;
+      timers.set(id, { callback, delay });
+      return id;
+    },
+    clearTimeout(id) {
+      cleared.push(id);
+      timers.delete(id);
+    },
+    window: {
+      setInterval: () => 1,
+      clearInterval: () => {},
+      addEventListener(type, listener) {
+        if (type === "focus") focusListener = listener;
+      },
+      removeEventListener: () => {},
+    },
+  });
+  const { makeTagsTopBarDropdown } = plugin.__internal;
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = { get: () => Promise.resolve({ value: [], updatedAt: "t0" }), subscribe: () => () => {} };
+  const invoked = [];
+  let answer = apiError(503, "plugin is not active");
+  fakeHost.api = {
+    invokeAction(key) {
+      invoked.push(key);
+      return Promise.reject(answer);
+    },
+  };
+
+  const Dropdown = makeTagsTopBarDropdown(fakeHost, { taskFilter: false, filterSelectionApi: false, scanStorage: false });
+  fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+  assert.equal(invoked.length, 1, "the box reads the shared catalog once on mount");
+  assert.equal(timers.size, 1, "and the 503 arms one retry");
+  assert.ok(logCalls.error.length > 0, "the transient failure is logged");
+
+  answer = apiError(409, "workspace is locked");
+  focusListener();
+  await flush();
+  assert.equal(invoked.length, 2, "focus re-reads it");
+  assert.equal(timers.size, 0, "the armed retry is cancelled");
+  assert.equal(cleared.length, 1, "by clearing the timer it set");
+
+  Array.from(timers.values()).forEach((timer) => timer.callback());
+  await flush();
+  assert.equal(invoked.length, 2, "and a refusal is never retried");
+
+  // The budget matters as much as the timer: the retry that just fired would
+  // otherwise leave the schedule part-spent, so the next genuine outage would
+  // wait through the later delays (or get no retry at all). A fresh 503 must arm
+  // the FIRST delay again.
+  answer = apiError(503, "plugin is not active");
+  focusListener();
+  await flush();
+  assert.equal(invoked.length, 3, "the new outage is read once more");
+  const armed = Array.from(timers.values());
+  assert.equal(armed.length, 1, "and arms one retry");
+  assert.equal(armed[0].delay, 250, "from the start of the schedule");
+});
+
 test("TagsTopBarDropdown reconciles a shared catalog deletion without clearing valid pending selections", async () => {
   let remoteTags = [{ id: "t1", name: "urgent", color: "#ef4444" }];
   let focusListener;
@@ -4182,6 +4586,318 @@ test("regression: TagsTopBarDropdown has its own Create input, independent of th
   assert.ok(created, "the tag created via the top-bar dropdown's own Create input appears in its list");
 });
 
+test("Tags box: a duplicate refusal from the server is reported as a duplicate, not as a retry", async () => {
+  // The local duplicate check lowers names while the backend folds them, so for a
+  // few Unicode pairs (see findTagByName) it cannot predict the refusal. When that
+  // happens the person must be told the name exists -- "please try again" would be
+  // advice that can never work.
+  const plugin = loadBundle();
+  const { makeTagsTopBarDropdown } = plugin.__internal;
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = { get: () => Promise.resolve({ value: [], updatedAt: "t0" }), subscribe: () => () => {} };
+  fakeHost.api = {
+    invokeAction(key) {
+      if (key === "tag-create") return Promise.reject(apiError(400, 'a tag named "\u03c2" already exists'));
+      return Promise.resolve({ tags: [], tasks: {} });
+    },
+  };
+
+  const capabilities = { taskFilter: false, filterSelectionApi: false, scanStorage: false };
+  const Dropdown = makeTagsTopBarDropdown(fakeHost, capabilities);
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+
+  const createRow = () => getTree().children[1].children[3];
+  createRow().children[0].props.onChange({ target: { value: "\u03c2" } });
+  await flush();
+  createRow().children[1].props.onClick();
+  await flush();
+  await flush();
+
+  const errorEl = getTree().children[1].children.find(
+    (c) => c && c.props && c.props["data-testid"] === "kandev-tags-topbar-error",
+  );
+  assert.ok(errorEl, "the refusal is surfaced");
+  assert.equal(errorEl.children[0], 'A tag named "\u03c2" already exists.');
+});
+
+test("Add-tag modal: a duplicate refusal from the server is reported as a duplicate too", async () => {
+  // The same honest message has to hold on every surface that can hit the
+  // refusal, not just the Tags box's own Create input.
+  const plugin = loadBundle();
+  const { makeTagPickerModal } = plugin.__internal;
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = { get: () => Promise.resolve({ value: [], updatedAt: "t0" }), subscribe: () => () => {} };
+  fakeHost.api = {
+    invokeAction(key) {
+      if (key === "tag-create") return Promise.reject(apiError(409, 'a tag named "ς" already exists'));
+      return Promise.resolve({ tags: [], tasks: {} });
+    },
+  };
+
+  const TagPickerModal = makeTagPickerModal(fakeHost, "task-1", "ws-1");
+  const getTree = fakeHost.mount(TagPickerModal, {});
+  await flush();
+
+  getTree().children[0].children[0].props.onChange({ target: { value: "ς" } });
+  await flush();
+  getTree().children[0].children[1].props.onClick();
+  await flush();
+  await flush();
+
+  const errorNode = getTree().children.find((c) => c && c.props && c.props["data-testid"] === "kandev-tags-picker-error");
+  assert.ok(errorNode, "the refusal is surfaced");
+  assert.equal(errorNode.children[0], 'A tag named "ς" already exists.');
+});
+
+test("Tags box: deleting a shared tag asks first, and only then invokes tag-delete", async () => {
+  // The README promises a confirmation stating how many cards carry the tag.
+  // The action-capable tier used to delete on the first click; the cascade being
+  // atomic on the backend is no reason to drop the confirmation.
+  const plugin = loadBundle();
+  const { makeTagsTopBarDropdown, countSharedTasksWithTag } = plugin.__internal;
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = { get: () => Promise.resolve({ value: [], updatedAt: "t0" }), subscribe: () => () => {} };
+  const invoked = [];
+  const sharedPayload = {
+    tags: [{ id: "t1", name: "bug", color: "#ef4444" }],
+    tasks: { "task-1": [{ id: "t1" }], "task-2": [{ id: "t1" }] },
+  };
+  fakeHost.api = {
+    invokeAction(key, input) {
+      invoked.push({ key, input });
+      if (key === "tag-delete") return Promise.resolve({ tags: [], tasks: {} });
+      return Promise.resolve(sharedPayload);
+    },
+  };
+  let opened = null;
+  fakeHost.openModal = function (options) {
+    opened = options;
+    return { close() {} };
+  };
+
+  const Dropdown = makeTagsTopBarDropdown(fakeHost, { taskFilter: false, filterSelectionApi: false, scanStorage: false });
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+
+  assert.equal(countSharedTasksWithTag(sharedPayload, "t1"), 2, "the payload is what the count comes from");
+
+  getTree().children[1].children[5][0].children[2].props.onClick(); // the row's delete button
+  await flush();
+  assert.ok(opened, "a confirmation modal is opened");
+  assert.equal(opened.title, "Delete tag");
+  assertStructural.deepEqual(
+    invoked.filter((call) => call.key === "tag-delete"),
+    [],
+    "nothing is deleted before the person confirms",
+  );
+
+  // The modal's own component renders the promise, then commits on confirm.
+  const Confirm = opened.content;
+  const confirmTree = fakeHost.mount(Confirm, {});
+  await flush();
+  const description = confirmTree().children[0];
+  assert.match(description.children[0], /Remove .*bug.* from 2 cards\?/);
+
+  const sharedReads = () => invoked.filter((call) => call.key === "shared-tags").length;
+  const readsBefore = sharedReads();
+  confirmTree().children[2].children[0].props.onClick(); // Delete
+  for (let i = 0; i < 12; i++) await flush();
+
+  const deletes = invoked.filter((call) => call.key === "tag-delete");
+  assert.equal(deletes.length, 1);
+  assert.equal(deletes[0].input.body.id, "t1");
+  // The refresh is what makes the box drop the deleted tag immediately: nothing
+  // else writes the catalog storage on a shared host, so without it the row (and
+  // the filter's option) survives until the 30s/on-focus poll.
+  assert.ok(sharedReads() > readsBefore, "deleting re-reads the shared catalog");
+});
+
+test("delete confirmation: a failed count reads as unknown instead of stranding the modal", async () => {
+  // Delete stays disabled while the count loads and the modal carries no cancel of
+  // its own, so an unhandled rejection would leave the person on "Checking how many
+  // cards use ..." with no way forward. Unknown is the honest answer.
+  const { console: fakeConsole, calls } = makeFakeConsole();
+  const plugin = loadBundle(fakeConsole);
+  const { makeDeleteTagConfirm } = plugin.__internal;
+  const fakeHost = makeFakeReactHost();
+  const Confirm = makeDeleteTagConfirm({
+    host: fakeHost,
+    tag: { id: "t1", name: "bug", color: "#ef4444" },
+    countTasks: () => Promise.reject(new Error("storage scan failed")),
+    remove: () => Promise.resolve({ succeeded: 0, failed: 0, truncated: false }),
+    onDeleted: () => {},
+  });
+  const getTree = fakeHost.mount(Confirm, {});
+  await flush();
+  await flush();
+
+  assert.match(
+    getTree().children[0].children[0],
+    /This tag will be removed from every card that uses it/,
+    "an unknown count, not a stuck loading line",
+  );
+  assert.equal(getTree().children[2].children[0].props.disabled, false, "and Delete stays reachable");
+  assert.ok(calls.error.length > 0, "the failure is logged for the console");
+});
+
+test("delete confirmation: a partial cascade and a capped scan read as one sentence", async () => {
+  // Both can happen at once, and the modal has a single error line: reporting them
+  // as two setError calls in one tick would leave only the last, re-typed copy on
+  // screen.
+  const plugin = loadBundle();
+  const { makeDeleteTagConfirm, TAG_SCAN_LIMIT } = plugin.__internal;
+  const fakeHost = makeFakeReactHost();
+  const Confirm = makeDeleteTagConfirm({
+    host: fakeHost,
+    tag: { id: "t1", name: "bug", color: "#ef4444" },
+    countTasks: () => Promise.resolve(3),
+    remove: () => Promise.resolve({ succeeded: 2, failed: 1, truncated: true }),
+    onDeleted: () => {
+      throw new Error("a partial, capped cascade must not report success");
+    },
+  });
+  const getTree = fakeHost.mount(Confirm, {});
+  await flush();
+  getTree().children[2].children[0].props.onClick();
+  await flush();
+
+  const errorEl = getTree().children[1];
+  assert.equal(errorEl.props["data-testid"], "kandev-tags-delete-error");
+  assert.equal(
+    errorEl.children[0],
+    "Removed from 2 card(s); 1 card(s) failed to update. This host's scan stops at " +
+      TAG_SCAN_LIMIT +
+      " entries, so cards beyond it may still reference the tag.",
+  );
+});
+
+test("delete confirmation: a capped scan is reported rather than passed off as a clean sweep", async () => {
+  const plugin = loadBundle();
+  const { makeDeleteTagConfirm } = plugin.__internal;
+  const fakeHost = makeFakeReactHost();
+  const Confirm = makeDeleteTagConfirm({
+    host: fakeHost,
+    tag: { id: "t1", name: "bug", color: "#ef4444" },
+    countTasks: () => Promise.resolve(null),
+    remove: () => Promise.resolve({ succeeded: 1, failed: 0, truncated: true }),
+    onDeleted: () => {
+      throw new Error("a truncated cascade must not report success");
+    },
+  });
+  const getTree = fakeHost.mount(Confirm, {});
+  await flush();
+
+  assert.match(getTree().children[0].children[0], /removed from every card/, "a null count reads as unknown, not zero");
+  getTree().children[2].children[0].props.onClick();
+  await flush();
+  const errorEl = getTree().children[1];
+  assert.equal(errorEl.props["data-testid"], "kandev-tags-delete-error");
+  assert.match(errorEl.children[0], /scan stops at 1000 entries/);
+});
+
+test("Tags box: deleting a private tag confirms first, then strips the card and the catalog", async () => {
+  // The private tier is the documented fallback for hosts that predate plugin
+  // actions, and its delete runs through the same parameterized confirmation as
+  // the shared tier. Both writes are asserted because either one going missing
+  // leaves the tag half-deleted: a surviving catalog entry keeps the tag listed
+  // with no chips (or, with the write the other way round, chips for a tag that
+  // no longer exists). The explicit refreshCatalog() after those writes is NOT
+  // asserted: on a real host the plugin's own catalog write is echoed back to its
+  // subscription and refreshes the box anyway, and this fake deliberately
+  // suppresses echoes, so the call is redundant-but-harmless rather than load
+  // bearing.
+  const plugin = loadBundle();
+  const { makeTagsTopBarDropdown } = plugin.__internal;
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = makeEchoSuppressingStorage();
+  await fakeHost.storage.set("workspace", "ws-1", "tags-catalog", [{ id: "t1", name: "bug", color: "#ef4444" }]);
+  await fakeHost.storage.set("task", "task-1", "tags", ["t1"]);
+  fakeHost.storage.listByKey = () =>
+    Promise.resolve({ entries: [{ scopeId: "task-1", value: ["t1"], updatedAt: "t0" }], truncated: false });
+  let closed = 0;
+  let opened = null;
+  fakeHost.openModal = function (options) {
+    opened = options;
+    return {
+      close() {
+        closed += 1;
+      },
+    };
+  };
+
+  const Dropdown = makeTagsTopBarDropdown(fakeHost, { taskFilter: false, filterSelectionApi: false, scanStorage: false });
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+
+  getTree().children[1].children[5][0].children[2].props.onClick(); // the row's delete button
+  await flush();
+  assert.ok(opened, "the private tier confirms too");
+  assert.equal(opened.title, "Delete tag");
+
+  // The harness keeps hook state per host, so mounting the confirmation on the
+  // dropdown's host would make the two share (and corrupt) slots. Point the
+  // component's React at a second host's methods and let that host own the render
+  // loop: its jsx, ui and storage calls still belong to the host the dropdown
+  // built it with.
+  const confirmHost = makeFakeReactHost();
+  Object.assign(fakeHost.React, confirmHost.React);
+  const confirmTree = confirmHost.mount(opened.content, {});
+  await flush();
+  await flush();
+  assert.match(confirmTree().children[0].children[0], /Remove .*bug.* from 1 card\?/);
+
+  confirmTree().children[2].children[0].props.onClick(); // Delete
+  for (let i = 0; i < 12; i++) await flush(); // cascade + catalog write + notify
+
+  const card = await fakeHost.storage.get("task", "task-1", "tags");
+  assertStructural.deepEqual(card.value, [], "the card no longer carries the tag");
+  const catalog = await fakeHost.storage.get("workspace", "ws-1", "tags-catalog");
+  assertStructural.deepEqual(catalog.value, [], "and the catalog no longer defines it");
+  assert.equal(closed, 1, "the confirmation closes exactly once");
+});
+
+test("Tags box: a duplicate refusal on rename is reported as a duplicate too", async () => {
+  const plugin = loadBundle();
+  const { makeTagsTopBarDropdown } = plugin.__internal;
+  const fakeHost = makeFakeReactHost();
+  fakeHost.store = { getState: () => ({ workspaces: { activeId: "ws-1" } }) };
+  fakeHost.storage = { get: () => Promise.resolve({ value: [], updatedAt: "t0" }), subscribe: () => () => {} };
+  fakeHost.api = {
+    invokeAction(key, input) {
+      if (key === "tag-update") {
+        assert.equal(input.body.name, "ς");
+        return Promise.reject(apiError(409, 'a tag named "ς" already exists'));
+      }
+      return Promise.resolve({ tags: [{ id: "t1", name: "Σ", color: "#ef4444" }], tasks: {} });
+    },
+  };
+
+  const Dropdown = makeTagsTopBarDropdown(fakeHost, { taskFilter: false, filterSelectionApi: false, scanStorage: false });
+  const getTree = fakeHost.mount(Dropdown, { slotProps: { workspaceId: "ws-1" } });
+  await flush();
+
+  // The local clash check only runs on the private-storage path, so a shared
+  // rename goes straight to the server -- which is how a fold-divergent clash
+  // reaches this branch at all.
+  getTree().children[1].children[5][0].children[1].props.onClick();
+  await flush();
+  const rows = getTree().children[1].children[5];
+  const renameRow = rows.find((r) => r.children[1].props && r.children[1].props["data-testid"] === "kandev-tags-topbar-rename-input");
+  assert.ok(renameRow, "clicking the pill swaps it for a rename input");
+  renameRow.children[1].props.onBlur({ target: { value: "ς" } });
+  await flush();
+  await flush();
+
+  const errorNode = getTree().children[1].children.find((c) => c && c.props && c.props["data-testid"] === "kandev-tags-topbar-error");
+  assert.ok(errorNode, "the refusal is surfaced");
+  assert.equal(errorNode.children[0], 'A tag named "ς" already exists.');
+});
+
 test("regression: TagsTopBarDropdown's Create trims whitespace and rejects duplicates (AC3, AC7)", async () => {
   const plugin = loadBundle();
   const { makeTagsTopBarDropdown } = plugin.__internal;
@@ -4226,6 +4942,65 @@ test("countTasksWithTag counts across task scopeIds via listByKey, ignoring non-
 test("countTasksWithTag returns null when the host can't scan (degrades the delete copy)", async () => {
   const { countTasksWithTag } = loadBundle().__internal;
   assert.equal(await countTasksWithTag({ storage: {} }, "t1"), null);
+});
+
+test("countTasksWithTag refuses to call a capped page a count", async () => {
+  // The promise the confirmation makes is "Remove x from N cards?"; a page the
+  // host had to truncate cannot support that number, so the copy falls back to
+  // the unknown-count wording instead of undercounting.
+  const { countTasksWithTag } = loadBundle().__internal;
+  const host = (truncated) => ({
+    storage: {
+      listByKey: () =>
+        Promise.resolve({
+          entries: [{ scopeId: "task-1", value: ["t1"], updatedAt: "t0" }],
+          truncated,
+        }),
+    },
+  });
+  assert.equal(await countTasksWithTag(host(false), "t1"), 1);
+  assert.equal(await countTasksWithTag(host(true), "t1"), null);
+});
+
+test("cascadeRemoveTagFromTasks reports a capped scan instead of claiming a clean sweep", async () => {
+  const { cascadeRemoveTagFromTasks } = loadBundle().__internal;
+  const written = {};
+  const host = {
+    storage: {
+      listByKey: () =>
+        Promise.resolve({ entries: [{ scopeId: "task-1", value: ["t1"], updatedAt: "t0" }], truncated: true }),
+      get: () => Promise.resolve({ value: ["t1"], updatedAt: "t0" }),
+      set(scope, scopeId, key, value) {
+        written[scopeId] = value;
+        return Promise.resolve({ updatedAt: "t1" });
+      },
+    },
+  };
+  const result = await cascadeRemoveTagFromTasks(host, "t1");
+  assert.equal(result.succeeded, 1, "the entries it did see are still cleaned");
+  assert.equal(result.truncated, true, "and the caller is told the scan was capped");
+  assertStructural.deepEqual(written["task-1"], []);
+});
+
+test("countSharedTasksWithTag counts the tasks the shared payload records", () => {
+  const { countSharedTasksWithTag } = loadBundle().__internal;
+  const payload = {
+    tags: [{ id: "t1", name: "bug", color: "#ef4444" }],
+    tasks: {
+      "task-1": [{ id: "t1" }],
+      "task-2": [{ id: "t2" }],
+      // Two entries for the same tag on one task: unreachable through any write
+      // path (they all dedupe by tag id), but a migrated legacy document can
+      // hold it, and the confirmation counts *cards*, so this task counts once.
+      "task-3": [{ id: "t1" }, { id: "t1" }],
+    },
+  };
+  assert.equal(countSharedTasksWithTag(payload, "t1"), 2, "two cards, three entries");
+  assert.equal(countSharedTasksWithTag(payload, "t2"), 1);
+  assert.equal(countSharedTasksWithTag(payload, "missing"), 0);
+  assert.equal(countSharedTasksWithTag({ tags: [], tasks: {} }, "t1"), 0);
+  assert.equal(countSharedTasksWithTag(null, "t1"), 0, "an unloaded payload counts nothing rather than throwing");
+  assert.equal(countSharedTasksWithTag({ tags: [], tasks: { "task-1": [null] } }, "t1"), 0, "a malformed entry is skipped");
 });
 
 test("cascadeRemoveTagFromTasks strips the tag from every affected task and reports partial failure", async () => {

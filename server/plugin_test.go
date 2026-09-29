@@ -48,6 +48,11 @@ type fakeHost struct {
 	getCalls    int
 	setCalls    int
 	deleteCalls int
+	// config backs GetConfig: the values the operator saved on the plugin's
+	// settings page. Nil means "nothing saved yet", which the real host
+	// reports as an empty map.
+	config    map[string]any
+	configErr error
 }
 
 func stateKey(scope, scopeID, key string) string {
@@ -106,7 +111,17 @@ func (h *fakeHost) stateCallCounts() (gets, sets, deletes int) {
 func (h *fakeHost) ListState(context.Context, string, string) ([]pluginsdk.StateEntry, error) {
 	return nil, nil
 }
-func (h *fakeHost) GetConfig(context.Context) (map[string]any, error)    { return map[string]any{}, nil }
+func (h *fakeHost) GetConfig(context.Context) (map[string]any, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.configErr != nil {
+		return nil, h.configErr
+	}
+	if config := cloneMap(h.config); config != nil {
+		return config, nil
+	}
+	return map[string]any{}, nil
+}
 func (h *fakeHost) RevealSecret(context.Context, string) (string, error) { return "", nil }
 func (h *fakeHost) GetSecret(context.Context, string) (string, bool, error) {
 	return "", false, nil

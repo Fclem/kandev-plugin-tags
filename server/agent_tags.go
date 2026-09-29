@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/kandev/kandev/pkg/pluginsdk"
@@ -22,12 +23,97 @@ const (
 	tagTaskCap      = 200
 	maxTagNameRunes = 22
 	maxTagNoteRunes = 200
+	// defaultTagColor is the neutral gray for a tag that has no color of its
+	// own: the pre-catalog legacy entries migrateLegacyTagDoc rebuilds; a
+	// legacy v1 plain-string tag the catalog cannot resolve (as DEFAULT_COLOR in
+	// ui/bundle.js); and a new tag while the auto_color setting is off.
+	// Otherwise new tags get autoTagColor(name) or an explicit color.
 	defaultTagColor = "#6b7280"
-	ownerAgent      = "agent"
-	ownerHuman      = "human"
+	// tagColorSettingKey is the manifest config_schema property that turns
+	// name-derived colors on and off. Absent means "never set", which resolves
+	// to on -- see tagColorAutoEnabled.
+	tagColorSettingKey = "auto_color"
+	ownerAgent         = "agent"
+	ownerHuman         = "human"
 )
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$`)
+
+// tagColorPalette is the plugin's color vocabulary and the source of every
+// derived tag color. ui/bundle.js holds the same curated fourteen-color set as
+// PALETTE -- the UI renders the picker's swatches from its copy -- so the two
+// lists must stay identical. TestTagColorPaletteMatchesSharedFixture asserts
+// this list against testdata/tag-colors.json, which ui/bundle.test.js asserts
+// PALETTE against, so a reorder on either side alone fails its own suite.
+var tagColorPalette = [14]string{"#b45309", "#c2410c", "#b91c1c", "#be185d", "#a21caf", "#6d28d9", "#4338ca", "#1d4ed8", "#0369a1", "#0e7490", "#0f766e", "#15803d", "#4d7c0f", "#475569"}
+
+// autoTagColor derives a tag's default color from its name -- the same
+// content-addressed scheme Proxmox tags and GitHub labels use, so a name looks
+// the same wherever and by whomever it is created, with no stored randomness
+// and no allocation. It is FNV-1a (32-bit) over the name's UTF-8 bytes,
+// matched byte for byte by colorFromName in ui/bundle.js, reduced to an index
+// into tagColorPalette.
+//
+// The name is hashed exactly as normalizeTagName stores it: trimmed, case
+// preserved. Two names differing only in case cannot coexist in one catalog
+// (hasTagName compares case-insensitively), so case sensitivity costs nothing
+// and keeps the two implementations trivially in step.
+//
+// Collisions are expected, unremarkable, and cannot mislead: color is
+// decoration, the chip always carries the name, and a person who wants the
+// color to mean something can set it with the picker -- which is what makes
+// this a default rather than a constraint.
+func autoTagColor(name string) string {
+	const offset32 = 2166136261
+	const prime32 = 16777619
+	hash := uint32(offset32)
+	for i := range len(name) {
+		hash ^= uint32(name[i])
+		hash *= prime32
+	}
+	return tagColorPalette[hash%uint32(len(tagColorPalette))]
+}
+
+// newTagColor returns the color a *new* tag should store. An explicit hex from
+// the caller always wins -- the setting never overrides a person's or an
+// agent's choice. Without one, the name-derived default is stored while the
+// auto_color setting is on, and the neutral gray while the operator has turned
+// it off, so a color-less tag stays neutral until somebody picks a color in
+// the Tags box. Creation is the only path where a color may be omitted, so
+// this is the only resolver; an update that carries one validates it outright.
+func (p *tagsPlugin) newTagColor(ctx context.Context, name, color string) (string, error) {
+	if strings.TrimFunc(color, stripFromEdges) != "" {
+		return normalizeTagColor(color)
+	}
+	if p.tagColorAutoEnabled(ctx) {
+		return autoTagColor(name), nil
+	}
+	return defaultTagColor, nil
+}
+
+// tagColorAutoEnabled reads the operator's auto_color setting (Settings >
+// Plugins > <plugin>, the form generated from the manifest's config_schema).
+// Everything except an explicit false means on: the key is absent until someone
+// opens that page, and deriving colors is the plugin's documented default. A
+// malformed value or a failed config read resolves to that same default rather
+// than erroring -- an unreadable setting must not stop a person or an agent
+// from tagging a card.
+//
+// Read per creation rather than cached: kandev restarts a running plugin when
+// its config changes, but creation is rare enough that a fresh read costs
+// nothing and cannot go stale.
+func (p *tagsPlugin) tagColorAutoEnabled(ctx context.Context) bool {
+	host := p.Host()
+	if host == nil {
+		return true
+	}
+	config, err := host.GetConfig(ctx)
+	if err != nil {
+		return true
+	}
+	enabled, ok := config[tagColorSettingKey].(bool)
+	return !ok || enabled
+}
 
 // sharedTag is workspace-visible. Owner is an origin rather than an identity:
 // agent tools have no user identity and every authenticated human may manage
@@ -118,6 +204,10 @@ func migrateLegacyTagDoc(legacy legacyTagDoc) tagDoc {
 			if id == "agent-legacy-" {
 				continue
 			}
+			// Legacy definitions keep the neutral gray rather than an
+			// autoTagColor(name) derivation: they are not new tags, the gray
+			// is what they have always rendered as, and a migration write
+			// must not silently restyle anyone's existing board.
 			if findTag(doc.Tags, id) == nil {
 				doc.Tags = append(doc.Tags, sharedTag{ID: id, Name: titleFromSlug(entry.Tag), Color: defaultTagColor, Owner: ownerAgent, CreatedAt: entry.UpdatedAt, UpdatedAt: entry.UpdatedAt})
 			}
@@ -127,12 +217,17 @@ func migrateLegacyTagDoc(legacy legacyTagDoc) tagDoc {
 	return doc
 }
 
+// titleFromSlug titles a legacy v1 slug for the migrated catalog. It capitalizes
+// the first *rune*, not the first byte: slicing one byte off a multi-byte rune
+// yields a name that decodes as U+FFFD plus fragments and would be persisted on
+// the next write. v1 itself could only hold its six fixed ASCII slugs (a
+// vocabulary re-validated on every write), so this is defence in depth against a
+// document edited or written out of band, not a repair of live v1 data.
 func titleFromSlug(v string) string {
 	words := strings.Fields(strings.ReplaceAll(strings.TrimSpace(v), "-", " "))
 	for i := range words {
-		if words[i] != "" {
-			words[i] = strings.ToUpper(words[i][:1]) + words[i][1:]
-		}
+		runes := []rune(words[i])
+		words[i] = string(unicode.ToUpper(runes[0])) + string(runes[1:])
 	}
 	return strings.Join(words, " ")
 }
@@ -147,8 +242,52 @@ func encodeTagDoc(doc tagDoc) (map[string]any, error) {
 	return raw, err
 }
 
+// stripFromEdges reports whether r is stripped from both ends of a
+// user-supplied string -- a tag name or a color.
+//
+// The set is exactly JavaScript's String.prototype.trim -- ECMAScript's
+// WhiteSpace plus its line terminators -- because that is what the UI applies to
+// every name and color it sends or looks up. It is *not* Go's unicode.IsSpace:
+// the two differ by exactly two characters, and both directions of that
+// difference are user-visible. JS trims U+FEFF (the BOM a spreadsheet paste
+// carries) where IsSpace does not, and IsSpace trims U+0085 (NEL) where JS does
+// not. Left divergent for names, the create-and-apply flow's lookup (which
+// compares the created tag's name against the *client's* trimmed name) misses,
+// so the person sees "Could not create tag" while the tag sits in the catalog
+// under the server's spelling -- and the same asymmetry would break the
+// "same name, same color" rule this release documents.
+//
+// The list is written out rather than delegated to unicode.IsSpace so it cannot
+// move under a Unicode revision, and testdata/tag-colors.json ("trim") holds
+// the same code points as the shared contract:
+// TestEdgeTrimMatchesSharedFixture sweeps every code point in both directions
+// and fails if this set and the UI's EDGE_TRIM_RE ever disagree.
+func stripFromEdges(r rune) bool {
+	switch r {
+	case '\t', '\n', '\v', '\f', '\r', ' ',
+		0x00a0, // NO-BREAK SPACE
+		0x1680, // OGHAM SPACE MARK
+		0x2028, // LINE SEPARATOR
+		0x2029, // PARAGRAPH SEPARATOR
+		0x202f, // NARROW NO-BREAK SPACE
+		0x205f, // MEDIUM MATHEMATICAL SPACE
+		0x3000, // IDEOGRAPHIC SPACE
+		0xfeff: // ZERO WIDTH NO-BREAK SPACE (BOM)
+		return true
+	}
+	// The remaining Unicode space separators (Zs): EN QUAD..HAIR SPACE.
+	return r >= 0x2000 && r <= 0x200a
+}
+
+// normalizeTagName trims a supplied name with the shared edge set. maxTagNameRunes
+// bounds it in runes, which is deliberately *looser* than the UI's
+// MAX_TAG_LENGTH, which counts UTF-16 code units: a name of astral characters
+// can be accepted here that the board's inputs refuse. The UI is the stricter
+// side on purpose -- its cap is calibrated against the Create input's width, not
+// against what the backend can store -- and a name the UI cannot type cannot
+// reach the post-create lookup that requires the two to agree.
 func normalizeTagName(name string) (string, error) {
-	name = strings.TrimSpace(name)
+	name = strings.TrimFunc(name, stripFromEdges)
 	if name == "" {
 		return "", fmt.Errorf("tag name is required")
 	}
@@ -158,11 +297,14 @@ func normalizeTagName(name string) (string, error) {
 	return name, nil
 }
 
+// normalizeTagColor validates a *supplied* color: a 3- or 6-digit hex value,
+// expanded to six and lowercased. An empty color is an error here rather than
+// the neutral default -- creation resolves it through newTagColor instead, and
+// an update that omits the field never reaches this function at all. Trimming
+// uses the same shared edge set as names, so a color that arrives with a stray
+// BOM is accepted here exactly as the UI's normalizeColor accepts it.
 func normalizeTagColor(color string) (string, error) {
-	color = strings.TrimSpace(color)
-	if color == "" {
-		return defaultTagColor, nil
-	}
+	color = strings.TrimFunc(color, stripFromEdges)
 	if !hexColor.MatchString(color) {
 		return "", fmt.Errorf("color must be a 3- or 6-digit hex value")
 	}
@@ -197,9 +339,20 @@ func findTagIndex(tags []sharedTag, id string) int {
 	}
 	return -1
 }
+
+// hasTagName is the authoritative duplicate rule. The stored name is normalized
+// before the comparison: "every stored name is already normalized" is not a
+// guarantee -- 0.14 and earlier trimmed with strings.TrimSpace, which keeps
+// U+FEFF, and migrateLegacyTagDoc copies a legacy tag's own spelling -- so a
+// stored "bug\uFEFF" would otherwise let a second tag whose name normalizes to
+// the same "bug" through, giving two chips with one name. The candidate is
+// already normalized by its caller.
 func hasTagName(tags []sharedTag, name, exceptID string) bool {
 	for _, tag := range tags {
-		if tag.ID != exceptID && strings.EqualFold(tag.Name, name) {
+		if tag.ID == exceptID {
+			continue
+		}
+		if strings.EqualFold(strings.TrimFunc(tag.Name, stripFromEdges), name) {
 			return true
 		}
 	}
@@ -342,6 +495,22 @@ func targetTaskID(req *pluginsdk.AgentToolRequest) string {
 	}
 	return req.Context.TaskID
 }
+
+// duplicateTagNameError marks a name collision as a domain conflict rather than
+// an invocation failure. The host relays a Go error from a browser action as a
+// generic 503 whose text is only logged (internal/plugins/action_handlers.go),
+// so a refusal the person has to distinguish -- "this name already exists" --
+// has to come back as a status the host passes through verbatim: see actionError
+// in server/actions.go. Agent tools have no such relay problem and keep
+// reporting the same message as text.
+type duplicateTagNameError struct {
+	name string
+}
+
+func (e duplicateTagNameError) Error() string {
+	return fmt.Sprintf("a tag named %q already exists", e.name)
+}
+
 func agentToolError(text string) *pluginsdk.AgentToolResult {
 	return &pluginsdk.AgentToolResult{Text: text, IsError: true}
 }
@@ -402,14 +571,14 @@ func (p *tagsPlugin) InvokeAgentTool(ctx context.Context, req *pluginsdk.AgentTo
 		if err != nil {
 			return agentToolError(err.Error()), nil
 		}
-		color, err := normalizeTagColor(agentArgString(req, "color"))
+		color, err := p.newTagColor(ctx, name, agentArgString(req, "color"))
 		if err != nil {
 			return agentToolError(err.Error()), nil
 		}
 		var created sharedTag
 		doc, err := p.mutateTagDoc(ctx, req.Context.WorkspaceID, func(doc *tagDoc) error {
 			if hasTagName(doc.Tags, name, "") {
-				return fmt.Errorf("a tag named %q already exists", name)
+				return duplicateTagNameError{name: name}
 			}
 			id, err := newTagID()
 			if err != nil {
@@ -427,11 +596,30 @@ func (p *tagsPlugin) InvokeAgentTool(ctx context.Context, req *pluginsdk.AgentTo
 	case "update_tag":
 		id := agentArgString(req, "tag_id")
 		nameArg, colorArg := agentArgString(req, "name"), agentArgString(req, "color")
+		// An absent color and an explicitly empty one are different requests: the
+		// board's tag-update refuses "" rather than reading it as "leave the color
+		// alone", and an agent that sends "" means to change something -- so it gets
+		// the same refusal, instead of a silently ignored field and a message about
+		// a required color it did pass. Creation keeps the opposite convention
+		// (an empty color there means "derive one"), which its description states.
+		_, nameSupplied := req.Arguments["name"]
+		_, colorSupplied := req.Arguments["color"]
 		if id == "" {
 			return agentToolError("tag_id is required"), nil
 		}
-		if nameArg == "" && colorArg == "" {
+		if !nameSupplied && !colorSupplied {
 			return agentToolError("name or color is required"), nil
+		}
+		// A supplied-but-blank name is refused like a supplied-but-blank color, and
+		// like the board: an agent that sends one meant to change the name, and the
+		// whole request is refused rather than reported as a success that changed
+		// only the color. (The board's tag-update aborts on an empty name too, so
+		// the color is not applied there either.)
+		if nameSupplied && strings.TrimFunc(nameArg, stripFromEdges) == "" {
+			return agentToolError("tag name is required"), nil
+		}
+		if colorSupplied && strings.TrimFunc(colorArg, stripFromEdges) == "" {
+			return agentToolError("color must be a 3- or 6-digit hex value"), nil
 		}
 		doc, err := p.mutateTagDoc(ctx, req.Context.WorkspaceID, func(doc *tagDoc) error {
 			tag, err := requireAgentOwnedTag(*doc, id)
@@ -444,7 +632,7 @@ func (p *tagsPlugin) InvokeAgentTool(ctx context.Context, req *pluginsdk.AgentTo
 					return err
 				}
 				if hasTagName(doc.Tags, name, id) {
-					return fmt.Errorf("a tag named %q already exists", name)
+					return duplicateTagNameError{name: name}
 				}
 				tag.Name = name
 			}
