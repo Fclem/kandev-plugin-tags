@@ -3119,7 +3119,7 @@ function makeFakeReactHost() {
         deps.some((dependency, index) => !Object.is(dependency, previous.deps[index]));
       if (!changed) return;
       if (previous && typeof previous.cleanup === "function") previous.cleanup();
-      const effect = { deps, cleanup: undefined };
+      const effect = { deps, cleanup: undefined, isEffect: true };
       hookStates[i] = effect;
       effect.cleanup = fn();
     },
@@ -3152,7 +3152,16 @@ function makeFakeReactHost() {
     mount(Component, props) {
       renderComponent = () => Component(props);
       rerender();
-      return () => tree;
+      const getTree = () => tree;
+      getTree.unmount = () => {
+        hookStates.forEach((state) => {
+          if (!state || state.isEffect !== true || typeof state.cleanup !== "function") return;
+          const cleanup = state.cleanup;
+          state.cleanup = undefined;
+          cleanup();
+        });
+      };
+      return getTree;
     },
   };
 }
@@ -5203,6 +5212,54 @@ test("create-task selector renders only on the task-create surface", async () =>
   const getTree = fakeHost.mount(Selector, { slotProps: { surface: "new-session" } });
   await flush();
   assert.equal(getTree(), null, "new-session composer gets no tag selector");
+  getTree.unmount();
+  plugin.__internal.clearCreateDraft();
+});
+
+test("new-session slot does not keep a cancelled create-task draft alive", async () => {
+  const timers = new Map();
+  let nextTimerId = 0;
+  const plugin = loadBundle(null, {
+    setTimeout(callback, delay) {
+      const id = ++nextTimerId;
+      timers.set(id, { callback, delay });
+      return id;
+    },
+    clearTimeout(id) {
+      timers.delete(id);
+    },
+  });
+  const { fakeHost: createHost, calls } = makeCreateSelectorHost();
+  const { fakeHost: sessionHost } = makeCreateSelectorHost();
+  const createSelector = plugin.__internal.makeTaskCreateTagSelector(createHost);
+  const sessionSelector = plugin.__internal.makeTaskCreateTagSelector(sessionHost);
+  const createTree = createHost.mount(createSelector, { slotProps: { surface: "task-create" } });
+  const sessionTree = sessionHost.mount(sessionSelector, { slotProps: { surface: "new-session" } });
+  await flush();
+
+  const options = findAllTestNodes(createTree(), "kandev-tags-create-option");
+  assert.equal(options.length, 2);
+  options[0].props.onClick();
+  await flush();
+  assertStructural.deepEqual(plugin.__internal.createDraftTagIds("ws-1"), ["t1"]);
+  assert.equal(sessionTree(), null, "the new-session composer remains mounted without a selector");
+
+  createTree.unmount();
+  assert.equal(timers.size, 1, "unmounting the task-create selector starts the expiry grace period");
+  const [timerId, graceTimer] = timers.entries().next().value;
+  assert.equal(graceTimer.delay, plugin.__internal.CREATE_DRAFT_GRACE_MS);
+  timers.delete(timerId);
+  graceTimer.callback();
+  assertStructural.deepEqual(plugin.__internal.createDraftTagIds("ws-1"), []);
+
+  calls.length = 0;
+  await plugin.__internal.applyCreateDraftToNewTask(createHost, {
+    task_id: "unrelated-task",
+    workspace_id: "ws-1",
+    origin: "manual",
+  });
+  assert.equal(calls.some((call) => call.key === "task-tag-add"), false, "an unrelated task gets no abandoned tag");
+  sessionTree.unmount();
   plugin.__internal.clearCreateDraft();
 });
 

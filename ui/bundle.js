@@ -2262,6 +2262,9 @@
       var setError = errorState[1];
 
       React.useEffect(function () {
+        // The host also mounts this slot in composers that cannot create tasks.
+        // They must not keep a cancelled task-create draft alive.
+        if (slotProps.surface !== "task-create") return;
         function onChange() {
           setTick(function (t) {
             return t + 1;
@@ -2274,7 +2277,7 @@
           if (index !== -1) createDraft.listeners.splice(index, 1);
           unmountCreateDraft();
         };
-      }, []);
+      }, [slotProps.surface]);
 
       // Only the Create Task composer; the new-session composer reuses this
       // slot's props shape but starts no task.

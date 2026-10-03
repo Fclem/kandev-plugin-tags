@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Keep cancelled Create Task tag drafts on their own expiry lifecycle; the
+  same slot mounted by the new-session composer no longer keeps them alive.
+
 ## [0.16.0] - 2026-09-28
 
 ### Changed
