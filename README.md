@@ -143,8 +143,9 @@ that card. The target must be a task in this workspace.
 - **Quick pick**: on a host that renders plugin submenus, **Add tag...** is
   a submenu instead: **More tags...** first (the same modal), then a native
   separator and up to five tags used most recently anywhere in the workspace,
-  most recent first. The separator requires the host's `separatorBefore`
-  submenu-child support; older hosts keep the same actions without the divider.
+  most recent first; each tag has a dot matching its color. The separator
+  requires the host's `separatorBefore` submenu-child support; older hosts keep
+  the same actions without the divider.
   Choosing one applies it to this card in a single click and refreshes the
   chips, so the tag you reach for constantly is one click from the card menu
   and from the sidebar/`/tasks` row menu, wherever that item appears. Tags

@@ -6,6 +6,7 @@
 
 - Mark the first recent-tag submenu child as a new group so hosts with
   `separatorBefore` support render a divider after **More tags...**.
+- Show each recent tag's color in the submenu with a matching dot.
 
 
 ## [0.16.0] - 2026-09-28

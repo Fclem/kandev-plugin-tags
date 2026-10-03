@@ -5238,10 +5238,29 @@ test("card menu quick list puts More tags first, newest first, and hides never-a
       ["tag-a", "Blocked"],
     ],
   );
+  assert.equal(items[1].icon.type, "span");
+  assert.equal(items[1].icon.props.style.backgroundColor, "#3b82f6");
+  assert.equal(items[1].icon.props.style.borderRadius, "50%");
   assert.equal(items[0].separatorBefore, undefined, "More tags stays above the divider");
   assert.equal(items[1].separatorBefore, true, "the first quick tag starts a separate group");
   assert.equal(items.slice(2).every((item) => item.separatorBefore === false), true);
   assertStructural.deepEqual(calls, [], "the list is derived from cached state, never fetched");
+});
+
+test("card menu quick list falls back to the derived color for an invalid catalog color", async () => {
+  const plugin = loadBundle();
+  const { quickTagItems, colorFromName } = plugin.__internal;
+  const entry = appliedTag("tag-invalid-color", "Unsafe color", "2026-01-01T00:00:01Z");
+  entry.tag.color = "red; background-image: url(javascript:alert(1))";
+  const { host } = makeQuickPickHost({
+    tags: [entry.tag],
+    tasks: { "task-peer": [entry.application] },
+  });
+  await primeSharedStore(plugin, host);
+
+  const items = quickTagItems(host, { taskId: "task-1", workspaceId: "ws-1" });
+
+  assert.equal(items[1].icon.props.style.backgroundColor, colorFromName("Unsafe color"));
 });
 
 test("card menu quick list never offers a tag nothing has applied", async () => {

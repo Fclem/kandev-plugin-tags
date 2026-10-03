@@ -2149,6 +2149,25 @@
     };
   }
 
+  function quickTagColorIcon(host, tag) {
+    // Shared catalog values cross the plugin boundary; accept only the
+    // supported hex forms before using them as inline CSS.
+    var color = normalizeColor(tag.color) || colorFromName(tag.name);
+    return host.jsx("span", {
+      "data-testid": "kandev-tags-quick-pick-color",
+      "aria-hidden": "true",
+      style: {
+        display: "inline-block",
+        width: "8px",
+        height: "8px",
+        flexShrink: 0,
+        marginRight: "8px",
+        borderRadius: "50%",
+        backgroundColor: color,
+      },
+    });
+  }
+
   function moreTagsEntry(host, workspaceId, taskId) {
     return {
       id: "more",
@@ -2241,6 +2260,7 @@
         return {
           id: tagId,
           label: candidate.tag.name,
+          icon: quickTagColorIcon(host, candidate.tag),
           separatorBefore: index === 0,
           run: quickTagRun(host, workspaceId, context.taskId, tagId),
         };
