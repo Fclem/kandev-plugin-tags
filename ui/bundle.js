@@ -2090,31 +2090,18 @@
   // ---------------------------------------------------------------------
   // task-create-input-actions: tag selector in the Create Task dialog
   //
-  // The dialog has no task id yet, so the selection is a module-level draft
-  // (the popover and the slot component are separate React trees that must
-  // agree on it) that is applied to the task the host announces over the
-  // `task.created` WS notification. Nothing in the slot props links a dialog
-  // to the task it produces, so the draft is bound to the workspace and only
-  // applied to a top-level task whose origin is absent or "manual" -- which
-  // excludes agent-created, routine, onboarding and automation tasks and any subtask (parent_id), but
-  // NOT a top-level task an agent creates over MCP or the PR watcher imports:
-  // the host stamps those "manual" too. The host also mounts this same slot,
-  // with identical props, in the Edit Task dialog (an update emits no
-  // task.created), so tags picked there are not applied to the edited task and
-  // may be claimed by the next manual task instead. Both need a host contract
-  // (a mode / created-task signal in the slot props); until then this is a
-  // best-effort correlation. It lives while a selector is mounted and
-  // for CREATE_DRAFT_GRACE_MS after the last one unmounts -- long enough for
-  // a submit (which closes the dialog) to be followed by its notification,
-  // short enough that a cancelled dialog cannot tag an unrelated task later.
+  // The dialog has no task id until submit succeeds, so selection is a
+  // module-level draft shared by the selector and its separate popover tree.
+  // The host supplies a dialog-scoped `registerTaskCreatedHandler` callback:
+  // it runs only for that dialog's successful create and provides the exact
+  // task id/workspace. Older hosts and edit dialogs omit that contract, so the
+  // selector stays hidden rather than claiming an unrelated task.created event.
+  // Each dialog gets its own token. Closing clears its draft immediately, and
+  // late tag-create responses must still match that token before selecting.
   // ---------------------------------------------------------------------
 
-  var CREATE_DRAFT_GRACE_MS = 10000;
-  // `created`: ids this dialog created itself; the store learns of them only
-  // after the next shared-tags refresh, so liveDraft must not prune them early.
-  // `foreignHost`: set when a task.created for another workspace was seen while a
-  // selector was mounted, so the last unmount can report the lost selection.
-  var createDraft = { workspaceId: null, tagIds: [], created: [], createdTags: [], mounted: 0, graceTimer: null, listeners: [], foreignHost: null };
+  var createDraftTokenSequence = 0;
+  var createDraft = { workspaceId: null, tagIds: [], created: [], createdTags: [], dialogToken: null, listeners: [] };
 
   function notifyCreateDraft() {
     createDraft.listeners.slice().forEach(function (listener) {
@@ -2122,21 +2109,23 @@
     });
   }
 
-  function cancelCreateDraftGrace() {
-    if (createDraft.graceTimer === null) return;
-    clearTimeout(createDraft.graceTimer);
-    createDraft.graceTimer = null;
-  }
-
-  function clearCreateDraft() {
-    cancelCreateDraftGrace();
+  function clearCreateDraft(expectedToken) {
+    if (expectedToken && createDraft.dialogToken !== expectedToken) return false;
+    var hadDraft = createDraft.dialogToken !== null || createDraft.workspaceId !== null || createDraft.tagIds.length > 0;
+    createDraft.dialogToken = null;
     createDraft.createdTags = [];
-    createDraft.foreignHost = null;
-    if (createDraft.workspaceId === null && createDraft.tagIds.length === 0) return;
+    if (!hadDraft) return false;
     createDraft.workspaceId = null;
     createDraft.tagIds = [];
-    createDraft.createdTags = [];
+    createDraft.created = [];
     notifyCreateDraft();
+    return true;
+  }
+
+  function beginCreateDraft(token) {
+    if (!token || createDraft.dialogToken === token) return;
+    clearCreateDraft();
+    createDraft.dialogToken = token;
   }
 
   function createDraftTagIds(workspaceId) {
@@ -2149,59 +2138,34 @@
     notifyCreateDraft();
   }
 
-  function mountCreateDraft() {
-    createDraft.mounted += 1;
-    cancelCreateDraftGrace();
-  }
-
-  function reportForeignWorkspaceDraft(host) {
-    clearCreateDraft();
+  function reportForeignWorkspaceDraft(host, token) {
+    clearCreateDraft(token);
     if (host.toast && typeof host.toast.error === "function") {
       host.toast.error("Tags picked in the create dialog may not have been applied: a task was created in a different workspace.");
     }
   }
 
-  function unmountCreateDraft() {
-    createDraft.mounted = Math.max(0, createDraft.mounted - 1);
-    if (createDraft.mounted > 0) return;
-    var foreignHost = createDraft.foreignHost;
-    createDraft.foreignHost = null; // never carried into a later dialog
-    if (createDraft.tagIds.length === 0) return;
-    if (foreignHost) {
-      reportForeignWorkspaceDraft(foreignHost);
-      return;
-    }
-    cancelCreateDraftGrace();
-    createDraft.graceTimer = setTimeout(clearCreateDraft, CREATE_DRAFT_GRACE_MS);
-  }
-
   /**
-   * `task.created` handler: applies the pending draft to the new task. Adds are
-   * sequential (each is a read-modify-write of the task's tag list) and
-   * independent -- one tag deleted since it was picked does not block the rest.
-   * Resolves once the shared store is refreshed, so the new card shows its chips.
+   * Applies a dialog's draft only to the exact task reported by that dialog's
+   * host-owned completion callback. Adds are sequential read-modify-writes.
    */
-  function applyCreateDraftToNewTask(host, payload) {
-    if (!createDraft.workspaceId || createDraft.tagIds.length === 0) return Promise.resolve();
-    if (!payload || typeof payload !== "object") return Promise.resolve();
-    var taskId = typeof payload.task_id === "string" ? payload.task_id : "";
-    if (!taskId) return Promise.resolve();
-    if (payload.is_ephemeral) return Promise.resolve();
-    if (payload.origin && payload.origin !== "manual") return Promise.resolve();
-    if (payload.parent_id) return Promise.resolve();
-    if (payload.workspace_id && payload.workspace_id !== createDraft.workspaceId) {
-      // A dialog that creates tasks in another workspace than the active one
-      // (the host's Improve Kandev dialog) cannot be served: the selector is
-      // bound to the active workspace. The host publishes task.created before
-      // the dialog closes, so usually a selector is still mounted: remember
-      // that and report when the last one unmounts. Either way the draft is
-      // dropped rather than drifting onto an unrelated task later.
-      if (createDraft.mounted === 0) reportForeignWorkspaceDraft(host);
-      else createDraft.foreignHost = host;
+  function applyCreateDraftToNewTask(host, task, dialogToken) {
+    if (dialogToken === undefined) dialogToken = createDraft.dialogToken;
+    if (!dialogToken || createDraft.dialogToken !== dialogToken || !createDraft.workspaceId || createDraft.tagIds.length === 0) {
       return Promise.resolve();
     }
-    if (!sharedTagsEnabled(host, createDraft.workspaceId)) return Promise.resolve();
+    if (!task || typeof task !== "object") return Promise.resolve();
+    var taskId = typeof task.id === "string" ? task.id : "";
+    if (!taskId) return Promise.resolve();
     var workspaceId = createDraft.workspaceId;
+    if (task.workspace_id !== workspaceId) {
+      reportForeignWorkspaceDraft(host, dialogToken);
+      return Promise.resolve();
+    }
+    if (!sharedTagsEnabled(host, workspaceId)) {
+      clearCreateDraft(dialogToken);
+      return Promise.resolve();
+    }
     var tagIds = createDraft.tagIds.slice();
     // Drop ids deleted since they were picked (the badge no longer counts them)
     // instead of failing them and toasting about a tag that no longer exists.
@@ -2211,7 +2175,7 @@
         return createDraft.created.indexOf(id) !== -1 || findTagById(knownStore.value.tags, id) !== null;
       });
     }
-    clearCreateDraft();
+    clearCreateDraft(dialogToken);
     var failed = 0;
     return tagIds
       .reduce(function (chain, tagId) {
@@ -2229,7 +2193,6 @@
         return fetchSharedTags(host, workspaceId);
       });
   }
-
   function makeTaskCreateTagSelector(host) {
     var React = host.React;
     var jsx = host.jsx;
@@ -2237,6 +2200,8 @@
 
     return function TaskCreateTagSelector(props) {
       var slotProps = (props && props.slotProps) || {};
+      var dialogToken = React.useState(++createDraftTokenSequence)[0];
+      var registerTaskCreatedHandler = slotProps.registerTaskCreatedHandler;
       var workspaceId = resolveWorkspaceId(host, null);
       var sharedTagsAndLoaded = useSharedTags(host, workspaceId);
       var sharedTags = sharedTagsAndLoaded[0];
@@ -2262,26 +2227,47 @@
       var setError = errorState[1];
 
       React.useEffect(function () {
-        // The host also mounts this slot in composers that cannot create tasks.
-        // They must not keep a cancelled task-create draft alive.
-        if (slotProps.surface !== "task-create") return;
+        if (
+          slotProps.surface !== "task-create" ||
+          slotProps.taskId ||
+          typeof registerTaskCreatedHandler !== "function"
+        ) {
+          return;
+        }
+        beginCreateDraft(dialogToken);
         function onChange() {
           setTick(function (t) {
             return t + 1;
           });
         }
         createDraft.listeners.push(onChange);
-        mountCreateDraft();
+        var unregister = registerTaskCreatedHandler(function (task) {
+          applyCreateDraftToNewTask(host, task, dialogToken).catch(function (err) {
+            logError("apply tags to new task", err);
+          });
+        });
         return function () {
           var index = createDraft.listeners.indexOf(onChange);
           if (index !== -1) createDraft.listeners.splice(index, 1);
-          unmountCreateDraft();
+          if (typeof unregister === "function") unregister();
+          clearCreateDraft(dialogToken);
         };
-      }, [slotProps.surface]);
+      }, [
+        slotProps.surface,
+        slotProps.taskId,
+        registerTaskCreatedHandler,
+        dialogToken,
+      ]);
 
-      // Only the Create Task composer; the new-session composer reuses this
-      // slot's props shape but starts no task.
-      if (slotProps.surface !== "task-create") return null;
+      // Only a create-mode task dialog can select tags; session and edit
+      // composers do not have a matching task-create completion callback.
+      if (
+        slotProps.surface !== "task-create" ||
+        slotProps.taskId ||
+        typeof registerTaskCreatedHandler !== "function"
+      ) {
+        return null;
+      }
       if (!workspaceId || !sharedTagsEnabled(host, workspaceId)) return null;
       if (!ui.Popover || !ui.PopoverTrigger || !ui.PopoverContent) return null;
 
@@ -2289,6 +2275,7 @@
       // A tag deleted while the dialog is open drops out of the draft: the
       // badge, the checkmarks and the 12-tag cap all read this one view.
       function liveDraft() {
+        if (createDraft.dialogToken !== dialogToken) return [];
         var ids = createDraftTagIds(workspaceId);
         if (!loaded || loadError) return ids;
         return ids.filter(function (id) {
@@ -2301,6 +2288,7 @@
       var displayError = error || (loadError ? withDetail("Could not load tags. Please try again.", loadError) : null);
 
       function toggleTag(id) {
+        if (createDraft.dialogToken !== dialogToken) return;
         setError(null);
         var current = liveDraft();
         if (current.indexOf(id) !== -1) {
@@ -2313,8 +2301,9 @@
       }
 
       function handleCreate() {
-        if (!canCreate || createInFlight.active) return;
+        if (createDraft.dialogToken !== dialogToken || !canCreate || createInFlight.active) return;
         createInFlight.active = true;
+        var requestToken = dialogToken;
         setError(null);
         host.api
           .invokeAction("tag-create", { workspaceId: workspaceId, body: { name: draft } })
@@ -2322,25 +2311,22 @@
             var tags = payload && Array.isArray(payload.tags) ? payload.tags : [];
             var created = tags.filter(function (tag) { return tag.name.toLowerCase() === name.toLowerCase(); })[0];
             if (!created) throw new Error("tag not found after create");
-            setDraft("");
-            // The dialog may have closed while the request was in flight (a
-            // submit or cancel): a late selection would then outlive its
-            // dialog and tag an unrelated task, so it stays out of the draft.
-            if (createDraft.mounted > 0) {
-              var current = liveDraft();
-              if (current.indexOf(created.id) !== -1) {
-                // already selected
-              } else if (current.length >= MAX_TAGS_PER_TASK) {
-                setError("A task can have at most " + MAX_TAGS_PER_TASK + " tags.");
-              } else {
-                createDraft.created.push(created.id);
-                createDraft.createdTags.push(created);
-                setCreateDraftTagIds(workspaceId, current.concat([created.id]));
-              }
-            }
             refreshSharedTags();
+            if (createDraft.dialogToken !== requestToken) return;
+            setDraft("");
+            var current = liveDraft();
+            if (current.indexOf(created.id) !== -1) {
+              // already selected
+            } else if (current.length >= MAX_TAGS_PER_TASK) {
+              setError("A task can have at most " + MAX_TAGS_PER_TASK + " tags.");
+            } else {
+              createDraft.created.push(created.id);
+              createDraft.createdTags.push(created);
+              setCreateDraftTagIds(workspaceId, current.concat([created.id]));
+            }
           })
           .catch(function (err) {
+            if (createDraft.dialogToken !== requestToken) return;
             logError("create shared tag", err);
             setError(
               isDuplicateNameError(err)
@@ -3855,16 +3841,8 @@
       registry.registerComponent("task-row-metadata", makeTagChips(host, { removable: false, dense: true }));
       registry.registerComponent("main-top-bar", makeTagsTopBarDropdown(host, capabilities));
       registry.registerComponent("task-create-input-actions", makeTaskCreateTagSelector(host));
-      // Tags picked in the Create Task dialog are applied to the task the host
-      // announces next; hosts without registerWsHandler never mount the slot
-      // either, so there is nothing to apply.
-      if (typeof registry.registerWsHandler === "function") {
-        registry.registerWsHandler("task.created", function (payload) {
-          applyCreateDraftToNewTask(host, payload).catch(function (err) {
-            logError("apply tags to new task", err);
-          });
-        });
-      }
+      // Drafts are applied through the completion callback registered by the
+      // owning task-create dialog, never a workspace-wide task.created event.
       addDisposable(clearCreateDraft);
 
       registry.registerTaskMenuAction({
@@ -3913,10 +3891,10 @@
       makeTagId: makeTagId,
       makeTaskCreateTagSelector: makeTaskCreateTagSelector,
       applyCreateDraftToNewTask: applyCreateDraftToNewTask,
+      beginCreateDraft: beginCreateDraft,
       clearCreateDraft: clearCreateDraft,
       createDraftTagIds: createDraftTagIds,
       setCreateDraftTagIds: setCreateDraftTagIds,
-      CREATE_DRAFT_GRACE_MS: CREATE_DRAFT_GRACE_MS,
       colorFromName: colorFromName,
       findTagByName: findTagByName,
       findTagById: findTagById,

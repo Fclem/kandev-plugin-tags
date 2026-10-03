@@ -4,8 +4,9 @@
 
 ### Fixed
 
-- Keep cancelled Create Task tag drafts on their own expiry lifecycle; the
-  same slot mounted by the new-session composer no longer keeps them alive.
+- Apply create-dialog tag drafts only to the task reported by that dialog's
+  success callback. Closing clears the draft immediately, and late tag-creation
+  responses cannot select tags in a later dialog.
 
 ## [0.16.0] - 2026-09-28
 

@@ -5183,6 +5183,11 @@ function makeCreateSelectorHost() {
     { id: "t1", name: "urgent", color: "#ef4444" },
     { id: "t2", name: "backend", color: "#3b82f6" },
   ];
+  const handlersByTree = new WeakMap();
+  const emitCreatedTask = (tree, task) => {
+    const handlers = handlersByTree.get(tree);
+    if (handlers) [...handlers].forEach((handler) => handler(task));
+  };
   fakeHost.api = {
     invokeAction(key, input) {
       calls.push({ key, input });
@@ -5191,7 +5196,21 @@ function makeCreateSelectorHost() {
     },
   };
   fakeHost.toast = { error: () => {} };
-  return { fakeHost, calls };
+  const mount = fakeHost.mount.bind(fakeHost);
+  fakeHost.mount = (Component, props) => {
+    const taskCreatedHandlers = new Set();
+    const registerTaskCreatedHandler = (handler) => {
+      taskCreatedHandlers.add(handler);
+      return () => taskCreatedHandlers.delete(handler);
+    };
+    const tree = mount(Component, {
+      ...props,
+      slotProps: { registerTaskCreatedHandler, ...(props && props.slotProps) },
+    });
+    handlersByTree.set(tree, taskCreatedHandlers);
+    return tree;
+  };
+  return { fakeHost, calls, emitCreatedTask };
 }
 
 function findAllTestNodes(node, testId, found = []) {
@@ -5213,60 +5232,89 @@ test("create-task selector renders only on the task-create surface", async () =>
   await flush();
   assert.equal(getTree(), null, "new-session composer gets no tag selector");
   getTree.unmount();
+  const legacyHost = makeCreateSelectorHost();
+  const legacyTree = legacyHost.fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(legacyHost.fakeHost), {
+    slotProps: { surface: "task-create", registerTaskCreatedHandler: null },
+  });
+  await flush();
+  assert.equal(legacyTree(), null, "hosts without a dialog-scoped completion callback cannot select tags");
+  legacyTree.unmount();
+
+  const editHost = makeCreateSelectorHost();
+  const editTree = editHost.fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(editHost.fakeHost), {
+    slotProps: { surface: "task-create", taskId: "existing-task" },
+  });
+  await flush();
+  assert.equal(editTree(), null, "edit dialogs do not get a create-only selector");
+  editTree.unmount();
   plugin.__internal.clearCreateDraft();
 });
 
-test("new-session slot does not keep a cancelled create-task draft alive", async () => {
-  const timers = new Map();
-  let nextTimerId = 0;
-  const plugin = loadBundle(null, {
-    setTimeout(callback, delay) {
-      const id = ++nextTimerId;
-      timers.set(id, { callback, delay });
-      return id;
-    },
-    clearTimeout(id) {
-      timers.delete(id);
-    },
-  });
-  const { fakeHost: createHost, calls } = makeCreateSelectorHost();
-  const { fakeHost: sessionHost } = makeCreateSelectorHost();
-  const createSelector = plugin.__internal.makeTaskCreateTagSelector(createHost);
-  const sessionSelector = plugin.__internal.makeTaskCreateTagSelector(sessionHost);
-  const createTree = createHost.mount(createSelector, { slotProps: { surface: "task-create" } });
-  const sessionTree = sessionHost.mount(sessionSelector, { slotProps: { surface: "new-session" } });
-  await flush();
-
-  const options = findAllTestNodes(createTree(), "kandev-tags-create-option");
-  assert.equal(options.length, 2);
-  options[0].props.onClick();
-  await flush();
-  assertStructural.deepEqual(plugin.__internal.createDraftTagIds("ws-1"), ["t1"]);
-  assert.equal(sessionTree(), null, "the new-session composer remains mounted without a selector");
-
-  createTree.unmount();
-  assert.equal(timers.size, 1, "unmounting the task-create selector starts the expiry grace period");
-  const [timerId, graceTimer] = timers.entries().next().value;
-  assert.equal(graceTimer.delay, plugin.__internal.CREATE_DRAFT_GRACE_MS);
-  timers.delete(timerId);
-  graceTimer.callback();
-  assertStructural.deepEqual(plugin.__internal.createDraftTagIds("ws-1"), []);
-
-  calls.length = 0;
-  await plugin.__internal.applyCreateDraftToNewTask(createHost, {
-    task_id: "unrelated-task",
-    workspace_id: "ws-1",
-    origin: "manual",
-  });
-  assert.equal(calls.some((call) => call.key === "task-tag-add"), false, "an unrelated task gets no abandoned tag");
-  sessionTree.unmount();
-  plugin.__internal.clearCreateDraft();
-});
-
-test("tags picked in the create-task dialog are applied to the manual task created next", async () => {
+test("late tag creation from a closed dialog cannot select into the next dialog", async () => {
   const plugin = loadBundle();
-  const { applyCreateDraftToNewTask, clearCreateDraft, createDraftTagIds } = plugin.__internal;
-  const { fakeHost, calls } = makeCreateSelectorHost();
+  const { createDraftTagIds, makeTaskCreateTagSelector } = plugin.__internal;
+  const firstDialog = makeCreateSelectorHost();
+  const secondDialog = makeCreateSelectorHost();
+  const firstCalls = firstDialog.calls;
+  const secondCalls = secondDialog.calls;
+  let resolveTagCreate;
+  const invokeFirst = firstDialog.fakeHost.api.invokeAction.bind(firstDialog.fakeHost.api);
+  firstDialog.fakeHost.api.invokeAction = (key, input) => {
+    if (key === "tag-create") {
+      firstCalls.push({ key, input });
+      return new Promise((resolve) => {
+        resolveTagCreate = resolve;
+      });
+    }
+    return invokeFirst(key, input);
+  };
+
+  const firstTree = firstDialog.fakeHost.mount(makeTaskCreateTagSelector(firstDialog.fakeHost), {
+    slotProps: { surface: "task-create" },
+  });
+  await flush();
+  findTestNode(firstTree(), "kandev-tags-create-input").props.onChange({ target: { value: "created-in-first" } });
+  const addButton = findTestNode(firstTree(), "kandev-tags-create-add");
+  assert.equal(addButton.props.disabled, false);
+  addButton.props.onClick();
+  assert.equal(typeof resolveTagCreate, "function", "tag creation is pending");
+  firstTree.unmount();
+
+  const secondTree = secondDialog.fakeHost.mount(makeTaskCreateTagSelector(secondDialog.fakeHost), {
+    slotProps: { surface: "task-create" },
+  });
+  await flush();
+  const options = findAllTestNodes(secondTree(), "kandev-tags-create-option");
+  assert.equal(options.length, 2);
+  options[1].props.onClick();
+  await flush();
+  assertStructural.deepEqual(createDraftTagIds("ws-1"), ["t2"]);
+
+  resolveTagCreate({
+    tags: [{ id: "tag-from-first", name: "created-in-first", color: "#ef4444" }],
+  });
+  await flush();
+  assertStructural.deepEqual(createDraftTagIds("ws-1"), ["t2"], "the first dialog's late response cannot mutate the second draft");
+
+  firstDialog.emitCreatedTask(firstTree, { id: "unrelated-task", workspace_id: "ws-1" });
+  await flush();
+  assertStructural.deepEqual(createDraftTagIds("ws-1"), ["t2"], "a task outside the second dialog cannot claim its draft");
+
+  secondDialog.emitCreatedTask(secondTree, { id: "task-from-second", workspace_id: "ws-1" });
+  await flush();
+  assertStructural.deepEqual(
+    secondCalls.filter((call) => call.key === "task-tag-add").map((call) => [call.input.taskId, call.input.body.tagId]),
+    [["task-from-second", "t2"]],
+  );
+  assert.equal(firstCalls.some((call) => call.key === "task-tag-add"), false);
+  secondTree.unmount();
+  plugin.__internal.clearCreateDraft();
+});
+
+test("tags picked in the create-task dialog are applied to that dialog's created task", async () => {
+  const plugin = loadBundle();
+  const { clearCreateDraft, createDraftTagIds } = plugin.__internal;
+  const { fakeHost, calls, emitCreatedTask } = makeCreateSelectorHost();
   const Selector = plugin.__internal.makeTaskCreateTagSelector(fakeHost);
   const getTree = fakeHost.mount(Selector, { slotProps: { surface: "task-create" } });
   await flush();
@@ -5281,83 +5329,66 @@ test("tags picked in the create-task dialog are applied to the manual task creat
   assert.equal(trigger.props.badge, "2", "the trigger shows how many tags are selected");
 
   calls.length = 0;
-  await applyCreateDraftToNewTask(fakeHost, { task_id: "new-task", workspace_id: "ws-1", origin: "manual" });
+  emitCreatedTask(getTree, { id: "new-task", workspace_id: "ws-1" });
+  await flush();
   assertStructural.deepEqual(
-    calls.map((c) => [c.key, c.input.taskId, c.input.body && c.input.body.tagId]),
+    calls.map((call) => [call.key, call.input.taskId, call.input.body && call.input.body.tagId]),
     [
       ["task-tag-add", "new-task", "t2"],
       ["task-tag-add", "new-task", "t1"],
-      ["shared-tags", undefined, undefined],
     ],
   );
   assertStructural.deepEqual(createDraftTagIds("ws-1"), [], "the draft is consumed");
   assert.equal(findTestNode(getTree(), "kandev-tags-create-trigger").props.badge, undefined);
+  getTree.unmount();
   clearCreateDraft();
 });
 
-test("the create-task draft is never applied to agent-created, ephemeral or subtasks", async () => {
+test("create-task completion ignores tasks without a stable id", async () => {
   const plugin = loadBundle();
-  const { applyCreateDraftToNewTask, clearCreateDraft, setCreateDraftTagIds, createDraftTagIds } = plugin.__internal;
+  const { applyCreateDraftToNewTask, beginCreateDraft, clearCreateDraft, createDraftTagIds, setCreateDraftTagIds } =
+    plugin.__internal;
   const { fakeHost, calls } = makeCreateSelectorHost();
+  const dialogToken = {};
+  beginCreateDraft(dialogToken);
   setCreateDraftTagIds("ws-1", ["t1"]);
-  for (const payload of [
-    { task_id: "a", workspace_id: "ws-1", origin: "agent_created" },
-    { task_id: "b", workspace_id: "ws-1", origin: "automation_run" },
-    { task_id: "c", workspace_id: "ws-1", is_ephemeral: true },
-    { task_id: "e", workspace_id: "ws-1", origin: "manual", parent_id: "parent-task" },
-    { workspace_id: "ws-1", origin: "manual" },
-  ]) {
-    await applyCreateDraftToNewTask(fakeHost, payload);
-  }
-  assert.equal(calls.length, 0, "no tag action was invoked for a task the dialog did not create");
-  assertStructural.deepEqual(createDraftTagIds("ws-1"), ["t1"], "the draft survives for the real task");
-  clearCreateDraft();
+  await applyCreateDraftToNewTask(fakeHost, { workspace_id: "ws-1" }, dialogToken);
+  assert.equal(calls.some((call) => call.key === "task-tag-add"), false);
+  assertStructural.deepEqual(createDraftTagIds("ws-1"), ["t1"], "invalid completion data does not consume the draft");
+  clearCreateDraft(dialogToken);
 });
 
 test("a failing tag add still applies the rest and reports the failure", async () => {
   const { console: fakeConsole } = makeFakeConsole();
   const plugin = loadBundle(fakeConsole);
-  const { applyCreateDraftToNewTask, setCreateDraftTagIds } = plugin.__internal;
+  const { applyCreateDraftToNewTask, beginCreateDraft, setCreateDraftTagIds } = plugin.__internal;
   const { fakeHost, calls } = makeCreateSelectorHost();
   const toasts = [];
   fakeHost.toast = { error: (message) => toasts.push(message) };
   const original = fakeHost.api.invokeAction;
   fakeHost.api.invokeAction = (key, input) =>
     key === "task-tag-add" && input.body.tagId === "t1" ? Promise.reject(apiError(404, "tag not found")) : original(key, input);
+  const dialogToken = {};
+  beginCreateDraft(dialogToken);
   setCreateDraftTagIds("ws-1", ["t1", "t2"]);
-  await applyCreateDraftToNewTask(fakeHost, { task_id: "new-task", workspace_id: "ws-1" });
+  await applyCreateDraftToNewTask(fakeHost, { id: "new-task", workspace_id: "ws-1" }, dialogToken);
   assert.ok(calls.some((c) => c.key === "task-tag-add" && c.input.body.tagId === "t2"), "the surviving tag is applied");
   assert.equal(toasts.length, 1);
   assert.match(toasts[0], /Could not apply 1 tag /);
 });
 
-test("an abandoned create-task draft expires only after the last selector unmounts", async () => {
-  const timers = [];
-  const plugin = loadBundle(undefined, {
-    setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; },
-    clearTimeout: (id) => { if (timers[id - 1]) timers[id - 1].cancelled = true; },
-  });
-  const { createDraftTagIds, setCreateDraftTagIds, CREATE_DRAFT_GRACE_MS } = plugin.__internal;
+test("closing the create dialog immediately clears its draft", async () => {
+  const plugin = loadBundle();
+  const { createDraftTagIds, setCreateDraftTagIds } = plugin.__internal;
   const { fakeHost } = makeCreateSelectorHost();
-  const cleanups = [];
-  const realUseEffect = fakeHost.React.useEffect;
-  fakeHost.React.useEffect = (fn, deps) =>
-    realUseEffect(() => {
-      const cleanup = fn();
-      cleanups.push(cleanup);
-      return cleanup;
-    }, deps);
-  fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(fakeHost), { slotProps: { surface: "task-create" } });
+  const getTree = fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(fakeHost), {
+    slotProps: { surface: "task-create" },
+  });
   await flush();
   setCreateDraftTagIds("ws-1", ["t1"]);
-  assert.equal(timers.length, 0, "no expiry while the dialog is open");
-
-  cleanups.forEach((cleanup) => typeof cleanup === "function" && cleanup());
-  const expiry = timers[timers.length - 1];
-  assert.equal(expiry.ms, CREATE_DRAFT_GRACE_MS);
-  assertStructural.deepEqual(createDraftTagIds("ws-1"), ["t1"], "kept through the grace window so the task.created notification can claim it");
-  expiry.fn();
-  assertStructural.deepEqual(createDraftTagIds("ws-1"), [], "a cancelled dialog's selection cannot tag a later task");
+  assertStructural.deepEqual(createDraftTagIds("ws-1"), ["t1"]);
+  getTree.unmount();
+  assertStructural.deepEqual(createDraftTagIds("ws-1"), [], "a cancelled dialog cannot leave a draft for a later task");
 });
 
 test("a tag created after the dialog closed never enters the create-task draft", async () => {
@@ -5396,9 +5427,9 @@ test("tags deleted while the create-task dialog is open do not count toward the 
   const { clearCreateDraft, createDraftTagIds, setCreateDraftTagIds } = plugin.__internal;
   const { fakeHost } = makeCreateSelectorHost();
   const stale = Array.from({ length: 11 }, (_, i) => "gone" + i);
-  setCreateDraftTagIds("ws-1", ["t1"].concat(stale));
   const getTree = fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(fakeHost), { slotProps: { surface: "task-create" } });
   await flush();
+  setCreateDraftTagIds("ws-1", ["t1"].concat(stale));
   assert.equal(findTestNode(getTree(), "kandev-tags-create-trigger").props.badge, "1");
 
   const backend = findAllTestNodes(getTree(), "kandev-tags-create-option")[1];
@@ -5409,18 +5440,31 @@ test("tags deleted while the create-task dialog is open do not count toward the 
   clearCreateDraft();
 });
 
-test("a closed dialog's draft is dropped, with a toast, when the task lands in another workspace", async () => {
+test("a foreign-workspace completion is rejected without affecting the next dialog", async () => {
   const plugin = loadBundle();
-  const { applyCreateDraftToNewTask, createDraftTagIds, setCreateDraftTagIds } = plugin.__internal;
+  const { applyCreateDraftToNewTask, beginCreateDraft, createDraftTagIds, setCreateDraftTagIds } = plugin.__internal;
   const { fakeHost, calls } = makeCreateSelectorHost();
   const toasts = [];
-  fakeHost.toast = { error: (m) => toasts.push(m) };
+  fakeHost.toast = { error: (message) => toasts.push(message) };
+  const firstToken = {};
+  beginCreateDraft(firstToken);
   setCreateDraftTagIds("ws-1", ["t1"]);
-  await applyCreateDraftToNewTask(fakeHost, { task_id: "x", workspace_id: "ws-2", origin: "manual" });
-  assert.equal(calls.length, 0);
+  await applyCreateDraftToNewTask(fakeHost, { id: "foreign-task", workspace_id: "ws-2" }, firstToken);
+  assert.equal(calls.some((call) => call.key === "task-tag-add"), false);
   assert.equal(toasts.length, 1);
-  assertStructural.deepEqual(createDraftTagIds("ws-1"), [], "cannot drift onto a later task");
+  assertStructural.deepEqual(createDraftTagIds("ws-1"), []);
+
+  const nextToken = {};
+  beginCreateDraft(nextToken);
+  setCreateDraftTagIds("ws-1", ["t2"]);
+  await applyCreateDraftToNewTask(fakeHost, { id: "next-task", workspace_id: "ws-1" }, nextToken);
+  assertStructural.deepEqual(
+    calls.filter((call) => call.key === "task-tag-add").map((call) => [call.input.taskId, call.input.body.tagId]),
+    [["next-task", "t2"]],
+  );
+  assert.equal(toasts.length, 1, "the foreign-workspace failure is not carried into the later dialog");
 });
+
 
 test("a tag just created in the dialog survives the next toggle before the store refresh lands", async () => {
   const plugin = loadBundle();
@@ -5447,22 +5491,25 @@ test("a tag just created in the dialog survives the next toggle before the store
 
 test("tags deleted before the task is created are skipped silently, not toasted as failures", async () => {
   const plugin = loadBundle();
-  const { applyCreateDraftToNewTask, setCreateDraftTagIds } = plugin.__internal;
-  const { fakeHost, calls } = makeCreateSelectorHost();
+  const { setCreateDraftTagIds } = plugin.__internal;
+  const { fakeHost, calls, emitCreatedTask } = makeCreateSelectorHost();
   const toasts = [];
-  fakeHost.toast = { error: (m) => toasts.push(m) };
-  // load the shared store so the catalog (t1, t2) is known
-  const getTree = fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(fakeHost), { slotProps: { surface: "task-create" } });
+  fakeHost.toast = { error: (message) => toasts.push(message) };
+  const getTree = fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(fakeHost), {
+    slotProps: { surface: "task-create" },
+  });
   await flush();
-  void getTree;
   setCreateDraftTagIds("ws-1", ["gone", "t1"]);
-  await applyCreateDraftToNewTask(fakeHost, { task_id: "new-task", workspace_id: "ws-1" });
+  emitCreatedTask(getTree, { id: "new-task", workspace_id: "ws-1" });
+  await flush();
   assertStructural.deepEqual(
-    calls.filter((c) => c.key === "task-tag-add").map((c) => c.input.body.tagId),
+    calls.filter((call) => call.key === "task-tag-add").map((call) => call.input.body.tagId),
     ["t1"],
   );
   assert.equal(toasts.length, 0);
+  getTree.unmount();
 });
+
 
 test("creating a tag while 12 are selected explains why it was not selected", async () => {
   const plugin = loadBundle();
@@ -5486,61 +5533,6 @@ test("creating a tag while 12 are selected explains why it was not selected", as
   clearCreateDraft();
 });
 
-test("a foreign-workspace task.created seen while the dialog is open is reported when it closes", async () => {
-  const plugin = loadBundle();
-  const { applyCreateDraftToNewTask, createDraftTagIds, setCreateDraftTagIds } = plugin.__internal;
-  const { fakeHost, calls } = makeCreateSelectorHost();
-  const toasts = [];
-  fakeHost.toast = { error: (m) => toasts.push(m) };
-  const cleanups = [];
-  const realUseEffect = fakeHost.React.useEffect;
-  fakeHost.React.useEffect = (fn, deps) =>
-    realUseEffect(() => {
-      const cleanup = fn();
-      cleanups.push(cleanup);
-      return cleanup;
-    }, deps);
-  fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(fakeHost), { slotProps: { surface: "task-create" } });
-  await flush();
-  setCreateDraftTagIds("ws-1", ["t1"]);
-  await applyCreateDraftToNewTask(fakeHost, { task_id: "x", workspace_id: "ws-2", origin: "manual" });
-  assert.equal(toasts.length, 0, "dialog still open: nothing reported yet");
-  cleanups.forEach((cleanup) => typeof cleanup === "function" && cleanup());
-  assert.equal(toasts.length, 1);
-  assertStructural.deepEqual(createDraftTagIds("ws-1"), []);
-  assert.equal(calls.filter((c) => c.key === "task-tag-add").length, 0);
-});
-
-test("a foreign-workspace flag does not leak into a later create dialog", async () => {
-  const plugin = loadBundle();
-  const { applyCreateDraftToNewTask, setCreateDraftTagIds, clearCreateDraft } = plugin.__internal;
-  const { fakeHost } = makeCreateSelectorHost();
-  const toasts = [];
-  fakeHost.toast = { error: (m) => toasts.push(m) };
-  const cleanups = [];
-  const realUseEffect = fakeHost.React.useEffect;
-  fakeHost.React.useEffect = (fn, deps) =>
-    realUseEffect(() => {
-      const cleanup = fn();
-      cleanups.push(cleanup);
-      return cleanup;
-    }, deps);
-  fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(fakeHost), { slotProps: { surface: "task-create" } });
-  await flush();
-  setCreateDraftTagIds("ws-1", ["t1"]);
-  await applyCreateDraftToNewTask(fakeHost, { task_id: "x", workspace_id: "ws-2" });
-  setCreateDraftTagIds("ws-1", []); // user deselects, then closes
-  cleanups.splice(0).forEach((cleanup) => typeof cleanup === "function" && cleanup());
-  assert.equal(toasts.length, 0);
-
-  // next dialog: pick a tag and cancel
-  fakeHost.mount(plugin.__internal.makeTaskCreateTagSelector(fakeHost), { slotProps: { surface: "task-create" } });
-  await flush();
-  setCreateDraftTagIds("ws-1", ["t1"]);
-  cleanups.splice(0).forEach((cleanup) => typeof cleanup === "function" && cleanup());
-  assert.equal(toasts.length, 0, "no foreign task was seen in this dialog");
-  clearCreateDraft();
-});
 
 test("pressing Add twice creates the tag once and shows no duplicate-name error", async () => {
   const plugin = loadBundle();
