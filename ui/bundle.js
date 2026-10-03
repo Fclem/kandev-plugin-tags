@@ -15,8 +15,8 @@
  *     (TagPickerModal) to search/create and multi-select tags for the card;
  *   - a "task-create-input-actions" slot button (TaskCreateTagSelector) in the
  *     Create Task dialog's composer toolbar: a popover to pick/create shared
- *     tags before the task exists, applied on the host's `task.created`
- *     notification (see applyCreateDraftToNewTask);
+ *     tags before the task exists, applied by that dialog's successful-create
+ *     callback (see applyCreateDraftToNewTask);
  *   - a "main-top-bar" slot button ("Tags box") that opens a
  *     filter+manage dropdown (TagsTopBarDropdown) to add/rename/recolor/
  *     remove tags from the user's tag catalog: an icon-lg trigger, a
