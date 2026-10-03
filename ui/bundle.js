@@ -13,6 +13,10 @@
  *   - a registerTaskMenuAction under the kanban card's "primary" group
  *     ("Add tag...") that opens a redesigned host.openModal editor
  *     (TagPickerModal) to search/create and multi-select tags for the card;
+ *   - a "task-create-input-actions" slot button (TaskCreateTagSelector) in the
+ *     Create Task dialog's composer toolbar: a popover to pick/create shared
+ *     tags before the task exists, applied on the host's `task.created`
+ *     notification (see applyCreateDraftToNewTask);
  *   - a "main-top-bar" slot button ("Tags box") that opens a
  *     filter+manage dropdown (TagsTopBarDropdown) to add/rename/recolor/
  *     remove tags from the user's tag catalog: an icon-lg trigger, a
@@ -2036,11 +2040,11 @@
    * renderer emits `entry.icon` bare and applies no sizing of its own, so
    * the plugin must own the className.
    */
-  function tagIconElement(host) {
+  function tagIconElement(host, className) {
     return host.jsx(
       "svg",
       {
-        className: "mr-2 h-4 w-4",
+        className: className || "mr-2 h-4 w-4",
         viewBox: "0 0 24 24",
         fill: "none",
         stroke: "currentColor",
@@ -2081,6 +2085,437 @@
       host.jsx("path", { d: "M16 9h.01" }),
       host.jsx("path", { d: "M8 13h8" }),
     );
+  }
+
+  // ---------------------------------------------------------------------
+  // task-create-input-actions: tag selector in the Create Task dialog
+  //
+  // The dialog has no task id yet, so the selection is a module-level draft
+  // (the popover and the slot component are separate React trees that must
+  // agree on it) that is applied to the task the host announces over the
+  // `task.created` WS notification. Nothing in the slot props links a dialog
+  // to the task it produces, so the draft is bound to the workspace and only
+  // applied to a top-level task whose origin is absent or "manual" -- which
+  // excludes agent-created, routine, onboarding and automation tasks and any subtask (parent_id), but
+  // NOT a top-level task an agent creates over MCP or the PR watcher imports:
+  // the host stamps those "manual" too. The host also mounts this same slot,
+  // with identical props, in the Edit Task dialog (an update emits no
+  // task.created), so tags picked there are not applied to the edited task and
+  // may be claimed by the next manual task instead. Both need a host contract
+  // (a mode / created-task signal in the slot props); until then this is a
+  // best-effort correlation. It lives while a selector is mounted and
+  // for CREATE_DRAFT_GRACE_MS after the last one unmounts -- long enough for
+  // a submit (which closes the dialog) to be followed by its notification,
+  // short enough that a cancelled dialog cannot tag an unrelated task later.
+  // ---------------------------------------------------------------------
+
+  var CREATE_DRAFT_GRACE_MS = 10000;
+  // `created`: ids this dialog created itself; the store learns of them only
+  // after the next shared-tags refresh, so liveDraft must not prune them early.
+  // `foreignHost`: set when a task.created for another workspace was seen while a
+  // selector was mounted, so the last unmount can report the lost selection.
+  var createDraft = { workspaceId: null, tagIds: [], created: [], createdTags: [], mounted: 0, graceTimer: null, listeners: [], foreignHost: null };
+
+  function notifyCreateDraft() {
+    createDraft.listeners.slice().forEach(function (listener) {
+      listener();
+    });
+  }
+
+  function cancelCreateDraftGrace() {
+    if (createDraft.graceTimer === null) return;
+    clearTimeout(createDraft.graceTimer);
+    createDraft.graceTimer = null;
+  }
+
+  function clearCreateDraft() {
+    cancelCreateDraftGrace();
+    createDraft.createdTags = [];
+    createDraft.foreignHost = null;
+    if (createDraft.workspaceId === null && createDraft.tagIds.length === 0) return;
+    createDraft.workspaceId = null;
+    createDraft.tagIds = [];
+    createDraft.createdTags = [];
+    notifyCreateDraft();
+  }
+
+  function createDraftTagIds(workspaceId) {
+    return createDraft.workspaceId === workspaceId ? createDraft.tagIds : [];
+  }
+
+  function setCreateDraftTagIds(workspaceId, tagIds) {
+    createDraft.workspaceId = tagIds.length > 0 ? workspaceId : null;
+    createDraft.tagIds = tagIds;
+    notifyCreateDraft();
+  }
+
+  function mountCreateDraft() {
+    createDraft.mounted += 1;
+    cancelCreateDraftGrace();
+  }
+
+  function reportForeignWorkspaceDraft(host) {
+    clearCreateDraft();
+    if (host.toast && typeof host.toast.error === "function") {
+      host.toast.error("Tags picked in the create dialog may not have been applied: a task was created in a different workspace.");
+    }
+  }
+
+  function unmountCreateDraft() {
+    createDraft.mounted = Math.max(0, createDraft.mounted - 1);
+    if (createDraft.mounted > 0) return;
+    var foreignHost = createDraft.foreignHost;
+    createDraft.foreignHost = null; // never carried into a later dialog
+    if (createDraft.tagIds.length === 0) return;
+    if (foreignHost) {
+      reportForeignWorkspaceDraft(foreignHost);
+      return;
+    }
+    cancelCreateDraftGrace();
+    createDraft.graceTimer = setTimeout(clearCreateDraft, CREATE_DRAFT_GRACE_MS);
+  }
+
+  /**
+   * `task.created` handler: applies the pending draft to the new task. Adds are
+   * sequential (each is a read-modify-write of the task's tag list) and
+   * independent -- one tag deleted since it was picked does not block the rest.
+   * Resolves once the shared store is refreshed, so the new card shows its chips.
+   */
+  function applyCreateDraftToNewTask(host, payload) {
+    if (!createDraft.workspaceId || createDraft.tagIds.length === 0) return Promise.resolve();
+    if (!payload || typeof payload !== "object") return Promise.resolve();
+    var taskId = typeof payload.task_id === "string" ? payload.task_id : "";
+    if (!taskId) return Promise.resolve();
+    if (payload.is_ephemeral) return Promise.resolve();
+    if (payload.origin && payload.origin !== "manual") return Promise.resolve();
+    if (payload.parent_id) return Promise.resolve();
+    if (payload.workspace_id && payload.workspace_id !== createDraft.workspaceId) {
+      // A dialog that creates tasks in another workspace than the active one
+      // (the host's Improve Kandev dialog) cannot be served: the selector is
+      // bound to the active workspace. The host publishes task.created before
+      // the dialog closes, so usually a selector is still mounted: remember
+      // that and report when the last one unmounts. Either way the draft is
+      // dropped rather than drifting onto an unrelated task later.
+      if (createDraft.mounted === 0) reportForeignWorkspaceDraft(host);
+      else createDraft.foreignHost = host;
+      return Promise.resolve();
+    }
+    if (!sharedTagsEnabled(host, createDraft.workspaceId)) return Promise.resolve();
+    var workspaceId = createDraft.workspaceId;
+    var tagIds = createDraft.tagIds.slice();
+    // Drop ids deleted since they were picked (the badge no longer counts them)
+    // instead of failing them and toasting about a tag that no longer exists.
+    var knownStore = getSharedTagStore(workspaceId);
+    if (knownStore.loaded && !knownStore.error && knownStore.value && Array.isArray(knownStore.value.tags)) {
+      tagIds = tagIds.filter(function (id) {
+        return createDraft.created.indexOf(id) !== -1 || findTagById(knownStore.value.tags, id) !== null;
+      });
+    }
+    clearCreateDraft();
+    var failed = 0;
+    return tagIds
+      .reduce(function (chain, tagId) {
+        return chain.then(function () {
+          return host.api.invokeAction("task-tag-add", { taskId: taskId, body: { tagId: tagId } }).catch(function (err) {
+            failed += 1;
+            logError("apply tag to new task", err);
+          });
+        });
+      }, Promise.resolve())
+      .then(function () {
+        if (failed > 0 && host.toast && typeof host.toast.error === "function") {
+          host.toast.error("Could not apply " + failed + " tag" + (failed === 1 ? "" : "s") + " to the new task. Add them from the card menu.");
+        }
+        return fetchSharedTags(host, workspaceId);
+      });
+  }
+
+  function makeTaskCreateTagSelector(host) {
+    var React = host.React;
+    var jsx = host.jsx;
+    var ui = host.ui;
+
+    return function TaskCreateTagSelector(props) {
+      var slotProps = (props && props.slotProps) || {};
+      var workspaceId = resolveWorkspaceId(host, null);
+      var sharedTagsAndLoaded = useSharedTags(host, workspaceId);
+      var sharedTags = sharedTagsAndLoaded[0];
+      var loaded = sharedTagsAndLoaded[1];
+      var refreshSharedTags = sharedTagsAndLoaded[2];
+      var loadError = sharedTagsAndLoaded[3];
+      var tickState = React.useState(0);
+      var setTick = tickState[1];
+      var openState = React.useState(false);
+      var open = openState[0];
+      var setOpen = openState[1];
+      var draftState = React.useState("");
+      var draft = draftState[0];
+      var setDraft = draftState[1];
+      var triggerElState = React.useState(null);
+      var triggerEl = triggerElState[0];
+      var setTriggerEl = triggerElState[1];
+      // Set synchronously (not via state) so a double Enter / double click
+      // cannot start a second tag-create before the first one resolves.
+      var createInFlight = React.useState({ active: false })[0];
+      var errorState = React.useState(null);
+      var error = errorState[0];
+      var setError = errorState[1];
+
+      React.useEffect(function () {
+        function onChange() {
+          setTick(function (t) {
+            return t + 1;
+          });
+        }
+        createDraft.listeners.push(onChange);
+        mountCreateDraft();
+        return function () {
+          var index = createDraft.listeners.indexOf(onChange);
+          if (index !== -1) createDraft.listeners.splice(index, 1);
+          unmountCreateDraft();
+        };
+      }, []);
+
+      // Only the Create Task composer; the new-session composer reuses this
+      // slot's props shape but starts no task.
+      if (slotProps.surface !== "task-create") return null;
+      if (!workspaceId || !sharedTagsEnabled(host, workspaceId)) return null;
+      if (!ui.Popover || !ui.PopoverTrigger || !ui.PopoverContent) return null;
+
+      var catalog = sharedTags && Array.isArray(sharedTags.tags) ? sharedTags.tags : [];
+      // A tag deleted while the dialog is open drops out of the draft: the
+      // badge, the checkmarks and the 12-tag cap all read this one view.
+      function liveDraft() {
+        var ids = createDraftTagIds(workspaceId);
+        if (!loaded || loadError) return ids;
+        return ids.filter(function (id) {
+          return createDraft.created.indexOf(id) !== -1 || findTagById(catalog, id) !== null;
+        });
+      }
+      var selected = liveDraft();
+      var name = normalizeName(draft);
+      var canCreate = loaded && !loadError && name !== null && findTagByName(catalog, name) === null;
+      var displayError = error || (loadError ? withDetail("Could not load tags. Please try again.", loadError) : null);
+
+      function toggleTag(id) {
+        setError(null);
+        var current = liveDraft();
+        if (current.indexOf(id) !== -1) {
+          setCreateDraftTagIds(workspaceId, current.filter(function (existing) { return existing !== id; }));
+        } else if (current.length >= MAX_TAGS_PER_TASK) {
+          setError("A task can have at most " + MAX_TAGS_PER_TASK + " tags.");
+        } else {
+          setCreateDraftTagIds(workspaceId, current.concat([id]));
+        }
+      }
+
+      function handleCreate() {
+        if (!canCreate || createInFlight.active) return;
+        createInFlight.active = true;
+        setError(null);
+        host.api
+          .invokeAction("tag-create", { workspaceId: workspaceId, body: { name: draft } })
+          .then(function (payload) {
+            var tags = payload && Array.isArray(payload.tags) ? payload.tags : [];
+            var created = tags.filter(function (tag) { return tag.name.toLowerCase() === name.toLowerCase(); })[0];
+            if (!created) throw new Error("tag not found after create");
+            setDraft("");
+            // The dialog may have closed while the request was in flight (a
+            // submit or cancel): a late selection would then outlive its
+            // dialog and tag an unrelated task, so it stays out of the draft.
+            if (createDraft.mounted > 0) {
+              var current = liveDraft();
+              if (current.indexOf(created.id) !== -1) {
+                // already selected
+              } else if (current.length >= MAX_TAGS_PER_TASK) {
+                setError("A task can have at most " + MAX_TAGS_PER_TASK + " tags.");
+              } else {
+                createDraft.created.push(created.id);
+                createDraft.createdTags.push(created);
+                setCreateDraftTagIds(workspaceId, current.concat([created.id]));
+              }
+            }
+            refreshSharedTags();
+          })
+          .catch(function (err) {
+            logError("create shared tag", err);
+            setError(
+              isDuplicateNameError(err)
+                ? 'A tag named "' + name + '" already exists.'
+                : withDetail("Could not create tag. Please try again.", err),
+            );
+          })
+          .then(function () {
+            createInFlight.active = false;
+          });
+      }
+
+      function handleKeyDown(e) {
+        if (e.key !== "Enter") return;
+        // The input lives inside the Create Task dialog's form: Enter must
+        // create the tag, never submit the task.
+        e.preventDefault();
+        if (typeof e.stopPropagation === "function") e.stopPropagation();
+        handleCreate();
+      }
+
+      // Portal into the dialog itself, like the host's own pickers: that keeps
+      // the popover inside the modal's scroll lock without being clipped by the
+      // form's overflow-hidden. Falls back to rendering inline when the trigger
+      // is not inside a dialog.
+      var dialogEl =
+        triggerEl && typeof triggerEl.closest === "function"
+          ? triggerEl.closest('[data-slot="dialog-content"]') || triggerEl.closest('[role="dialog"]')
+          : null;
+      var label = "Tags";
+      var triggerProps = {
+        label: label,
+        icon: tagIconElement(host, "h-4 w-4"),
+        badge: selected.length > 0 ? String(selected.length) : undefined,
+        disabled: !!slotProps.disabled,
+        "aria-haspopup": "dialog",
+        "aria-expanded": open,
+        "aria-controls": "kandev-tags-create-selector",
+        "data-testid": "kandev-tags-create-trigger",
+        ref: setTriggerEl,
+      };
+      var trigger = ui.Action
+        ? jsx(ui.Action, triggerProps)
+        : jsx(
+            ui.Button,
+            {
+              type: "button",
+              variant: "ghost",
+              size: "icon",
+              "aria-label": label,
+              disabled: triggerProps.disabled,
+              "aria-haspopup": "dialog",
+              "aria-expanded": open,
+              "aria-controls": "kandev-tags-create-selector",
+              "data-testid": "kandev-tags-create-trigger",
+              ref: setTriggerEl,
+            },
+            triggerProps.icon,
+            selected.length > 0 ? String(selected.length) : null,
+          );
+
+      var selectedPills = selected.map(function (id) {
+        var tag = findTagById(catalog, id);
+        if (!tag) {
+          for (var i = 0; i < createDraft.createdTags.length; i++) {
+            if (createDraft.createdTags[i].id === id) {
+              tag = createDraft.createdTags[i];
+              break;
+            }
+          }
+        }
+        if (!tag) return null;
+        return jsx(
+          "span",
+          {
+            key: id,
+            "data-testid": "kandev-tags-create-pill",
+            title: tag.name,
+            style: chipStyle(tag.color),
+          },
+          tag.name,
+        );
+      });
+      return jsx(
+        "div",
+        {
+          "data-testid": "kandev-tags-create-actions",
+          style: { display: "inline-flex", alignItems: "center", gap: "6px", minWidth: 0 },
+        },
+        selectedPills,
+        jsx(
+          ui.Popover,
+          { open: open, onOpenChange: setOpen },
+          jsx(ui.PopoverTrigger, { asChild: true }, trigger),
+        jsx(
+          ui.PopoverContent,
+          {
+            id: "kandev-tags-create-selector",
+            align: "start",
+            "data-testid": "kandev-tags-create-selector",
+            style: { width: "280px" },
+            // A portal inside the dialog keeps wheel-scroll working under the
+            // modal's scroll lock; with no dialog ancestor render inline.
+            portal: !!dialogEl,
+            portalContainer: dialogEl || undefined,
+          },
+          jsx(
+            "div",
+            { style: { display: "flex", flexDirection: "column", gap: "10px" } },
+            jsx(
+              "div",
+              { style: { display: "flex", gap: "8px", alignItems: "center" } },
+              jsx(ui.Input, {
+                "data-testid": "kandev-tags-create-input",
+                value: draft,
+                placeholder: "Select or create a tag\u2026",
+                maxLength: MAX_TAG_LENGTH,
+                style: { flex: 1, minWidth: 0 },
+                onChange: function (e) {
+                  setDraft(e.target.value);
+                },
+                onKeyDown: handleKeyDown,
+              }),
+              jsx(
+                ui.Button,
+                {
+                  type: "button",
+                  "data-testid": "kandev-tags-create-add",
+                  disabled: !canCreate,
+                  onClick: handleCreate,
+                },
+                "Add",
+              ),
+            ),
+            jsx(
+              "div",
+              { "data-testid": "kandev-tags-create-list", style: { maxHeight: "220px", overflowY: "auto" } },
+              !loaded
+                ? "Loading\u2026"
+                : catalog
+                    .filter(function (tag) {
+                      return !name || tag.name.toLowerCase().indexOf(name.toLowerCase()) !== -1;
+                    })
+                    .map(function (tag) {
+                      var checked = selected.indexOf(tag.id) !== -1;
+                      return jsx(
+                        ui.Button,
+                        {
+                          key: tag.id,
+                          type: "button",
+                          variant: "ghost",
+                          "data-testid": "kandev-tags-create-option",
+                          "aria-pressed": checked,
+                          style: { display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" },
+                          onClick: function () {
+                            toggleTag(tag.id);
+                          },
+                        },
+                        jsx("span", { style: chipStyle(tag.color) }, tag.name),
+                        checked ? jsx("span", { "aria-hidden": "true" }, "\u2713") : null,
+                      );
+                    }),
+            ),
+            displayError
+              ? jsx(
+                  "div",
+                  { "data-testid": "kandev-tags-create-error" },
+                  displayError,
+                  loadError
+                    ? jsx(ui.Button, { type: "button", size: "sm", "data-testid": "kandev-tags-create-retry", onClick: refreshSharedTags }, "Retry")
+                    : null,
+                )
+              : null,
+          ),
+        ),
+      ),
+      );
+    };
   }
 
   // ---------------------------------------------------------------------
@@ -3416,6 +3851,18 @@
       // TASK_ROW_CHIP_LIMIT visible chips plus a "+N" indicator.
       registry.registerComponent("task-row-metadata", makeTagChips(host, { removable: false, dense: true }));
       registry.registerComponent("main-top-bar", makeTagsTopBarDropdown(host, capabilities));
+      registry.registerComponent("task-create-input-actions", makeTaskCreateTagSelector(host));
+      // Tags picked in the Create Task dialog are applied to the task the host
+      // announces next; hosts without registerWsHandler never mount the slot
+      // either, so there is nothing to apply.
+      if (typeof registry.registerWsHandler === "function") {
+        registry.registerWsHandler("task.created", function (payload) {
+          applyCreateDraftToNewTask(host, payload).catch(function (err) {
+            logError("apply tags to new task", err);
+          });
+        });
+      }
+      addDisposable(clearCreateDraft);
 
       registry.registerTaskMenuAction({
         id: "add-tag",
@@ -3461,6 +3908,12 @@
       normalizeName: normalizeName,
       normalizeColor: normalizeColor,
       makeTagId: makeTagId,
+      makeTaskCreateTagSelector: makeTaskCreateTagSelector,
+      applyCreateDraftToNewTask: applyCreateDraftToNewTask,
+      clearCreateDraft: clearCreateDraft,
+      createDraftTagIds: createDraftTagIds,
+      setCreateDraftTagIds: setCreateDraftTagIds,
+      CREATE_DRAFT_GRACE_MS: CREATE_DRAFT_GRACE_MS,
       colorFromName: colorFromName,
       findTagByName: findTagByName,
       findTagById: findTagById,
