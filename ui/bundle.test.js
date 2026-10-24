@@ -2483,7 +2483,7 @@ test("task-list facet is feature-detected and resolves catalog, legacy, and orph
   );
 });
 
-test("task-list facet resolves the shared workspace catalog (not the legacy private one) when the host supports actions", async () => {
+test("task-list facet synchronously resolves multiple shared tags without mounted rows or legacy storage", async () => {
   const plugin = loadBundle();
   let facet = null;
   const host = makeMinimalHost({
@@ -2500,8 +2500,17 @@ test("task-list facet resolves the shared workspace catalog (not the legacy priv
         assert.equal(key, "shared-tags");
         assertStructural.deepEqual(input, { workspaceId: "ws-1" });
         return Promise.resolve({
-          tags: [{ id: "t1", name: "Urgent", color: "#ef4444" }],
-          tasks: { "task-1": [{ id: "t1", name: "Urgent", color: "#ef4444" }] },
+          tags: [
+            { id: "t1", name: "Urgent", color: "#ef4444" },
+            { id: "t2", name: "Frontend", color: "#22c55e" },
+            { id: "unused", name: "Unused", color: "#000000" },
+          ],
+          tasks: {
+            "task-1": [
+              { id: "t1", name: "Urgent", color: "#ef4444" },
+              { id: "t2", name: "Frontend", color: "#22c55e" },
+            ],
+          },
         });
       },
     },
@@ -2518,9 +2527,22 @@ test("task-list facet resolves the shared workspace catalog (not the legacy priv
   );
   await flush();
 
-  assertStructural.deepEqual(facet.getValues({ workspaceId: "ws-1", taskId: "task-1" }), [
+  const values = facet.getValues({ workspaceId: "ws-1", taskId: "task-1" });
+  assert.ok(Array.isArray(values), "sidebar consumers receive values synchronously, not a promise");
+  assertStructural.deepEqual(values, [
     { value: "t1", label: "Urgent", color: "#ef4444" },
+    { value: "t2", label: "Frontend", color: "#22c55e" },
   ]);
+  assertStructural.deepEqual(
+    facet.getValues({ workspaceId: "ws-1", taskId: "task-untagged" }),
+    [],
+    "unused catalog tags do not create memberships for an untagged sidebar row",
+  );
+  assertStructural.deepEqual(
+    facet.getValues({ workspaceId: "ws-other", taskId: "task-1" }),
+    [],
+    "shared memberships remain scoped to the active workspace",
+  );
 });
 
 test("task-list facet falls back to the legacy private catalog when the shared-tags action fails", async () => {

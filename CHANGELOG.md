@@ -9,6 +9,12 @@
 - Show each recent tag's color in the submenu with a matching dot.
 - Document that `/tasks` Group by Tag omits tags no loaded task carries and
   lists untagged tasks in the host's "Unassigned" section (kdlbs/kandev#4542).
+- Document host-dependent **Group by Tag** in workspace-scoped saved
+  left-sidebar views, including multi-tag membership, nonempty sections,
+  live updates, and preserving the saved choice while the facet is unavailable.
+  This requires Kandev's saved-sidebar plugin-facet grouping integration;
+  `/tasks` facet support alone does not enable it. The existing synchronous
+  tag facet and subscription need no runtime API or storage changes.
 
 
 ## [0.16.0] - 2026-09-28

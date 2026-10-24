@@ -3443,10 +3443,10 @@
   // ---------------------------------------------------------------------
 
   /**
-   * Projects this user's private tags into the host's optional, page-local
-   * task-list facet API. The host owns registration generation/lifecycle;
-   * this plugin owns only its storage subscriptions and releases those in
-   * destroy() through addDisposable. Older hosts simply do not have this
+   * Projects workspace tags into the host's optional task-list facet API,
+   * shared by /tasks and compatible saved-sidebar views. The host owns
+   * registration generation/lifecycle; this plugin releases its subscriptions
+   * in destroy() through addDisposable. Older hosts do not have this
    * registry method, so their existing card chips and board filtering keep
    * working unchanged.
    */
@@ -3490,7 +3490,7 @@
      * group header and a newly applied tag would never leave Untagged
      * until a full reload. Every one of those actions calls
      * refreshSharedTags(), and ensureSharedTagRefresh adds a 30s/on-focus
-     * poll, so adopting that store is what makes /tasks react live.
+     * poll, so adopting that store keeps all facet consumers live.
      */
     function refreshCatalog() {
       if (!currentWorkspaceId) {
