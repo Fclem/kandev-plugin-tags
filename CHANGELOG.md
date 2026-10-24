@@ -7,6 +7,8 @@
 - Mark the first recent-tag submenu child as a new group so hosts with
   `separatorBefore` support render a divider after **More tags...**.
 - Show each recent tag's color in the submenu with a matching dot.
+- Document that `/tasks` Group by Tag omits tags no loaded task carries and
+  lists untagged tasks in the host's "Unassigned" section (kdlbs/kandev#4542).
 
 
 ## [0.16.0] - 2026-09-28

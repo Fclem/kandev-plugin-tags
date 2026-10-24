@@ -192,8 +192,9 @@ that card. The target must be a task in this workspace.
   `registerTaskListFacet`, this plugin contributes **Tag** to `/tasks` Sort
   and Group. Sorting uses the alphabetically first resolved tag name
   (case-insensitive), keeps untagged tasks last, and preserves the incoming
-  order for ties. Grouping creates a colored section for every tag and an
-  Untagged section; multi-tag tasks appear in each matching section. This is
+  order for ties. Grouping creates a colored section for every tag that at
+  least one loaded task carries, plus the host's "Unassigned" section for
+  untagged tasks; multi-tag tasks appear in each matching section. This is
   deliberately page-local: it operates on the task rows already loaded by
   `/tasks`, not across backend pages.
 - **Remove a tag from a card**: click the `x` on a chip on the card itself,
