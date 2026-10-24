@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Mark the first recent-tag submenu child as a new group so hosts with
+  `separatorBefore` support render a divider after **More tags...**.
+- Show each recent tag's color in the submenu with a matching dot.
+
 ### Fixed
 
 - Apply create-dialog tag drafts only to the task reported by that dialog's
