@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- **Tag combination** grouping: one section per exact tag set, independent
+  of assignment order, with stable identity across tag renames. Available
+  in the saved sidebar view on compatible hosts and in `/tasks`; the existing
+  **Tag** option continues to repeat multi-tag tasks in individual tag groups.
+
 ### Changed
 
 - Mark the first recent-tag submenu child as a new group so hosts with

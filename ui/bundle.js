@@ -3626,33 +3626,47 @@
       );
     }
 
+    function getTagValues(context) {
+      // Never project the previous workspace's catalog into another workspace.
+      if (context.workspaceId && context.workspaceId !== currentWorkspaceId) return [];
+      var tagIds = sharedTaskTags ? sharedTaskTags[context.taskId] : getTaskTagCacheEntry(context.taskId);
+      if (!tagIds) return [];
+      return tagIds.map(function (tagId) {
+        var tag = resolveTag(catalog, tagId);
+        return tag ? { value: tag.id, label: tag.name, color: renderableColor(tag.color) } : null;
+      }).filter(function (tag) { return tag !== null; });
+    }
+
+    function subscribe(listener) {
+      listeners.push(listener);
+      return function () {
+        listeners = listeners.filter(function (candidate) { return candidate !== listener; });
+      };
+    }
+
     registry.registerTaskListFacet({
       id: TAGS_FILTER_ID,
       label: "Tag",
+      getValues: getTagValues,
+      subscribe: subscribe,
+    });
+    registry.registerTaskListFacet({
+      id: "tag-combinations",
+      label: "Tag combination",
       getValues: function (context) {
-        // Never use a prior workspace's catalog when the host provides a
-        // task workspace context. A missing workspace keeps compatibility
-        // with early host drafts and relies on the active-workspace reset.
-        if (context.workspaceId && context.workspaceId !== currentWorkspaceId) return [];
-        var tagIds = sharedTaskTags ? sharedTaskTags[context.taskId] : getTaskTagCacheEntry(context.taskId);
-        if (!tagIds) return [];
-        return tagIds
-          .map(function (tagId) {
-            var tag = resolveTag(catalog, tagId);
-            return tag ? { value: tag.id, label: tag.name, color: renderableColor(tag.color) } : null;
-          })
-          .filter(function (tag) {
-            return tag !== null;
-          });
+        var tags = getTagValues(context);
+        if (!tags.length) return [];
+        // Identity depends on the set of tag IDs, never assignment order or names.
+        var identity = JSON.stringify(tags.map(function (tag) { return tag.value; }).sort());
+        tags.sort(function (a, b) {
+          return a.label.localeCompare(b.label, undefined, { sensitivity: "base" }) ||
+            a.value.localeCompare(b.value);
+        });
+        var value = { value: identity, label: tags.map(function (tag) { return tag.label; }).join(" + ") };
+        if (tags.length === 1) value.color = tags[0].color;
+        return [value];
       },
-      subscribe: function (listener) {
-        listeners.push(listener);
-        return function () {
-          listeners = listeners.filter(function (candidate) {
-            return candidate !== listener;
-          });
-        };
-      },
+      subscribe: subscribe,
     });
   }
 
