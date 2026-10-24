@@ -245,7 +245,11 @@ agent_tools:
 #     count and cascade removal) -- the built-in dropdown's section is
 #     hidden so there is exactly one Tags control.
 #   - host also has registerTaskListFacet: the plugin contributes Tag Sort and
-#     Group choices to /tasks. Those choices are client-side over the current
-#     loaded page; they never expose private tag storage to backend queries.
+#     Group choices to /tasks over its currently loaded page. Hosts implementing
+#     saved sidebar facet grouping also consume the same synchronous values and
+#     subscription for workspace-scoped Group by Tag: multi-tag tasks repeat in
+#     each matching section, untagged tasks use Unassigned, and empty groups are
+#     omitted. The API's presence alone does not imply sidebar support. Neither
+#     consumer exposes private tag storage to backend queries.
 ui:
   bundle: "/ui/bundle.js"
