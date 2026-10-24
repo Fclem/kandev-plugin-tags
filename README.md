@@ -206,6 +206,16 @@ that card. The target must be a task in this workspace.
   This sidebar integration needs the corresponding Kandev host change;
   installing this plugin alone does not add it to older hosts. No new
   plugin API or tag storage is needed.
+- **Group by Tag combination**: choose **Tag combination** instead of **Tag**
+  to create one section for each exact set of tags. A task carrying **Bug**
+  and **UX** appears only in **Bug + UX**, not in the separate **Bug** or
+  **UX** sections. Tasks carrying the same set share a section regardless of
+  assignment order; single-tag tasks have their own sections, and untagged
+  tasks remain in **Unassigned**. Section identities use tag IDs, so renaming
+  tags updates the heading without changing the group's identity. Single-tag
+  sections retain their tag color; combinations do not choose an arbitrary
+  member's color. This option uses the same workspace/page scope and live
+  updates as **Tag** and is also offered by compatible `/tasks` controls.
 - **Task list Sort and Group**: on hosts that expose
   `registerTaskListFacet`, this plugin contributes **Tag** to `/tasks` Sort
   and Group. Sorting uses the alphabetically first resolved tag name

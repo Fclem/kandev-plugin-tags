@@ -2457,7 +2457,7 @@ test("task-list facet is feature-detected and resolves catalog, legacy, and orph
       registerComponent() {},
       registerTaskMenuAction() {},
       registerTaskListFacet(registration) {
-        facet = registration;
+        if (registration.id === "tags") facet = registration;
       },
     },
     host,
@@ -2520,7 +2520,7 @@ test("task-list facet synchronously resolves multiple shared tags without mounte
       registerComponent() {},
       registerTaskMenuAction() {},
       registerTaskListFacet(registration) {
-        facet = registration;
+        if (registration.id === "tags") facet = registration;
       },
     },
     host,
@@ -2569,7 +2569,7 @@ test("task-list facet falls back to the legacy private catalog when the shared-t
       registerComponent() {},
       registerTaskMenuAction() {},
       registerTaskListFacet(registration) {
-        facet = registration;
+        if (registration.id === "tags") facet = registration;
       },
     },
     host,
@@ -2605,7 +2605,7 @@ test("task-list facet re-projects live when a shared tag is renamed or a task-ta
       registerComponent() {},
       registerTaskMenuAction() {},
       registerTaskListFacet(registration) {
-        facet = registration;
+        if (registration.id === "tags") facet = registration;
       },
     },
     host,
@@ -2639,6 +2639,63 @@ test("task-list facet re-projects live when a shared tag is renamed or a task-ta
     [{ value: "t1", label: "Defect", color: "#22c55e" }],
     "a newly tagged task leaves the Untagged section without a reload",
   );
+});
+
+test("tag combinations group exact sets independent of assignment order and preserve identity on rename", async () => {
+  const plugin = loadBundle();
+  const facets = {};
+  let payload = {
+    tags: [
+      { id: "a", name: "Bug", color: "#ef4444" },
+      { id: "b", name: "UX", color: "#22c55e" },
+      { id: "c", name: "Bug + UX", color: "#000000" },
+    ],
+    tasks: {
+      multi: [{ id: "b" }, { id: "a" }],
+      reversed: [{ id: "a" }, { id: "b" }],
+      single: [{ id: "c" }],
+    },
+  };
+  const host = makeMinimalHost({
+    storage: {
+      get: () => Promise.resolve(undefined),
+      subscribe: () => () => {},
+      listByKey: () => Promise.resolve({ entries: [], truncated: false }),
+    },
+    api: { invokeAction: () => Promise.resolve(payload) },
+  });
+  plugin.initialize({
+    registerComponent() {},
+    registerTaskMenuAction() {},
+    registerTaskListFacet(facet) { facets[facet.id] = facet; },
+  }, host);
+  await flush();
+  const combination = facets["tag-combinations"];
+  const values = (taskId, workspaceId = "ws-1") => combination.getValues({ taskId, workspaceId });
+  assertStructural.deepEqual(values("multi"), [{ value: '["a","b"]', label: "Bug + UX" }]);
+  assertStructural.deepEqual(values("reversed"), values("multi"));
+  assert.notEqual(values("single")[0].value, values("multi")[0].value, "a tag name cannot collide with a combination");
+  assertStructural.deepEqual(values("single"), [{ value: '["c"]', label: "Bug + UX", color: "#000000" }]);
+  assertStructural.deepEqual(values("untagged"), []);
+  assertStructural.deepEqual(values("multi", "ws-other"), []);
+  assert.equal(facets.tags.getValues({ taskId: "multi", workspaceId: "ws-1" }).length, 2);
+  let notifications = 0;
+  const unsubscribe = combination.subscribe(() => { notifications += 1; });
+  payload.tags[0].name = "Defect";
+  await plugin.__internal.fetchSharedTags(host, "ws-1");
+  await flush();
+  assertStructural.deepEqual(values("multi"), [{ value: '["a","b"]', label: "Defect + UX" }]);
+  assert.ok(notifications > 0);
+  payload.tasks.multi = [{ id: "b" }];
+  await plugin.__internal.fetchSharedTags(host, "ws-1");
+  await flush();
+  assertStructural.deepEqual(values("multi"), [{ value: '["b"]', label: "UX", color: "#22c55e" }]);
+  unsubscribe();
+  const before = notifications;
+  await plugin.__internal.fetchSharedTags(host, "ws-1");
+  await flush();
+  assert.equal(notifications, before);
+  plugin.destroy();
 });
 
 test("registerTaskFilter's matches() treats an unseen card as untagged", () => {
