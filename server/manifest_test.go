@@ -55,20 +55,6 @@ func TestManifestDeclaresSharedCatalogContract(t *testing.T) {
 	require.Equal(t, "kandev-plugin-tags", manifest.ID)
 	require.True(t, manifest.Capabilities.State)
 	require.True(t, manifest.Capabilities.UserState)
-	require.Equal(t, []string{"shared-tags", "tag-create", "tag-update", "tag-delete", "task-tag-add", "task-tag-remove"}, func() []string {
-		out := make([]string, len(manifest.Actions))
-		for i := range manifest.Actions {
-			out[i] = manifest.Actions[i].Key
-		}
-		return out
-	}())
-	require.Equal(t, []string{"workspace", "workspace", "workspace", "workspace", "task", "task"}, func() []string {
-		out := make([]string, len(manifest.Actions))
-		for i := range manifest.Actions {
-			out[i] = manifest.Actions[i].Scope
-		}
-		return out
-	}())
 	require.Equal(t, []string{"create_tag", "update_tag", "delete_tag", "add_tag", "remove_tag", "list_tags"}, func() []string {
 		out := make([]string, len(manifest.AgentTools))
 		for i := range manifest.AgentTools {

@@ -5,7 +5,7 @@
 // frontend UI bundle continues to manage users' private task tags.
 package main
 
-import "github.com/kandev/kandev/pkg/pluginsdk"
+import "github.com/kdlbs/kandev/pluginsdk"
 
 func main() {
 	pluginsdk.Serve(&tagsPlugin{})

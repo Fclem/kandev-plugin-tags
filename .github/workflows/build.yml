@@ -26,9 +26,11 @@ jobs:
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           repository: kdlbs/kandev
-          ref: 401947fd828b9bffe503003764566be01f19d1e1
+          ref: c42775f671cef7532065c054669c62dbd5970275
           path: kandev
-          sparse-checkout: apps/backend
+          sparse-checkout: |
+            pluginsdk
+            apps/backend
 
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0

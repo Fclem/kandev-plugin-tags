@@ -44,6 +44,34 @@ automatic retries, then retries again when the browser regains focus or
 connectivity, the view remounts, or the user selects Retry, without rewriting
 saved tags.
 
+### Saved sidebar Tag view
+
+Kandev 0.102.0 or a matching development host can group the complete saved
+sidebar by shared workspace tags. On desktop, choose **Tag** under **Plugin
+views** in the Tasks view selector. On a phone, open the navigation menu,
+then **Plugin groupings** in the Tasks bar and choose **Tag**.
+
+The host creates a normal workspace-specific saved view. Selecting Tag again
+reuses an unmodified generated view; filters, sorting, pins and collapse state
+use the normal saved-view controls. Renaming or otherwise editing a generated
+view preserves that view instead of overwriting it on the next selection.
+
+Classification covers every authorized root matching the saved filters before
+the 100-row page is selected, including tasks not previously loaded in the
+browser. A root with multiple shared tags appears in each matching group with
+its child tree. Untagged contains roots with no shared tag. The unique-task
+total counts a task once; pagination counts displayed task occurrences.
+
+Human and agent applications of the same shared tag produce one membership.
+Renames, color changes and membership edits invalidate the sidebar immediately.
+Disabling or removing Tags shows an unavailable provider without erasing the
+saved view; enabling the provider restores it. Invalid, incomplete or oversized
+shared state fails explicitly rather than showing a partial classification.
+
+Pre-0.8.0 private tags remain visible to their owner through the existing UI,
+but are not part of this shared sidebar classification. The separate **Tag**
+grouping on `/tasks` remains page-local and is unchanged.
+
 ### Agent MCP workflow
 
 The tools are exposed only while an agent is running on a kanban task. Kandev
@@ -377,8 +405,9 @@ checkout named `kandev` next to this repo, e.g.:
 ```
 some-parent-dir/
 ├── kandev-plugin-tags/   (this repo)
-└── kandev/
-    └── apps/backend/     (from kdlbs/kandev)
+└── kandev/              (matching kdlbs/kandev checkout)
+    ├── pluginsdk/       (standalone Go SDK)
+    └── apps/backend/    (package builder)
 ```
 
 ### Host support: the menu submenu (merged upstream)
@@ -394,13 +423,11 @@ or a later release renders the quick pick.
 A host older than that keeps the flat behaviour, by design: **Add tag...**
 stays the item it has always been and opens the picker modal.
 
-The package states the boundary in its manifest: `min_kandev_version:
-"0.96.0"` is the first *release* containing the API -- the merge commit is an
-ancestor of `v0.96.0` and not of `v0.95.1`. Kandev enforces that on install for
-release builds only (`requires kandev >= 0.96.0, running v0.95.1`); a `dev` or
-nightly build carries no release boundary and skips the check, which is where
-the flat fallback above is still reachable -- a host that has the API always
-renders the list, so the fallback is a safety net, not the supported path.
+The submenu API first shipped in Kandev 0.96.0. This package now declares
+`min_kandev_version: "0.102.0"` for the complete saved-sidebar grouping contract,
+which is a newer requirement. The host enforces the minimum for published
+release and nightly versions. A `dev` host skips version comparison, but must
+still contain the corresponding SDK and host implementation.
 
 `contrib/kandev-plugin-submenus.patch` is the reference implementation those
 twenty-three commits were reviewed into, kept for the reasoning behind each
@@ -514,35 +541,34 @@ git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.p
 
 ### Setup / Prerequisites
 
-Before building, get the Kandev SDK checked out using:
+Use a Kandev checkout containing the complete sidebar grouping contract. The
+default sibling checkout is `../kandev`; otherwise setup creates a sparse
+checkout under the ignored `.build/kandev` directory:
 
 ```sh
-make setup   # sparse-clones kdlbs/kandev's apps/backend into .build/kandev
+make setup   # sparse-clones pluginsdk and apps/backend
 ```
-
-Makefile targets use `../kandev/apps/backend` automatically when that sibling
-checkout already exists. Otherwise `make setup` creates the SDK under this
-repo's ignored `.build/kandev/apps/backend` directory and the Makefile
-temporarily points Go's local `replace` there while each target runs.
 
 If you prefer the sibling layout, create it manually:
 
 ```sh
 git clone --filter=blob:none --sparse https://github.com/kdlbs/kandev ../kandev
-git -C ../kandev sparse-checkout set apps/backend
+git -C ../kandev sparse-checkout set pluginsdk apps/backend
 ```
 
-If your monorepo checkout lives elsewhere, override the path instead of
-editing `go.mod`:
+If the matching monorepo checkout lives elsewhere, override its root:
 
 ```sh
-make setup KANDEV_SDK=/path/to/kandev/apps/backend
-make package-host KANDEV_SDK=/path/to/kandev/apps/backend
+make test vet KANDEV_ROOT=/path/to/kandev
+make package-host KANDEV_ROOT=/path/to/kandev
 ```
 
-`build`, `test`, `vet`, `package`, and `package-host` all check for the SDK
-first (`make check-sdk`) and fail fast with an actionable message if it's
-missing.
+`KANDEV_SDK` defaults to `$(KANDEV_ROOT)/pluginsdk`; `KANDEV_BACKEND` defaults
+to `$(KANDEV_ROOT)/apps/backend`. Build, test and vet check the standalone SDK;
+packaging also checks the backend package builder. Each Go target uses temporary
+alternate module files, so it does not rewrite the checked-in `go.mod` or
+`go.sum`. Put `TMPDIR`, Go caches and build output on the appropriate cache
+volume when running in an environment with a separate cache drive.
 
 ```sh
 make test        # Go unit tests + dependency-free UI helper/storage tests
@@ -560,7 +586,7 @@ and its `checksums.txt` asset.
 
 ## State
 
-A per-(user, workspace) tag catalog (scope `workspace`) plus a small array
-of applied tag ids per (user, card) (scope `task`), both in kandev Host
-per-user state, so a user's tags participate in kandev backups, survive
-plugin upgrades, and are removed on uninstall.
+Shared tag definitions and human/agent applications live in workspace Host
+state under `agent-tags`. Legacy private catalogs and applications remain in
+per-user workspace/task state. Host-managed state participates in Kandev
+backups, survives in-place plugin upgrades and is removed on explicit uninstall.

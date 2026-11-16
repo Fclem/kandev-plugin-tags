@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kandev/kandev/pkg/pluginsdk"
+	"github.com/kdlbs/kandev/pluginsdk"
 )
 
 func jsonAction(value any) (*pluginsdk.PluginActionResponse, error) {
@@ -99,6 +99,8 @@ func (p *tagsPlugin) HandleAction(ctx context.Context, req *pluginsdk.PluginActi
 		return nil, fmt.Errorf("action request is missing")
 	}
 	switch req.ActionKey {
+	case "sidebar-tags":
+		return p.sidebarGroupingAction(ctx, req)
 	case "shared-tags":
 		if err := requireActionWorkspace(req); err != nil {
 			return nil, err

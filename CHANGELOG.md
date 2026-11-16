@@ -44,8 +44,17 @@
 
 ## [Unreleased]
 
+### Added
+
+- Complete saved-sidebar Tag grouping for Kandev 0.102.0 or a matching
+  development host. Shared human and agent memberships are deduplicated before
+  host pagination, with stable content revisions, colors, explicit state errors
+  and bounded responses. The existing `/tasks` facet remains page-local.
+
 ### Changed
 
+- Require Kandev 0.102.0 for the new sidebar provider contract and build against
+  the standalone `pluginsdk` module using a matching host checkout.
 - Mark the first recent-tag submenu child as a new group so hosts with
   `separatorBefore` support render a divider after **More tags...**.
 - Show each recent tag's color in the submenu with a matching dot.

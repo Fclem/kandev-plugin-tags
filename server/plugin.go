@@ -3,7 +3,7 @@ package main
 import (
 	"sync"
 
-	"github.com/kandev/kandev/pkg/pluginsdk"
+	"github.com/kdlbs/kandev/pluginsdk"
 )
 
 // tagsPlugin serves the workspace-shared tag catalog through Host state and
