@@ -78,24 +78,47 @@ func (p *tagsPlugin) readSidebarTagDoc(ctx context.Context, workspace string) (t
 		if _, present := raw["tags"]; present {
 			return tagDoc{}, errSidebarGroupingState
 		}
-		for _, value := range applications {
-			entries, ok := value.([]any)
+	}
+	if err := validateSidebarApplications(applications, version == 1); err != nil {
+		return tagDoc{}, err
+	}
+	return decodeTagDoc(raw)
+}
+
+func validateSidebarApplications(applications map[string]any, legacy bool) error {
+	identityKey := "tag_id"
+	if legacy {
+		identityKey = "tag"
+	}
+	rawCount := 0
+	for _, value := range applications {
+		entries, ok := value.([]any)
+		if !ok || len(entries) > pluginsdk.MaxSidebarGroupingMemberships-rawCount {
+			return errSidebarGroupingState
+		}
+		rawCount += len(entries)
+		for _, entry := range entries {
+			fields, ok := entry.(map[string]any)
 			if !ok {
-				return tagDoc{}, errSidebarGroupingState
+				return errSidebarGroupingState
 			}
-			for _, entry := range entries {
-				fields, ok := entry.(map[string]any)
-				if !ok {
-					return tagDoc{}, errSidebarGroupingState
-				}
-				slug, ok := fields["tag"].(string)
-				if !ok || !sidebarTagText(slug) {
-					return tagDoc{}, errSidebarGroupingState
+			identity, ok := fields[identityKey].(string)
+			if !ok || !sidebarTagText(identity) {
+				return errSidebarGroupingState
+			}
+			if legacy {
+				continue
+			}
+			for _, key := range []string{"agent", "human"} {
+				if flag, present := fields[key]; present {
+					if _, ok := flag.(bool); !ok {
+						return errSidebarGroupingState
+					}
 				}
 			}
 		}
 	}
-	return decodeTagDoc(raw)
+	return nil
 }
 
 func sidebarTagSnapshot(doc tagDoc) (*pluginsdk.SidebarGroupingSnapshot, error) {

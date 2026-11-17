@@ -164,6 +164,90 @@ func TestSidebarGroupingRejectsInvalidOrIncompleteStoredState(t *testing.T) {
 	}
 }
 
+func TestSidebarGroupingRejectsCorruptApplicationShapesWithoutWrites(t *testing.T) {
+	cases := map[string]any{
+		"null list":      nil,
+		"null row":       []any{nil},
+		"missing tag ID": []any{map[string]any{}},
+		"null tag ID":    []any{map[string]any{"tag_id": nil}},
+		"numeric tag ID": []any{map[string]any{"tag_id": 1}},
+		"null human":     []any{map[string]any{"tag_id": "g", "human": nil}},
+		"null agent":     []any{map[string]any{"tag_id": "g", "agent": nil}},
+		"untyped human":  []any{map[string]any{"tag_id": "g", "human": "true"}},
+		"untyped agent":  []any{map[string]any{"tag_id": "g", "agent": 1}},
+	}
+	for name, entries := range cases {
+		t.Run(name, func(t *testing.T) {
+			p, host := newAgentTagTestPlugin()
+			raw := map[string]any{
+				"version": 2,
+				"tags":    []any{map[string]any{"id": "g", "name": "Ready", "color": "#123456"}},
+				"tasks":   map[string]any{"task-1": entries},
+			}
+			require.NoError(t, host.SetState(t.Context(), "workspace", "ws-1", tagStateKey, raw))
+			_, setsBefore, deletesBefore := host.stateCallCounts()
+			response, err := p.HandleAction(t.Context(), actionReq("sidebar-tags", nil))
+			require.Error(t, err)
+			require.Nil(t, response)
+			_, setsAfter, deletesAfter := host.stateCallCounts()
+			require.Equal(t, setsBefore, setsAfter)
+			require.Equal(t, deletesBefore, deletesAfter)
+		})
+	}
+}
+
+func TestSidebarGroupingAcceptsEmptyAndInactiveTypedApplications(t *testing.T) {
+	for _, entries := range [][]taskTag{{}, {{TagID: "g"}}, {{TagID: "g", Agent: false, Human: false}}} {
+		p, host := newAgentTagTestPlugin()
+		doc := newTagDoc()
+		doc.Tags = []sharedTag{{ID: "g", Name: "Ready", Color: "#123456"}}
+		doc.Tasks["task-1"] = entries
+		storeSidebarDoc(t, host, "ws-1", doc)
+		snapshot := readSidebarSnapshot(t, p, "ws-1")
+		require.Empty(t, snapshot.Memberships)
+		require.Equal(t, []pluginsdk.SidebarGroupingValue{{ID: "g", Label: "Ready", Color: "#123456"}}, snapshot.Groups)
+	}
+}
+
+func TestSidebarGroupingBoundsRawApplicationsBeforeLegacyOrDeduplication(t *testing.T) {
+	for _, version := range []int{1, 2} {
+		for _, count := range []int{pluginsdk.MaxSidebarGroupingMemberships, pluginsdk.MaxSidebarGroupingMemberships + 1} {
+			t.Run(fmt.Sprintf("v%d/%d", version, count), func(t *testing.T) {
+				p, host := newAgentTagTestPlugin()
+				entry := map[string]any{"tag": "ready"}
+				groupID := "agent-legacy-ready"
+				if version == 2 {
+					entry = map[string]any{"tag_id": "g", "human": true}
+					groupID = "g"
+				}
+				entries := make([]any, count)
+				for i := range entries {
+					entries[i] = entry
+				}
+				raw := map[string]any{"version": version, "tasks": map[string]any{"task-1": entries}}
+				if version == 2 {
+					raw["tags"] = []any{map[string]any{"id": "g", "name": "Ready", "color": "#123456"}}
+				}
+				require.NoError(t, host.SetState(t.Context(), "workspace", "ws-1", tagStateKey, raw))
+				_, setsBefore, deletesBefore := host.stateCallCounts()
+				response, err := p.HandleAction(t.Context(), actionReq("sidebar-tags", nil))
+				if count > pluginsdk.MaxSidebarGroupingMemberships {
+					require.Error(t, err)
+					require.Nil(t, response)
+				} else {
+					require.NoError(t, err)
+					snapshot, err := pluginsdk.DecodeSidebarGroupingSnapshot(response.Body)
+					require.NoError(t, err)
+					require.Equal(t, []pluginsdk.SidebarGroupingMembership{{TaskID: "task-1", GroupID: groupID}}, snapshot.Memberships)
+				}
+				_, setsAfter, deletesAfter := host.stateCallCounts()
+				require.Equal(t, setsBefore, setsAfter)
+				require.Equal(t, deletesBefore, deletesAfter)
+			})
+		}
+	}
+}
+
 func TestSidebarGroupingEnforcesBoundsWithoutTruncation(t *testing.T) {
 	for _, kind := range []string{"groups", "memberships", "response bytes", "duplicate definitions"} {
 		t.Run(kind, func(t *testing.T) {

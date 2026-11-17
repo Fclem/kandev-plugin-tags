@@ -61,6 +61,10 @@
 
 ### Fixed
 
+- Reject null application lists/rows and invalid classification field types
+  instead of presenting corrupt shared state as complete Untagged results.
+- Enforce the 10,000 raw-application limit before legacy migration and duplicate
+  normalization, including repeated applications of the same tag.
 - Apply create-dialog tag drafts only to the task reported by that dialog's
   success callback. Closing clears the draft immediately, and late tag-creation
   responses cannot select tags in a later dialog.
