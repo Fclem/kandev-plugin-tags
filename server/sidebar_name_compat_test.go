@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -17,18 +16,21 @@ func TestSidebarGroupingProjectsLegitimateControlNames(t *testing.T) {
 	require.Equal(t, "Ready\tNow", tag["name"])
 	_, err = p.HandleAction(t.Context(), actionReq("task-tag-add", []byte(`{"tagId":"`+id+`"}`)))
 	require.NoError(t, err)
-	for _, name := range []string{"Ready\tNow", "Ready\aNow"} {
+	for _, tc := range []struct{ name, label string }{
+		{"Ready\tNow", `Ready\tNow`}, {"Ready\aNow", `Ready\u0007Now`},
+	} {
+		name, label := tc.name, tc.label
 		payload, _ := json.Marshal(map[string]string{"id": id, "name": name})
 		_, err = p.HandleAction(t.Context(), actionReq("tag-update", payload))
 		require.NoError(t, err)
 		_, sets, deletes := host.stateCallCounts()
-		escaped := strconv.QuoteRune([]rune(name)[5])
-		label := "Ready" + escaped[1:len(escaped)-1] + "Now"
 		single := readSidebarActionSnapshot(t, p, "ws-1", "sidebar-tags")
 		require.Equal(t, id, single.Groups[0].ID)
 		require.Equal(t, label, single.Groups[0].Label)
 		multi := readSidebarActionSnapshot(t, p, "ws-1", "sidebar-multi-tags")
-		require.Equal(t, strconv.Quote(label), multi.Groups[0].Label)
+		quoted, err := json.Marshal(name)
+		require.NoError(t, err)
+		require.Equal(t, string(quoted), multi.Groups[0].Label)
 		_, afterSets, afterDeletes := host.stateCallCounts()
 		require.Equal(t, sets, afterSets)
 		require.Equal(t, deletes, afterDeletes)
@@ -42,5 +44,5 @@ func TestSidebarGroupingReadsHistoricalCatalogControlName(t *testing.T) {
 	doc.Tasks["task-1"] = []taskTag{{TagID: "historical", Agent: true}}
 	storeSidebarDoc(t, host, "ws-1", doc)
 	require.Equal(t, "Ready\\tNow", readSidebarSnapshot(t, p, "ws-1").Groups[0].Label)
-	require.NotEmpty(t, readSidebarActionSnapshot(t, p, "ws-1", "sidebar-multi-tags").Groups)
+	require.Equal(t, `"Ready\tNow"`, readSidebarActionSnapshot(t, p, "ws-1", "sidebar-multi-tags").Groups[0].Label)
 }

@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"slices"
-	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -173,44 +172,6 @@ func sidebarTagSnapshot(_ context.Context, doc tagDoc) (*pluginsdk.SidebarGroupi
 		i++
 	}
 	return completeSidebarSnapshot(groups, members), nil
-}
-
-// sidebarTagValue validates one catalog definition as the singleton value Tag
-// mode exports; Multi-tag reuses its validated name and normalized color.
-func sidebarTagValue(tag sharedTag) (pluginsdk.SidebarGroupingValue, error) {
-	label, err := sidebarTagLabel(tag.Name)
-	if !sidebarTagText(tag.ID) || err != nil {
-		return pluginsdk.SidebarGroupingValue{}, errSidebarGroupingState
-	}
-	color, err := normalizeTagColor(tag.Color)
-	if err != nil {
-		return pluginsdk.SidebarGroupingValue{}, errSidebarGroupingState
-	}
-	return pluginsdk.SidebarGroupingValue{ID: tag.ID, Label: label, Color: color}, nil
-}
-
-func sidebarTagLabel(name string) (string, error) {
-	if strings.TrimSpace(name) == "" || len(name) > 256 || !utf8.ValidString(name) {
-		return "", errSidebarGroupingState
-	}
-	label := name
-	if strings.IndexFunc(name, unicode.IsControl) >= 0 {
-		var escaped strings.Builder
-		escaped.Grow(len(name))
-		for _, r := range name {
-			if unicode.IsControl(r) {
-				quoted := strconv.QuoteRune(r)
-				escaped.WriteString(quoted[1 : len(quoted)-1])
-			} else {
-				escaped.WriteRune(r)
-			}
-		}
-		label = escaped.String()
-	}
-	if !sidebarTagText(label) {
-		return "", errSidebarGroupingState
-	}
-	return label, nil
 }
 
 // completeSidebarSnapshot orders values and memberships deterministically and

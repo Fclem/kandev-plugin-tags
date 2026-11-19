@@ -16,9 +16,9 @@ import (
 // checked against the remaining budgets before any subset is enumerated, and an
 // overflow fails the whole snapshot instead of returning partial combinations.
 func sidebarMultiTagSnapshot(ctx context.Context, doc tagDoc) (*pluginsdk.SidebarGroupingSnapshot, error) {
-	catalog := make(map[string]pluginsdk.SidebarGroupingValue, len(doc.Tags))
+	catalog := make(map[string]sidebarGroupingTag, len(doc.Tags))
 	for _, tag := range doc.Tags {
-		value, err := sidebarTagValue(tag)
+		value, err := sidebarTagDefinition(tag)
 		if err != nil {
 			return nil, err
 		}
@@ -108,23 +108,17 @@ func sidebarSetID(sortedTagIDs []string) (string, error) {
 	return "set-" + hex.EncodeToString(sum[:]), nil
 }
 
-// Catalog names contain no control characters, so escaping backslash and quote
-// yields a valid JSON string literal without HTML escaping of <, > or &.
-var sidebarLabelQuote = strings.NewReplacer(`\`, `\\`, `"`, `\"`)
-
 // sidebarSetValue labels a combination as its quoted member names joined by
 // " + " in canonical ID order. Quoting keeps a "+" inside one name unambiguous.
 // Only a singleton keeps its tag color; a compound value has no single owner.
 // A label beyond the transport bound is refused rather than shortened.
-func sidebarSetValue(id string, sortedTagIDs []string, catalog map[string]pluginsdk.SidebarGroupingValue) (pluginsdk.SidebarGroupingValue, bool) {
+func sidebarSetValue(id string, sortedTagIDs []string, catalog map[string]sidebarGroupingTag) (pluginsdk.SidebarGroupingValue, bool) {
 	var label strings.Builder
 	for i, tagID := range sortedTagIDs {
 		if i > 0 {
 			label.WriteString(" + ")
 		}
-		label.WriteByte('"')
-		_, _ = sidebarLabelQuote.WriteString(&label, catalog[tagID].Label)
-		label.WriteByte('"')
+		writeSidebarTagName(&label, catalog[tagID].Name, true)
 	}
 	value := pluginsdk.SidebarGroupingValue{ID: id, Label: label.String()}
 	if len(sortedTagIDs) == 1 {

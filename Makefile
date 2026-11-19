@@ -32,25 +32,43 @@ check-packager:
 	}
 
 setup:
-	@set -e; ROOT="$(KANDEV_ROOT)"; \
-	if [ -f "$$ROOT/pluginsdk/go.mod" ] && [ -d "$$ROOT/apps/backend/cmd/plugin-pack" ]; then \
+	@set -e; ROOT="$(abspath $(KANDEV_ROOT))"; OWNED=0; \
+	PENDING="$$ROOT/.kandev-plugin-tags-sdk-setup"; \
+	MANAGED="$$ROOT/.git/kandev-plugin-tags-sdk"; \
+	if [ -e "$$PENDING" ]; then \
+		echo "ERROR: SDK setup at $$ROOT is still in progress or incomplete."; exit 1; \
+	elif [ -f "$$ROOT/pluginsdk/go.mod" ] && [ -d "$$ROOT/apps/backend/cmd/plugin-pack" ]; then \
+		if [ -f "$$MANAGED" ] || [ "$$ROOT" = "$(abspath $(SETUP_KANDEV_REPO))" ]; then \
+			EXPECTED="$$(git -C "$$ROOT" rev-parse --verify "$(KANDEV_REVISION)^{commit}" 2>/dev/null)" || { \
+				echo "ERROR: managed checkout $$ROOT does not contain requested revision $(KANDEV_REVISION)."; exit 1; \
+			}; \
+			test "$$(git -C "$$ROOT" rev-parse HEAD)" = "$$EXPECTED" || { \
+				echo "ERROR: managed checkout $$ROOT is not at requested revision $(KANDEV_REVISION). Select another KANDEV_ROOT."; exit 1; \
+			}; \
+		fi; \
 		echo "Kandev SDK and package tool already exist at $$ROOT."; \
 	elif [ -e "$$ROOT" ]; then \
 		echo "ERROR: existing checkout $$ROOT is incomplete; select a compatible KANDEV_ROOT."; exit 1; \
 	else \
 		mkdir -p "$$(dirname "$$ROOT")"; \
 		mkdir "$$ROOT" || { echo "ERROR: checkout destination $$ROOT appeared during setup."; exit 1; }; \
-		trap 'rm -rf "$$ROOT"' EXIT; \
+		OWNED=1; OWNER="setup-$$$$"; \
+		trap 'if [ "$$(cat "$$PENDING" 2>/dev/null)" = "$$OWNER" ]; then rm -rf "$$ROOT"; fi' EXIT; \
+		printf '%s\n' "$$OWNER" > "$$PENDING"; \
 		git -C "$$ROOT" init; \
 		git -C "$$ROOT" remote add origin "$(KANDEV_REPOSITORY)"; \
 		git -C "$$ROOT" sparse-checkout init --cone; \
 		git -C "$$ROOT" sparse-checkout set pluginsdk apps/backend; \
 		git -C "$$ROOT" fetch --depth=1 --filter=blob:none origin "$(KANDEV_REVISION)"; \
 		git -C "$$ROOT" checkout --detach FETCH_HEAD; \
-		trap - EXIT; \
 	fi; \
 	test -f "$$ROOT/pluginsdk/go.mod" && test -d "$$ROOT/apps/backend/cmd/plugin-pack"; \
-	$(MAKE) --no-print-directory check-compatible-sdk KANDEV_ROOT="$$ROOT"
+	$(MAKE) --no-print-directory check-compatible-sdk KANDEV_ROOT="$$ROOT"; \
+	if [ "$$OWNED" = 1 ]; then \
+		git -C "$$ROOT" rev-parse HEAD > "$$MANAGED"; \
+		rm "$$PENDING"; \
+		trap - EXIT; \
+	fi
 
 # Alternate module files keep path overrides and dependency writes out of source.
 define with-sdk-override

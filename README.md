@@ -68,8 +68,9 @@ Renames, color changes and membership edits invalidate the sidebar immediately.
 Disabling or removing Tags shows an unavailable provider without erasing the
 saved view; enabling the provider restores it. Invalid, incomplete or oversized
 shared state fails explicitly rather than showing a partial classification.
-Names containing interior control characters remain usable: sidebar labels show
-readable escapes such as `\t`, without renaming the tag or changing its ID.
+Names containing interior controls remain usable. Tag headings escape controls
+and literal backslashes distinctly: a tab displays as `\t`, while the literal
+characters backslash and `t` display as `\\t`. Names and IDs are not rewritten.
 The projected labels still obey the complete grouping response limits.
 
 Pre-0.8.0 private tags remain visible to their owner through the existing UI,
@@ -86,8 +87,9 @@ tagged Backend and Frontend appears under `"Backend"`, `"Frontend"` and
 root actually has become groups, and roots without a shared tag appear only in
 Untagged. Child trees, pins, collapse, totals and pagination behave as in Tag.
 
-Headings quote each tag name and join them with ` + ` in a stable tag order, so
-a `+` inside one name stays unambiguous. A single-tag group keeps that tag's
+Headings JSON-quote each original tag name once and join them with ` + ` in stable
+tag order. Literal plus signs, control characters and backslashes stay distinct.
+A single-tag group keeps that tag's
 color; a combination group has none. A combination's identity depends only on
 its member tags, so renaming or recoloring keeps its collapse state; deleting
 a tag removes only the combinations that contain it.
@@ -579,15 +581,17 @@ make setup   # fetch the pinned compatible SDK and package tool, then compile-ch
 make build
 ```
 
-An existing checkout is never reset to the pin. Setup compiles the plugin
-against its SDK and fails immediately if the required APIs are absent. You can
-select an explicitly reviewed checkout with `KANDEV_ROOT`, or override both
-`KANDEV_REPOSITORY` and `KANDEV_REVISION` for a different compatible source.
+An explicit existing checkout is never reset to the pin. Setup compiles against
+its SDK and fails immediately if required APIs are absent. Select one with
+`KANDEV_ROOT`, or override `KANDEV_REPOSITORY` and `KANDEV_REVISION` when creating
+a different compatible checkout.
 
-Fresh setup exclusively reserves its destination before fetching. Another setup
-or a late-created checkout cannot be nested or overwritten there. A failed fetch
-removes only the directory that this invocation reserved; retrying setup starts
-clean. Existing incomplete or explicit checkouts are never expanded or reset.
+Fresh setup exclusively reserves its destination through the compatibility
+compile. Concurrent setup cannot reuse a checkout still being validated.
+Completed tool-managed checkouts must already match the requested revision;
+a mismatch fails rather than fetching/resetting or silently using another pin.
+A failed setup removes only its owned reservation, so retry starts clean.
+Existing incomplete or explicit checkouts are never expanded or reset.
 
 If the matching monorepo checkout lives elsewhere, override its root:
 

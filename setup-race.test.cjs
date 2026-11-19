@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const {spawn, spawnSync, execFileSync} = require('node:child_process');
 
-function fixture() {
+function fixture(barrier = 'checkout') {
  const temp = fs.mkdtempSync(path.join(os.tmpdir(),'tags-setup-race-'));
  const remote = path.join(temp,'remote');
  const source = path.join(temp,'plugin');
@@ -26,8 +26,8 @@ function fixture() {
  const ready = path.join(temp,'ready');
  const gate = path.join(temp,'gate');
  execFileSync('mkfifo',[gate]);
- fs.writeFileSync(path.join(bin,'git'),`#!/bin/sh\nfor arg do\n if [ "$arg" = checkout ] && [ "$BLOCK_SETUP" = 1 ]; then touch '${ready}'; read release < '${gate}'; fi\ndone\nexec '${realGit}' "$@"\n`,{mode:0o755});
- fs.writeFileSync(path.join(bin,'go'),'#!/bin/sh\nexit 0\n',{mode:0o755});
+ fs.writeFileSync(path.join(bin,'git'),`#!/bin/sh\nfor arg do\n if [ "$arg" = checkout ] && [ "$BLOCK_SETUP" = 1 ] && [ '${barrier}' = checkout ]; then touch '${ready}'; read release < '${gate}'; fi\ndone\nexec '${realGit}' "$@"\n`,{mode:0o755});
+ fs.writeFileSync(path.join(bin,'go'),`#!/bin/sh\nif [ "$1" = test ] && [ "$BLOCK_SETUP" = 1 ] && [ '${barrier}' = compile ]; then touch '${ready}'; read release < '${gate}'; fi\nexit 0\n`,{mode:0o755});
  const env = {...process.env,PATH:bin+path.delimiter+process.env.PATH};
  for (const key of ['MAKEFLAGS','MFLAGS','MAKELEVEL','MAKEOVERRIDES','KANDEV_ROOT','KANDEV_SDK','KANDEV_BACKEND','GO_MOD_KANDEV_SDK','SETUP_KANDEV_REPO']) delete env[key];
  const args = revision => ['--no-print-directory','setup',`KANDEV_REPOSITORY=${remote}`,`KANDEV_REVISION=${revision}`];
@@ -38,14 +38,14 @@ function fixture() {
   const done = new Promise(resolve => child.once('close',status => {clearTimeout(deadline);resolve({status,output});}));
   const pending = new Promise((resolve,reject) => {
    const watcher = fs.watch(temp,() => {if(fs.existsSync(ready)){clearTimeout(timer);watcher.close();resolve();}});
-   const timer = setTimeout(() => {watcher.close();reject(new Error('setup did not reach checkout barrier: '+output));},10000);
+   const timer = setTimeout(() => {watcher.close();reject(new Error('setup did not reach '+barrier+' barrier: '+output));},10000);
    if(fs.existsSync(ready)){clearTimeout(timer);watcher.close();resolve();}
   });
   return {child,done,pending};
  };
- return {temp,source,root:path.join(source,'.build/kandev'),realGit,firstRevision,start,
+ return {temp,source,remote,root:path.join(source,'.build/kandev'),realGit,firstRevision,secondRevision,start,
   release:() => fs.writeFileSync(gate,'continue\n'),
-  second:() => spawnSync('make',args(secondRevision),{cwd:source,env,encoding:'utf8'})};
+  second:(...extra) => spawnSync('make',[...args(secondRevision),...extra],{cwd:source,env,encoding:'utf8'})};
 }
 
 test('concurrent fresh setup cannot publish or compile the other requested revision',async () => {
@@ -76,5 +76,28 @@ test('a checkout destination cannot be taken over while setup fetches',async () 
    assert.deepEqual(fs.readdirSync(f.root),['keep']);
    assert.equal(fs.readFileSync(path.join(f.root,'keep'),'utf8'),'user checkout');
   }
+ } finally {try {process.kill(-first.child.pid,'SIGKILL');} catch {} fs.rmSync(f.temp,{recursive:true,force:true});}
+});
+
+test('managed setup stays private through validation and never reuses a different requested pin',async () => {
+ const f = fixture('compile'); const first = f.start();
+ try {
+  await first.pending;
+  assert.equal(execFileSync(f.realGit,['-C',f.root,'rev-parse','HEAD'],{encoding:'utf8'}).trim(),f.firstRevision);
+  const second = f.second();
+  f.release(); const result = await first.done;
+  assert.equal(result.status,0,result.output);
+  assert.notEqual(second.status,0,'another pin succeeded while validation was pending: '+second.stdout+second.stderr);
+  const reused = f.second();
+  assert.notEqual(reused.status,0,'managed reuse silently accepted a different revision: '+reused.stdout+reused.stderr);
+  assert.equal(execFileSync(f.realGit,['-C',f.root,'rev-parse','HEAD'],{encoding:'utf8'}).trim(),f.firstRevision);
+  const explicit = path.join(f.temp,'explicit');
+  execFileSync(f.realGit,['clone','-q',f.remote,explicit]);
+  execFileSync(f.realGit,['-C',explicit,'checkout','-q','--detach',f.firstRevision]);
+  fs.writeFileSync(path.join(explicit,'keep'),'user edits');
+  const accepted = f.second(`KANDEV_ROOT=${explicit}`);
+  assert.equal(accepted.status,0,accepted.stdout+accepted.stderr);
+  assert.equal(execFileSync(f.realGit,['-C',explicit,'rev-parse','HEAD'],{encoding:'utf8'}).trim(),f.firstRevision);
+  assert.equal(fs.readFileSync(path.join(explicit,'keep'),'utf8'),'user edits');
  } finally {try {process.kill(-first.child.pid,'SIGKILL');} catch {} fs.rmSync(f.temp,{recursive:true,force:true});}
 });
