@@ -46,9 +46,10 @@ saved tags.
 
 ### Saved sidebar Tag view
 
-Kandev 0.102.0 or a matching development host can group the complete saved
-sidebar by shared workspace tags. On desktop, choose **Tag** under **Plugin
-views** in the Tasks view selector. On a phone, open the navigation menu,
+The unreleased Kandev 0.103.0 compatibility floor (or a matching development
+host) enables grouping the complete saved sidebar by shared workspace tags.
+On desktop, choose **Tag** under **Plugin views** in the Tasks view selector.
+On a phone, open the navigation menu,
 then **Plugin groupings** in the Tasks bar and choose **Tag**.
 
 The host creates a normal workspace-specific saved view. Selecting Tag again
@@ -446,10 +447,10 @@ A host older than that keeps the flat behaviour, by design: **Add tag...**
 stays the item it has always been and opens the picker modal.
 
 The submenu API first shipped in Kandev 0.96.0. This package now declares
-`min_kandev_version: "0.102.0"` for the complete saved-sidebar grouping contract,
-which is a newer requirement. The host enforces the minimum for published
-release and nightly versions. A `dev` host skips version comparison, but must
-still contain the corresponding SDK and host implementation.
+`min_kandev_version: "0.103.0"` for the complete saved-sidebar grouping contract.
+Stable 0.102.0 does not implement it. This is an unreleased minimum, not a claim
+that 0.103.0 has shipped. Release the package only with a supporting Host release.
+A `dev` host skips version comparison but must contain the matching SDK and Host.
 
 `contrib/kandev-plugin-submenus.patch` is the reference implementation those
 twenty-three commits were reviewed into, kept for the reasoning behind each
@@ -563,20 +564,22 @@ git -C ../kandev am /path/to/kandev-plugin-tags/contrib/kandev-plugin-submenus.p
 
 ### Setup / Prerequisites
 
-Use a Kandev checkout containing the complete sidebar grouping contract. The
-default sibling checkout is `../kandev`; otherwise setup creates a sparse
-checkout under the ignored `.build/kandev` directory:
+Canonical main at Stable 0.102.0 lacks the complete sidebar grouping SDK.
+Setup therefore pins the compatible development checkout
+`Fclem/kandev@1154f0ff1771aef71091b8f7457ada905e97af3b`, the same revision
+used by CI and packaging workflows. It does not publish or release either repo.
+The default sibling is `../kandev`; otherwise setup creates a sparse checkout
+under `.build/kandev`. Use a cache-volume build mirror when that is required.
 
 ```sh
-make setup   # sparse-clones pluginsdk and apps/backend
+make setup   # fetch the pinned compatible SDK and package tool, then compile-check
+make build
 ```
 
-If you prefer the sibling layout, create it manually:
-
-```sh
-git clone --filter=blob:none --sparse https://github.com/kdlbs/kandev ../kandev
-git -C ../kandev sparse-checkout set pluginsdk apps/backend
-```
+An existing checkout is never reset to the pin. Setup compiles the plugin
+against its SDK and fails immediately if the required APIs are absent. You can
+select an explicitly reviewed checkout with `KANDEV_ROOT`, or override both
+`KANDEV_REPOSITORY` and `KANDEV_REVISION` for a different compatible source.
 
 If the matching monorepo checkout lives elsewhere, override its root:
 

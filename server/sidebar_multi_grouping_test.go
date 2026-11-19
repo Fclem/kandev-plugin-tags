@@ -107,6 +107,19 @@ func TestSidebarMultiTagPowersetMemberships(t *testing.T) {
 	})
 }
 
+func TestSidebarMultiTagIgnoresUnobservedCatalogSize(t *testing.T) {
+	p, host := newAgentTagTestPlugin()
+	doc := newTagDoc()
+	for i := 0; i <= pluginsdk.MaxSidebarGroupingValues; i++ {
+		doc.Tags = append(doc.Tags, sharedTag{ID: fmt.Sprintf("tag-%d", i), Name: fmt.Sprintf("Tag %d", i), Color: "#123456"})
+	}
+	doc.Tasks["task"] = []taskTag{{TagID: "tag-0", Human: true}}
+	storeSidebarDoc(t, host, "ws-1", doc)
+	snapshot := readMultiTagSnapshot(t, p)
+	require.Len(t, snapshot.Groups, 1)
+	require.Equal(t, map[string][]string{`"Tag 0"`: {"task"}}, tasksByLabel(t, snapshot))
+}
+
 // @covers AC-UI-SIDEBAR-MULTI-TAG-001.3
 func TestSidebarMultiTagStableIdentityAndRevision(t *testing.T) {
 	p, host := newAgentTagTestPlugin()

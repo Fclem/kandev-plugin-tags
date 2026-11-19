@@ -25,8 +25,8 @@ jobs:
       - name: Checkout Kandev SDK
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
-          repository: kdlbs/kandev
-          ref: d61508aa28568cc3a68ccc079004fe9b2f1b65c2
+          repository: Fclem/kandev
+          ref: 1154f0ff1771aef71091b8f7457ada905e97af3b
           path: kandev
           sparse-checkout: |
             pluginsdk

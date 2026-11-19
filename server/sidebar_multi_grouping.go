@@ -16,9 +16,6 @@ import (
 // checked against the remaining budgets before any subset is enumerated, and an
 // overflow fails the whole snapshot instead of returning partial combinations.
 func sidebarMultiTagSnapshot(ctx context.Context, doc tagDoc) (*pluginsdk.SidebarGroupingSnapshot, error) {
-	if len(doc.Tags) > pluginsdk.MaxSidebarGroupingValues {
-		return nil, errSidebarGroupingState
-	}
 	catalog := make(map[string]pluginsdk.SidebarGroupingValue, len(doc.Tags))
 	for _, tag := range doc.Tags {
 		value, err := sidebarTagValue(tag)

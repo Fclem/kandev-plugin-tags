@@ -12,6 +12,9 @@ SETUP_KANDEV_REPO := ./.build/kandev
 KANDEV_ROOT ?= $(if $(wildcard $(GO_MOD_KANDEV_SDK)/go.mod),../kandev,$(SETUP_KANDEV_REPO))
 KANDEV_SDK ?= $(KANDEV_ROOT)/pluginsdk
 KANDEV_BACKEND := $(abspath $(KANDEV_ROOT)/apps/backend)
+# Development integration pin; canonical main does not yet provide sidebar grouping.
+KANDEV_REPOSITORY ?= https://github.com/Fclem/kandev.git
+KANDEV_REVISION ?= 1154f0ff1771aef71091b8f7457ada905e97af3b
 
 check-sdk:
 	@test -f "$(KANDEV_SDK)/go.mod" || { \
@@ -29,22 +32,27 @@ check-packager:
 	}
 
 setup:
-	@ROOT="$(KANDEV_ROOT)"; \
+	@set -e; ROOT="$(KANDEV_ROOT)"; \
 	if [ -f "$$ROOT/pluginsdk/go.mod" ] && [ -d "$$ROOT/apps/backend/cmd/plugin-pack" ]; then \
 		echo "Kandev SDK and package tool already exist at $$ROOT."; \
 	elif [ -e "$$ROOT" ]; then \
 		REMOTE="$$(git -C "$$ROOT" remote get-url origin 2>/dev/null || true)"; \
 		case "$$REMOTE" in \
-			*github.com:kdlbs/kandev*|*github.com/kdlbs/kandev*) \
+			*github.com:kdlbs/kandev*|*github.com/kdlbs/kandev*|*github.com:Fclem/kandev*|*github.com/Fclem/kandev*) \
 				git -C "$$ROOT" sparse-checkout set pluginsdk apps/backend ;; \
-			*) echo "ERROR: $$ROOT is not a kdlbs/kandev checkout."; exit 1 ;; \
+			*) echo "ERROR: $$ROOT is not a compatible Kandev checkout."; exit 1 ;; \
 		esac; \
 	else \
-		mkdir -p "$$(dirname "$$ROOT")" && \
-		git clone --filter=blob:none --sparse https://github.com/kdlbs/kandev "$$ROOT" && \
+		mkdir -p "$$ROOT"; \
+		git -C "$$ROOT" init; \
+		git -C "$$ROOT" remote add origin "$(KANDEV_REPOSITORY)"; \
+		git -C "$$ROOT" sparse-checkout init --cone; \
 		git -C "$$ROOT" sparse-checkout set pluginsdk apps/backend; \
+		git -C "$$ROOT" fetch --depth=1 --filter=blob:none origin "$(KANDEV_REVISION)"; \
+		git -C "$$ROOT" checkout --detach FETCH_HEAD; \
 	fi; \
-	test -f "$$ROOT/pluginsdk/go.mod" && test -d "$$ROOT/apps/backend/cmd/plugin-pack"
+	test -f "$$ROOT/pluginsdk/go.mod" && test -d "$$ROOT/apps/backend/cmd/plugin-pack"; \
+	$(MAKE) --no-print-directory check-compatible-sdk KANDEV_ROOT="$$ROOT"
 
 # Alternate module files keep path overrides and dependency writes out of source.
 define with-sdk-override
@@ -56,6 +64,10 @@ go mod edit -modfile="$$tmp/go.mod" -replace github.com/kdlbs/kandev/pluginsdk="
 plugin_go() { subcommand=$$1; shift; go "$$subcommand" -modfile="$$tmp/go.mod" "$$@"; }; \
 ( $(1) )
 endef
+
+.PHONY: check-compatible-sdk
+check-compatible-sdk: check-sdk
+	$(call with-sdk-override,plugin_go test -run '^$$' ./server/...)
 
 build: check-sdk
 	$(call with-sdk-override,mkdir -p bin && plugin_go build -buildvcs=false -o $(BIN) ./server/...)

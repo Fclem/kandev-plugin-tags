@@ -46,20 +46,23 @@
 
 ### Added
 
-- Complete saved-sidebar Tag grouping for Kandev 0.102.0 or a matching
-  development host. Shared human and agent memberships are deduplicated before
+- Complete saved-sidebar Tag grouping for the unreleased Kandev 0.103.0
+  compatibility floor or a matching development host. Shared memberships are deduplicated before
   host pagination, with stable content revisions, colors, explicit state errors
   and bounded responses. The existing `/tasks` facet remains page-local.
+- Multi-tag groups each task under every observed nonempty subset of its shared
+  tags, with stable set identities and explicit expansion limits.
 
 ### Changed
 
-- Require Kandev 0.102.0 for the new sidebar provider contract and build against
-  the standalone `pluginsdk` module using a matching host checkout.
+- Reserve Kandev 0.103.0 for sidebar providers; released 0.102.0 lacks the contract.
+  Pin a compatible development checkout and reject incompatible setup SDKs.
 - Mark the first recent-tag submenu child as a new group so hosts with
   `separatorBefore` support render a divider after **More tags...**.
 - Show each recent tag's color in the submenu with a matching dot.
 
 ### Fixed
+- Count Multi-tag's emitted subsets, not unused workspace catalog definitions.
 
 - Reject null application lists/rows and invalid classification field types
   instead of presenting corrupt shared state as complete Untagged results.
