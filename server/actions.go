@@ -100,7 +100,9 @@ func (p *tagsPlugin) HandleAction(ctx context.Context, req *pluginsdk.PluginActi
 	}
 	switch req.ActionKey {
 	case "sidebar-tags":
-		return p.sidebarGroupingAction(ctx, req)
+		return p.sidebarGroupingAction(ctx, req, sidebarTagSnapshot)
+	case "sidebar-multi-tags":
+		return p.sidebarGroupingAction(ctx, req, sidebarMultiTagSnapshot)
 	case "shared-tags":
 		if err := requireActionWorkspace(req); err != nil {
 			return nil, err

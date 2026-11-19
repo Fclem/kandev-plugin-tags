@@ -17,7 +17,9 @@ import (
 
 var errSidebarGroupingState = errors.New("shared tag state is invalid or exceeds complete grouping limits")
 
-func (p *tagsPlugin) sidebarGroupingAction(ctx context.Context, req *pluginsdk.PluginActionRequest) (*pluginsdk.PluginActionResponse, error) {
+// sidebarGroupingAction serves one declared grouping. Every builder consumes the
+// same strictly validated shared document and the same complete-response bound.
+func (p *tagsPlugin) sidebarGroupingAction(ctx context.Context, req *pluginsdk.PluginActionRequest, build func(context.Context, tagDoc) (*pluginsdk.SidebarGroupingSnapshot, error)) (*pluginsdk.PluginActionResponse, error) {
 	if err := requireActionWorkspace(req); err != nil {
 		return nil, err
 	}
@@ -31,8 +33,11 @@ func (p *tagsPlugin) sidebarGroupingAction(ctx context.Context, req *pluginsdk.P
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	snapshot, err := sidebarTagSnapshot(doc)
+	snapshot, err := build(ctx, doc)
 	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	response, err := jsonAction(snapshot)
@@ -121,28 +126,21 @@ func validateSidebarApplications(applications map[string]any, legacy bool) error
 	return nil
 }
 
-func sidebarTagSnapshot(doc tagDoc) (*pluginsdk.SidebarGroupingSnapshot, error) {
+func sidebarTagSnapshot(_ context.Context, doc tagDoc) (*pluginsdk.SidebarGroupingSnapshot, error) {
 	if len(doc.Tags) > pluginsdk.MaxSidebarGroupingValues {
 		return nil, errSidebarGroupingState
 	}
 	groups := make([]pluginsdk.SidebarGroupingValue, len(doc.Tags))
 	known := make(map[string]struct{}, len(doc.Tags))
 	for i, tag := range doc.Tags {
-		if !sidebarTagText(tag.ID) || !sidebarTagText(tag.Name) {
-			return nil, errSidebarGroupingState
+		value, err := sidebarTagValue(tag)
+		if err != nil {
+			return nil, err
 		}
 		if _, duplicate := known[tag.ID]; duplicate {
 			return nil, errSidebarGroupingState
 		}
-		color, err := normalizeTagColor(tag.Color)
-		if err != nil {
-			return nil, errSidebarGroupingState
-		}
-		if len(color) == 4 {
-			expanded := [7]byte{'#', color[1], color[1], color[2], color[2], color[3], color[3]}
-			color = string(expanded[:])
-		}
-		groups[i] = pluginsdk.SidebarGroupingValue{ID: tag.ID, Label: tag.Name, Color: color}
+		groups[i] = value
 		known[tag.ID] = struct{}{}
 	}
 	pairs := make(map[pluginsdk.SidebarGroupingMembership]struct{}, min(len(doc.Tasks), pluginsdk.MaxSidebarGroupingMemberships))
@@ -173,6 +171,25 @@ func sidebarTagSnapshot(doc tagDoc) (*pluginsdk.SidebarGroupingSnapshot, error) 
 		members[i] = pair
 		i++
 	}
+	return completeSidebarSnapshot(groups, members), nil
+}
+
+// sidebarTagValue validates one catalog definition as the singleton value Tag
+// mode exports; Multi-tag reuses its validated name and normalized color.
+func sidebarTagValue(tag sharedTag) (pluginsdk.SidebarGroupingValue, error) {
+	if !sidebarTagText(tag.ID) || !sidebarTagText(tag.Name) {
+		return pluginsdk.SidebarGroupingValue{}, errSidebarGroupingState
+	}
+	color, err := normalizeTagColor(tag.Color)
+	if err != nil {
+		return pluginsdk.SidebarGroupingValue{}, errSidebarGroupingState
+	}
+	return pluginsdk.SidebarGroupingValue{ID: tag.ID, Label: tag.Name, Color: color}, nil
+}
+
+// completeSidebarSnapshot orders values and memberships deterministically and
+// derives the content revision from that canonical order.
+func completeSidebarSnapshot(groups []pluginsdk.SidebarGroupingValue, members []pluginsdk.SidebarGroupingMembership) *pluginsdk.SidebarGroupingSnapshot {
 	slices.SortFunc(groups, func(a, b pluginsdk.SidebarGroupingValue) int { return cmp.Compare(a.ID, b.ID) })
 	slices.SortFunc(members, func(a, b pluginsdk.SidebarGroupingMembership) int {
 		if order := cmp.Compare(a.GroupID, b.GroupID); order != 0 {
@@ -180,7 +197,7 @@ func sidebarTagSnapshot(doc tagDoc) (*pluginsdk.SidebarGroupingSnapshot, error) 
 		}
 		return cmp.Compare(a.TaskID, b.TaskID)
 	})
-	return &pluginsdk.SidebarGroupingSnapshot{Version: 1, Revision: sidebarTagRevision(groups, members), Complete: true, Groups: groups, Memberships: members}, nil
+	return &pluginsdk.SidebarGroupingSnapshot{Version: 1, Revision: sidebarTagRevision(groups, members), Complete: true, Groups: groups, Memberships: members}
 }
 
 func sidebarTagText(value string) bool {

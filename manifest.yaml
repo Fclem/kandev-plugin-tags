@@ -3,7 +3,7 @@
 # the kandev monorepo for the full schema.
 id: "kandev-plugin-tags"
 api_version: 1
-version: "0.19.0"
+version: "0.20.0"
 # Complete saved-sidebar classification needs the new server grouping contract.
 # Local development must use matching host source; this does not publish a release.
 min_kandev_version: "0.102.0"
@@ -62,12 +62,19 @@ sidebar_groupings:
   - id: "tags"
     label: "Tag"
     action: "sidebar-tags"
+  - id: "multi-tags"
+    label: "Multi-tag"
+    action: "sidebar-multi-tags"
 
 actions:
   - key: "shared-tags"
     scope: "workspace"
     max_body_bytes: 4096
   - key: "sidebar-tags"
+    scope: "workspace"
+    access: "authenticated"
+    max_body_bytes: 16
+  - key: "sidebar-multi-tags"
     scope: "workspace"
     access: "authenticated"
     max_body_bytes: 16

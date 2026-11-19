@@ -72,6 +72,28 @@ Pre-0.8.0 private tags remain visible to their owner through the existing UI,
 but are not part of this shared sidebar classification. The separate **Tag**
 grouping on `/tasks` remains page-local and is unchanged.
 
+### Saved sidebar Multi-tag view
+
+**Multi-tag** is a second saved-sidebar grouping next to Tag, chosen the same
+way from the desktop view selector or the phone **Plugin groupings** sheet. It
+files each root under every nonempty combination of its shared tags: a root
+tagged Backend and Frontend appears under `"Backend"`, `"Frontend"` and
+`"Backend" + "Frontend"`; three tags give seven groups. Only combinations some
+root actually has become groups, and roots without a shared tag appear only in
+Untagged. Child trees, pins, collapse, totals and pagination behave as in Tag.
+
+Headings quote each tag name and join them with ` + ` in a stable tag order, so
+a `+` inside one name stays unambiguous. A single-tag group keeps that tag's
+color; a combination group has none. A combination's identity depends only on
+its member tags, so renaming or recoloring keeps its collapse state; deleting
+a tag removes only the combinations that contain it.
+
+Combinations grow exponentially. The snapshot keeps the host limits of 1,000
+groups, 10,000 memberships, 256-byte headings and a 1 MiB response; a root with
+ten or more shared tags already needs 1,023 groups. Exceeding any limit shows
+the normal unavailable/Retry state instead of dropping combinations, and the
+Tag view remains usable. Remove tags from the affected tasks to recover.
+
 ### Agent MCP workflow
 
 The tools are exposed only while an agent is running on a kanban task. Kandev
