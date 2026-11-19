@@ -68,6 +68,9 @@ Renames, color changes and membership edits invalidate the sidebar immediately.
 Disabling or removing Tags shows an unavailable provider without erasing the
 saved view; enabling the provider restores it. Invalid, incomplete or oversized
 shared state fails explicitly rather than showing a partial classification.
+Names containing interior control characters remain usable: sidebar labels show
+readable escapes such as `\t`, without renaming the tag or changing its ID.
+The projected labels still obey the complete grouping response limits.
 
 Pre-0.8.0 private tags remain visible to their owner through the existing UI,
 but are not part of this shared sidebar classification. The separate **Tag**
@@ -581,10 +584,10 @@ against its SDK and fails immediately if the required APIs are absent. You can
 select an explicitly reviewed checkout with `KANDEV_ROOT`, or override both
 `KANDEV_REPOSITORY` and `KANDEV_REVISION` for a different compatible source.
 
-Fresh setup stages the checkout beside its destination and publishes it only
-after checkout succeeds. A failed fetch removes its owned staging directory;
-retrying setup starts clean. Existing incomplete or explicit checkouts are never
-expanded or reset automatically.
+Fresh setup exclusively reserves its destination before fetching. Another setup
+or a late-created checkout cannot be nested or overwritten there. A failed fetch
+removes only the directory that this invocation reserved; retrying setup starts
+clean. Existing incomplete or explicit checkouts are never expanded or reset.
 
 If the matching monorepo checkout lives elsewhere, override its root:
 

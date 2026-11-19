@@ -39,15 +39,14 @@ setup:
 		echo "ERROR: existing checkout $$ROOT is incomplete; select a compatible KANDEV_ROOT."; exit 1; \
 	else \
 		mkdir -p "$$(dirname "$$ROOT")"; \
-		STAGING="$$(mktemp -d "$$ROOT.setup.XXXXXX")"; \
-		trap 'rm -rf "$$STAGING"' EXIT; \
-		git -C "$$STAGING" init; \
-		git -C "$$STAGING" remote add origin "$(KANDEV_REPOSITORY)"; \
-		git -C "$$STAGING" sparse-checkout init --cone; \
-		git -C "$$STAGING" sparse-checkout set pluginsdk apps/backend; \
-		git -C "$$STAGING" fetch --depth=1 --filter=blob:none origin "$(KANDEV_REVISION)"; \
-		git -C "$$STAGING" checkout --detach FETCH_HEAD; \
-		mv "$$STAGING" "$$ROOT"; \
+		mkdir "$$ROOT" || { echo "ERROR: checkout destination $$ROOT appeared during setup."; exit 1; }; \
+		trap 'rm -rf "$$ROOT"' EXIT; \
+		git -C "$$ROOT" init; \
+		git -C "$$ROOT" remote add origin "$(KANDEV_REPOSITORY)"; \
+		git -C "$$ROOT" sparse-checkout init --cone; \
+		git -C "$$ROOT" sparse-checkout set pluginsdk apps/backend; \
+		git -C "$$ROOT" fetch --depth=1 --filter=blob:none origin "$(KANDEV_REVISION)"; \
+		git -C "$$ROOT" checkout --detach FETCH_HEAD; \
 		trap - EXIT; \
 	fi; \
 	test -f "$$ROOT/pluginsdk/go.mod" && test -d "$$ROOT/apps/backend/cmd/plugin-pack"; \
@@ -77,7 +76,7 @@ run: build
 test: check-sdk
 	$(call with-sdk-override,plugin_go test ./server/...)
 	node --test ui/bundle.test.js
-	node --test setup.test.cjs
+	node --test setup*.test.cjs
 
 fmt:
 	gofmt -l ./server
