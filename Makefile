@@ -36,20 +36,19 @@ setup:
 	if [ -f "$$ROOT/pluginsdk/go.mod" ] && [ -d "$$ROOT/apps/backend/cmd/plugin-pack" ]; then \
 		echo "Kandev SDK and package tool already exist at $$ROOT."; \
 	elif [ -e "$$ROOT" ]; then \
-		REMOTE="$$(git -C "$$ROOT" remote get-url origin 2>/dev/null || true)"; \
-		case "$$REMOTE" in \
-			*github.com:kdlbs/kandev*|*github.com/kdlbs/kandev*|*github.com:Fclem/kandev*|*github.com/Fclem/kandev*) \
-				git -C "$$ROOT" sparse-checkout set pluginsdk apps/backend ;; \
-			*) echo "ERROR: $$ROOT is not a compatible Kandev checkout."; exit 1 ;; \
-		esac; \
+		echo "ERROR: existing checkout $$ROOT is incomplete; select a compatible KANDEV_ROOT."; exit 1; \
 	else \
-		mkdir -p "$$ROOT"; \
-		git -C "$$ROOT" init; \
-		git -C "$$ROOT" remote add origin "$(KANDEV_REPOSITORY)"; \
-		git -C "$$ROOT" sparse-checkout init --cone; \
-		git -C "$$ROOT" sparse-checkout set pluginsdk apps/backend; \
-		git -C "$$ROOT" fetch --depth=1 --filter=blob:none origin "$(KANDEV_REVISION)"; \
-		git -C "$$ROOT" checkout --detach FETCH_HEAD; \
+		mkdir -p "$$(dirname "$$ROOT")"; \
+		STAGING="$$(mktemp -d "$$ROOT.setup.XXXXXX")"; \
+		trap 'rm -rf "$$STAGING"' EXIT; \
+		git -C "$$STAGING" init; \
+		git -C "$$STAGING" remote add origin "$(KANDEV_REPOSITORY)"; \
+		git -C "$$STAGING" sparse-checkout init --cone; \
+		git -C "$$STAGING" sparse-checkout set pluginsdk apps/backend; \
+		git -C "$$STAGING" fetch --depth=1 --filter=blob:none origin "$(KANDEV_REVISION)"; \
+		git -C "$$STAGING" checkout --detach FETCH_HEAD; \
+		mv "$$STAGING" "$$ROOT"; \
+		trap - EXIT; \
 	fi; \
 	test -f "$$ROOT/pluginsdk/go.mod" && test -d "$$ROOT/apps/backend/cmd/plugin-pack"; \
 	$(MAKE) --no-print-directory check-compatible-sdk KANDEV_ROOT="$$ROOT"
@@ -78,6 +77,7 @@ run: build
 test: check-sdk
 	$(call with-sdk-override,plugin_go test ./server/...)
 	node --test ui/bundle.test.js
+	node --test setup.test.cjs
 
 fmt:
 	gofmt -l ./server

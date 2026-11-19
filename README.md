@@ -581,6 +581,11 @@ against its SDK and fails immediately if the required APIs are absent. You can
 select an explicitly reviewed checkout with `KANDEV_ROOT`, or override both
 `KANDEV_REPOSITORY` and `KANDEV_REVISION` for a different compatible source.
 
+Fresh setup stages the checkout beside its destination and publishes it only
+after checkout succeeds. A failed fetch removes its owned staging directory;
+retrying setup starts clean. Existing incomplete or explicit checkouts are never
+expanded or reset automatically.
+
 If the matching monorepo checkout lives elsewhere, override its root:
 
 ```sh

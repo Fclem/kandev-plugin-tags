@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Make default SDK setup recover after a failed fetch without changing explicit checkouts.
+
 ## [0.18.0] - 2026-10-26
 
 ### Changed
