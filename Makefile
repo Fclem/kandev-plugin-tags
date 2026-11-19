@@ -22,6 +22,16 @@ check-sdk:
 		echo "Run 'make setup', or set KANDEV_ROOT=/path/to/kandev."; \
 		exit 1; \
 	}
+	@set -e; SDK_ROOT="$$(cd -P "$(KANDEV_SDK)/.." && pwd)"; \
+	for ROOT in "$(KANDEV_ROOT)" "$$SDK_ROOT"; do \
+		PENDING="$$ROOT/.kandev-plugin-tags-sdk-setup"; \
+		if [ -e "$$PENDING" ]; then \
+			test -n "$(_SDK_SETUP_OWNER)" && \
+			test "$$(cat "$$PENDING" 2>/dev/null)" = "$(_SDK_SETUP_OWNER)" || { \
+				echo "ERROR: SDK setup at $$ROOT is still in progress or incomplete."; exit 1; \
+			}; \
+		fi; \
+	done
 
 .PHONY: check-packager
 check-packager:
@@ -63,7 +73,7 @@ setup:
 		git -C "$$ROOT" checkout --detach FETCH_HEAD; \
 	fi; \
 	test -f "$$ROOT/pluginsdk/go.mod" && test -d "$$ROOT/apps/backend/cmd/plugin-pack"; \
-	$(MAKE) --no-print-directory check-compatible-sdk KANDEV_ROOT="$$ROOT"; \
+	$(MAKE) --no-print-directory check-compatible-sdk KANDEV_ROOT="$$ROOT" _SDK_SETUP_OWNER="$$OWNER"; \
 	if [ "$$OWNED" = 1 ]; then \
 		git -C "$$ROOT" rev-parse HEAD > "$$MANAGED"; \
 		rm "$$PENDING"; \

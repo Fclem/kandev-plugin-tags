@@ -14,7 +14,7 @@ type sidebarGroupingTag struct {
 }
 
 func sidebarTagDefinition(tag sharedTag) (sidebarGroupingTag, error) {
-	if !sidebarTagText(tag.ID) || strings.TrimSpace(tag.Name) == "" || len(tag.Name) > 256 || !utf8.ValidString(tag.Name) {
+	if !sidebarTagText(tag.ID) || strings.TrimFunc(tag.Name, stripFromEdges) == "" || len(tag.Name) > 256 || !utf8.ValidString(tag.Name) {
 		return sidebarGroupingTag{}, errSidebarGroupingState
 	}
 	color, err := normalizeTagColor(tag.Color)

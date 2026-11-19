@@ -71,6 +71,8 @@ shared state fails explicitly rather than showing a partial classification.
 Names containing interior controls remain usable. Tag headings escape controls
 and literal backslashes distinctly: a tab displays as `\t`, while the literal
 characters backslash and `t` display as `\\t`. Names and IDs are not rewritten.
+Blank-name validation matches tag creation: a U+0085-only name remains usable
+and renders as `\u0085`, without rewriting its stored name.
 The projected labels still obey the complete grouping response limits.
 
 Pre-0.8.0 private tags remain visible to their owner through the existing UI,
@@ -587,7 +589,9 @@ its SDK and fails immediately if required APIs are absent. Select one with
 a different compatible checkout.
 
 Fresh setup exclusively reserves its destination through the compatibility
-compile. Concurrent setup cannot reuse a checkout still being validated.
+compile. Concurrent setup and public build, test, vet and packaging targets
+reject a checkout still being validated, including an explicit SDK override.
+Only setup's owning compatibility check may consume that reservation.
 Completed tool-managed checkouts must already match the requested revision;
 a mismatch fails rather than fetching/resetting or silently using another pin.
 A failed setup removes only its owned reservation, so retry starts clean.
