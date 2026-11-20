@@ -48,7 +48,7 @@ saved tags.
 
 The unreleased Kandev 0.103.0 compatibility floor (or a matching development
 host) enables grouping the complete saved sidebar by shared workspace tags.
-On desktop, choose **Tag** under **Plugin views** in the Tasks view selector.
+On desktop, choose **Tag** under **Plugin groupings** in the Tasks view selector.
 On a phone, open the navigation menu,
 then **Plugin groupings** in the Tasks bar and choose **Tag**.
 
