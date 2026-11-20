@@ -73,7 +73,7 @@ setup:
 		git -C "$$ROOT" checkout --detach FETCH_HEAD; \
 	fi; \
 	test -f "$$ROOT/pluginsdk/go.mod" && test -d "$$ROOT/apps/backend/cmd/plugin-pack"; \
-	$(MAKE) --no-print-directory check-compatible-sdk KANDEV_ROOT="$$ROOT" _SDK_SETUP_OWNER="$$OWNER"; \
+	$(MAKE) --no-print-directory check-compatible-sdk KANDEV_ROOT="$$ROOT" KANDEV_SDK="$$ROOT/pluginsdk" _SDK_SETUP_OWNER="$$OWNER"; \
 	if [ "$$OWNED" = 1 ]; then \
 		git -C "$$ROOT" rev-parse HEAD > "$$MANAGED"; \
 		rm "$$PENDING"; \

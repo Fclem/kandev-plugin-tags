@@ -587,6 +587,10 @@ An explicit existing checkout is never reset to the pin. Setup compiles against
 its SDK and fails immediately if required APIs are absent. Select one with
 `KANDEV_ROOT`, or override `KANDEV_REPOSITORY` and `KANDEV_REVISION` when creating
 a different compatible checkout.
+Setup always validates the selected `KANDEV_ROOT/pluginsdk`, even when
+`KANDEV_SDK` names an external checkout. Normal build/test consumers may still
+use an explicit SDK override; it cannot certify a different managed root.
+
 
 Fresh setup exclusively reserves its destination through the compatibility
 compile. Concurrent setup and public build, test, vet and packaging targets
