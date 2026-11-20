@@ -101,6 +101,10 @@ groups, 10,000 memberships, 256-byte headings and a 1 MiB response; a root with
 ten or more shared tags already needs 1,023 groups. Exceeding any limit shows
 the normal unavailable/Retry state instead of dropping combinations, and the
 Tag view remains usable. Remove tags from the affected tasks to recover.
+Both sidebar modes reject malformed shared documents, including differently
+cased aliases of classification fields, rather than decoding unvalidated
+memberships or bypassing the raw application limit. They never rewrite state
+while reading it.
 
 ### Agent MCP workflow
 

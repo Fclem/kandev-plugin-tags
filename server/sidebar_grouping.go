@@ -67,6 +67,9 @@ func (p *tagsPlugin) readSidebarTagDoc(ctx context.Context, workspace string) (t
 	if !found {
 		return newTagDoc(), nil
 	}
+	if !sidebarFieldCase(raw, "version", "tags", "tasks") {
+		return tagDoc{}, errSidebarGroupingState
+	}
 	version, ok := raw["version"].(float64)
 	if !ok || (version != 1 && version != 2) {
 		return tagDoc{}, errSidebarGroupingState
@@ -76,7 +79,7 @@ func (p *tagsPlugin) readSidebarTagDoc(ctx context.Context, workspace string) (t
 		return tagDoc{}, errSidebarGroupingState
 	}
 	if version == 2 {
-		if _, ok := raw["tags"].([]any); !ok {
+		if !sidebarCatalogFieldCase(raw["tags"]) {
 			return tagDoc{}, errSidebarGroupingState
 		}
 	} else {
@@ -104,7 +107,7 @@ func validateSidebarApplications(applications map[string]any, legacy bool) error
 		rawCount += len(entries)
 		for _, entry := range entries {
 			fields, ok := entry.(map[string]any)
-			if !ok {
+			if !ok || !sidebarFieldCase(fields, "tag", "tag_id", "human", "agent", "color") {
 				return errSidebarGroupingState
 			}
 			identity, ok := fields[identityKey].(string)
