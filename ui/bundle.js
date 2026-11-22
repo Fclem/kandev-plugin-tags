@@ -3867,8 +3867,9 @@
   // ---------------------------------------------------------------------
 
   /**
-   * Projects workspace tags into the host's optional task-list facet API,
-   * shared by /tasks and compatible saved-sidebar views. The host owns
+   * Projects workspace tags into the host's optional page-local task-list
+   * facet API used by /tasks. (Saved left-sidebar grouping comes from the
+   * backend `sidebar_groupings` actions instead.) The host owns
    * registration generation/lifecycle; this plugin releases its subscriptions
    * in destroy() through addDisposable. Older hosts do not have this
    * registry method, so their existing card chips and board filtering keep

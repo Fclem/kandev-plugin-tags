@@ -46,10 +46,19 @@
 
 ### Added
 
-- **Tag combination** grouping: one section per exact tag set, independent
-  of assignment order, with stable identity across tag renames. Available
-  in the saved sidebar view on compatible hosts and in `/tasks`; the existing
-  **Tag** option continues to repeat multi-tag tasks in individual tag groups.
+- Saved left-sidebar views can be grouped by **Tag** or **Tag combination**
+  through Kandev's complete `sidebar_groupings` contract (two new
+  authenticated workspace actions, `sidebar-tags` and
+  `sidebar-tag-combinations`). The host classifies the whole filtered view
+  server-side, before its page boundary: **Tag** repeats a multi-tag task under
+  each tag, **Tag combination** puts it in one group for its exact tag set
+  (identity from sorted tag IDs, so assignment order and renames don't split
+  it), and untagged tasks land in the host's Untagged group. Snapshots are
+  bounded by the host limits and fail rather than truncate.
+- **Tag combination** is also offered as a page-local `/tasks` Group/Sort
+  choice next to **Tag**.
+- Requires Kandev 0.103.0 (`min_kandev_version`), the first release with the
+  sidebar grouping contract.
 
 ### Changed
 
@@ -58,12 +67,8 @@
 - Show each recent tag's color in the submenu with a matching dot.
 - Document that `/tasks` Group by Tag omits tags no loaded task carries and
   lists untagged tasks in the host's "Unassigned" section (kdlbs/kandev#4542).
-- Document host-dependent **Group by Tag** in workspace-scoped saved
-  left-sidebar views, including multi-tag membership, nonempty sections,
-  live updates, and preserving the saved choice while the facet is unavailable.
-  This requires Kandev's saved-sidebar plugin-facet grouping integration;
-  `/tasks` facet support alone does not enable it. The existing synchronous
-  tag facet and subscription need no runtime API or storage changes.
+- Document that saved left-sidebar grouping comes from the backend
+  `sidebar_groupings` contract, not the browser `/tasks` facets.
 
 ### Fixed
 

@@ -108,6 +108,8 @@ func (p *tagsPlugin) HandleAction(ctx context.Context, req *pluginsdk.PluginActi
 			return nil, err
 		}
 		return jsonAction(workspaceView(doc))
+	case sidebarTagsAction, sidebarTagCombinationsAction:
+		return p.sidebarGroupingAction(ctx, req)
 	case "tag-create":
 		if err := requireActionWorkspace(req); err != nil {
 			return nil, err

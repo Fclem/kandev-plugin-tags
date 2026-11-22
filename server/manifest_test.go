@@ -55,14 +55,14 @@ func TestManifestDeclaresSharedCatalogContract(t *testing.T) {
 	require.Equal(t, "kandev-plugin-tags", manifest.ID)
 	require.True(t, manifest.Capabilities.State)
 	require.True(t, manifest.Capabilities.UserState)
-	require.Equal(t, []string{"shared-tags", "tag-create", "tag-update", "tag-delete", "task-tag-add", "task-tag-remove"}, func() []string {
+	require.Equal(t, []string{"shared-tags", "tag-create", "tag-update", "tag-delete", "task-tag-add", "task-tag-remove", sidebarTagsAction, sidebarTagCombinationsAction}, func() []string {
 		out := make([]string, len(manifest.Actions))
 		for i := range manifest.Actions {
 			out[i] = manifest.Actions[i].Key
 		}
 		return out
 	}())
-	require.Equal(t, []string{"workspace", "workspace", "workspace", "workspace", "task", "task"}, func() []string {
+	require.Equal(t, []string{"workspace", "workspace", "workspace", "workspace", "task", "task", "workspace", "workspace"}, func() []string {
 		out := make([]string, len(manifest.Actions))
 		for i := range manifest.Actions {
 			out[i] = manifest.Actions[i].Scope
@@ -78,6 +78,42 @@ func TestManifestDeclaresSharedCatalogContract(t *testing.T) {
 		}
 		return out
 	}())
+}
+
+// The host only offers a sidebar grouping whose action is a declared,
+// authenticated, workspace-scoped action, and refuses the whole manifest unless
+// min_kandev_version covers the release that introduced the contract.
+func TestManifestDeclaresSidebarGroupings(t *testing.T) {
+	data, err := os.ReadFile("../manifest.yaml")
+	require.NoError(t, err)
+	var manifest struct {
+		MinKandevVersion string `yaml:"min_kandev_version"`
+		Actions          []struct {
+			Key, Scope, Access string
+		} `yaml:"actions"`
+		SidebarGroupings []struct {
+			ID, Label, Action string
+		} `yaml:"sidebar_groupings"`
+	}
+	require.NoError(t, yaml.Unmarshal(data, &manifest))
+	require.Equal(t, "0.103.0", manifest.MinKandevVersion)
+	actions := map[string]string{}
+	for _, action := range manifest.Actions {
+		actions[action.Key] = action.Scope + "/" + action.Access
+	}
+	require.Len(t, manifest.SidebarGroupings, 2)
+	for want, grouping := range map[string]string{"tags": sidebarTagsAction, "tag-combinations": sidebarTagCombinationsAction} {
+		found := false
+		for _, declared := range manifest.SidebarGroupings {
+			if declared.ID == want {
+				found = true
+				require.Equal(t, grouping, declared.Action)
+				require.NotEmpty(t, declared.Label)
+			}
+		}
+		require.True(t, found, want)
+		require.Equal(t, "workspace/authenticated", actions[grouping])
+	}
 }
 
 // The host validates arguments against these schemas and forces

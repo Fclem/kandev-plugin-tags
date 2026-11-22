@@ -160,9 +160,10 @@ that card. The target must be a task in this workspace.
   tag -- **Add tag...** stays a plain item that opens the modal, instead of
   nesting the same modal one level deeper behind an extra click. On a host
   predating plugin submenus the item stays flat and opens the modal, exactly
-  as before, and the manifest states that boundary: `min_kandev_version:
-  "0.96.0"` is the first release carrying the API, so a release host older
-  than that declines to install the package instead of shipping a menu that
+  as before. The submenu API first shipped in kandev `0.96.0`; the
+  manifest's `min_kandev_version` is now `"0.103.0"` (required by the
+  saved-sidebar grouping below), so a release host older than that declines
+  to install the package instead of shipping a menu that
   cannot render the list (a dev/nightly host has no release boundary, skips
   the check, and keeps the flat item).
 - **Filter and manage from one place**: an icon-lg filter-icon button in
@@ -188,34 +189,30 @@ that card. The target must be a task in this workspace.
   its own "Tags" section/Untagged option instead, so filtering is never
   lost, only relocated depending on what the host supports -- creating,
   recoloring, renaming, and deleting stay available here regardless of tier.
-- **Saved left-sidebar views — Group by Tag**: requires a host with plugin
-  task-list facet grouping in saved sidebar views; exposing
-  `registerTaskListFacet` for `/tasks` alone is not sufficient. In the
-  sidebar view settings, choose **Tag** in **Group**, then save the view.
-  The host persists the choice with that workspace's view (including its
-  draft before saving). Grouping uses only tasks on the currently loaded
-  sidebar page in the current workspace, not all workspace tasks, tasks
-  on other backend pages, or tasks from other workspaces. A task with
-  multiple tags appears in each matching colored section; untagged
-  tasks appear in **Unassigned**. Only sections containing tasks are shown,
-  so unused catalog tags and an empty Unassigned section are omitted.
-  Tag applications, removals, renames, and color changes update through the
-  same live facet subscription as `/tasks`. If Tags is disabled or its facet
-  is unavailable, the host falls back to its normal grouping without
-  erasing the saved Tag selection; it resumes when the facet returns.
-  This sidebar integration needs the corresponding Kandev host change;
-  installing this plugin alone does not add it to older hosts. No new
-  plugin API or tag storage is needed.
-- **Group by Tag combination**: choose **Tag combination** instead of **Tag**
-  to create one section for each exact set of tags. A task carrying **Bug**
-  and **UX** appears only in **Bug + UX**, not in the separate **Bug** or
-  **UX** sections. Tasks carrying the same set share a section regardless of
-  assignment order; single-tag tasks have their own sections, and untagged
-  tasks remain in **Unassigned**. Section identities use tag IDs, so renaming
-  tags updates the heading without changing the group's identity. Single-tag
-  sections retain their tag color; combinations do not choose an arbitrary
-  member's color. This option uses the same workspace/page scope and live
-  updates as **Tag** and is also offered by compatible `/tasks` controls.
+- **Saved left-sidebar views — Group by Tag / Tag combination**: in the
+  sidebar's **Filters and sort → Group by**, choose **Tag** or
+  **Tag combination**. Kandev 0.103.0 or later classifies the *whole*
+  filtered workspace view server-side through the plugin's
+  `sidebar_groupings` actions (`sidebar-tags`, `sidebar-tag-combinations`),
+  before the sidebar's page boundary, so grouping does not depend on which
+  rows are loaded.
+  - **Tag**: a task with several tags appears under each of them.
+  - **Tag combination**: one group per exact tag set. A task carrying
+    **Bug** and **UX** appears only in **Bug + UX**, separate from Bug-only
+    and UX-only tasks; assignment order doesn't matter, and the group
+    identity comes from tag IDs, so renaming a tag only changes the heading
+    (and a tag literally named "Bug + UX" stays its own group). Single-tag
+    groups keep the tag's color; multi-tag groups don't borrow one.
+  - Untagged tasks appear in the host's **Untagged** group, and tags no task
+    carries create no group. Any tag create/rename/recolor/apply/remove
+    writes the shared catalog through the host, which refreshes the grouping.
+  - Only the workspace-shared catalog is classified; a user's pre-0.8 private
+    tags are not. A workspace whose classification would exceed the host's
+    limits (1,000 groups, 10,000 task/tag pairs, 1 MiB) gets an unavailable
+    grouping instead of a silently partial one.
+- **Group by Tag combination on `/tasks`**: the page-local `/tasks` Group/Sort
+  controls also offer **Tag combination** next to **Tag**, with the same
+  exact-set semantics over the loaded rows.
 - **Task list Sort and Group**: on hosts that expose
   `registerTaskListFacet`, this plugin contributes **Tag** to `/tasks` Sort
   and Group. Sorting uses the alphabetically first resolved tag name
@@ -423,10 +420,11 @@ or a later release renders the quick pick.
 A host older than that keeps the flat behaviour, by design: **Add tag...**
 stays the item it has always been and opens the picker modal.
 
-The package states the boundary in its manifest: `min_kandev_version:
-"0.96.0"` is the first *release* containing the API -- the merge commit is an
-ancestor of `v0.96.0` and not of `v0.95.1`. Kandev enforces that on install for
-release builds only (`requires kandev >= 0.96.0, running v0.95.1`); a `dev` or
+The submenu API first shipped in release `0.96.0` -- the merge commit is an
+ancestor of `v0.96.0` and not of `v0.95.1`. The manifest's floor is now
+`min_kandev_version: "0.103.0"` because of the saved-sidebar grouping
+contract, which covers it. Kandev enforces the floor on install for
+release builds only; a `dev` or
 nightly build carries no release boundary and skips the check, which is where
 the flat fallback above is still reachable -- a host that has the API always
 renders the list, so the fallback is a safety net, not the supported path.

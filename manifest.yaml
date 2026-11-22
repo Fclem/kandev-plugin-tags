@@ -4,15 +4,15 @@
 id: "kandev-plugin-tags"
 api_version: 1
 version: "0.18.0"
-# The card menu's plugin submenus (TaskMenuActionRegistration.items) landed in
-# kandev v0.96.0 (kdlbs/kandev#3874, merge f8708da1e0c6261d98229ca2cf1901eee9bfdf2a),
-# and the quick pick renders through them. A release build older than that
-# refuses the install ("requires kandev >= 0.96.0, running ..."); a dev or
-# nightly build has no release boundary and skips the check, and there the item
-# falls back to the flat menu entry described in the README.
-min_kandev_version: "0.96.0"
+# min_kandev_version is set by the newest host contract this manifest uses:
+# `sidebar_groupings` (complete saved-sidebar classification) first ships in
+# kandev 0.103.0, and the host refuses to install a manifest that declares it
+# with a lower floor. That floor also covers the card menu's plugin submenus
+# (kandev v0.96.0, kdlbs/kandev#3874) the quick pick renders through. A dev or
+# nightly build has no release boundary and skips the check.
+min_kandev_version: "0.103.0"
 display_name: "Tags"
-description: "Create and apply workspace-shared colored tags from the board or an agent. Humans manage every shared tag; agents manage only agent-created tags, which display a bot marker when applied. A tag created without a color gets one derived from its name, which the plugin's settings can turn off. On compatible hosts, the Tags box uses a single-select board filter (All, one tag, or Untagged) and contributes page-local Tag and Tag combination Sort/Group options to /tasks; older hosts retain management and the existing filter fallback. On compatible hosts, the Create Task dialog also gets a Tags button to tag a task as it is created."
+description: "Create and apply workspace-shared colored tags from the board or an agent. Humans manage every shared tag; agents manage only agent-created tags, which display a bot marker when applied. A tag created without a color gets one derived from its name, which the plugin's settings can turn off. The Tags box uses a single-select board filter (All, one tag, or Untagged), /tasks gets page-local Tag and Tag combination Sort/Group options, and saved left-sidebar views can be grouped by Tag or Tag combination across the whole workspace. The Create Task dialog also gets a Tags button to tag a task as it is created."
 author: "yattdev"
 repo_url: "https://github.com/yattdev/kandev-plugin-tags"
 categories: ["tools"]
@@ -81,6 +81,32 @@ actions:
   - key: "task-tag-remove"
     scope: "task"
     max_body_bytes: 1024
+  # Saved-sidebar classification (see sidebar_groupings below). The host calls
+  # these with an empty body; authenticated access is the same audience that
+  # can already read shared-tags.
+  - key: "sidebar-tags"
+    scope: "workspace"
+    access: "authenticated"
+    max_body_bytes: 16
+  - key: "sidebar-tag-combinations"
+    scope: "workspace"
+    access: "authenticated"
+    max_body_bytes: 16
+
+# Complete saved left-sidebar groupings. Kandev joins the returned memberships
+# server-side, before its page boundary, so every task in the filtered view is
+# classified -- not only the rows a browser loaded. "Tag" repeats a multi-tag
+# task under each of its tags; "Tag combination" puts it in one group for its
+# exact tag set. Untagged tasks land in the host's Untagged group. Every
+# shared-tag write goes through Host.SetState, which invalidates these
+# snapshots, so no extra notification is needed.
+sidebar_groupings:
+  - id: "tags"
+    label: "Tag"
+    action: "sidebar-tags"
+  - id: "tag-combinations"
+    label: "Tag combination"
+    action: "sidebar-tag-combinations"
 
 agent_tools:
   - name: create_tag
@@ -245,11 +271,11 @@ agent_tools:
 #     count and cascade removal) -- the built-in dropdown's section is
 #     hidden so there is exactly one Tags control.
 #   - host also has registerTaskListFacet: the plugin contributes Tag and Tag
-#     combination choices to /tasks over its currently loaded page. Hosts
-#     implementing saved sidebar facet grouping consume the same synchronous
-#     values and subscriptions. Tag repeats multi-tag tasks in individual groups;
-#     Tag combination uses one group per exact tag set. Untagged tasks use
-#     Unassigned, and empty groups are omitted. The API's presence alone does not
-#     imply sidebar support. Neither consumer exposes private tag storage to queries.
+#     combination choices to /tasks over its currently loaded page (Tag repeats
+#     multi-tag tasks in individual groups; Tag combination uses one group per
+#     exact tag set; untagged tasks use Unassigned). Saved left-sidebar grouping
+#     does not use these browser facets: it comes from the backend
+#     sidebar_groupings declared above. Neither path exposes private tag storage
+#     to queries.
 ui:
   bundle: "/ui/bundle.js"
