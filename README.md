@@ -203,7 +203,7 @@ that card. The target must be a task in this workspace.
     identity comes from tag IDs, so renaming a tag only changes the heading
     (and a tag literally named "Bug + UX" stays its own group). Single-tag
     groups keep the tag's color; multi-tag groups don't borrow one.
-  - Untagged tasks appear in the host's **Untagged** group, and tags no task
+  - Untagged tasks appear in the host's **Unassigned** group, and tags no task
     carries create no group. Any tag create/rename/recolor/apply/remove
     writes the shared catalog through the host, which refreshes the grouping.
   - Only the workspace-shared catalog is classified; a user's pre-0.8 private

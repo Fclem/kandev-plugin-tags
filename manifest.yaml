@@ -97,7 +97,7 @@ actions:
 # server-side, before its page boundary, so every task in the filtered view is
 # classified -- not only the rows a browser loaded. "Tag" repeats a multi-tag
 # task under each of its tags; "Tag combination" puts it in one group for its
-# exact tag set. Untagged tasks land in the host's Untagged group. Every
+# exact tag set. Untagged tasks land in the host's Unassigned group. Every
 # shared-tag write goes through Host.SetState, which invalidates these
 # snapshots, so no extra notification is needed.
 sidebar_groupings:

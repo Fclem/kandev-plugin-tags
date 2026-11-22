@@ -53,7 +53,7 @@
   server-side, before its page boundary: **Tag** repeats a multi-tag task under
   each tag, **Tag combination** puts it in one group for its exact tag set
   (identity from sorted tag IDs, so assignment order and renames don't split
-  it), and untagged tasks land in the host's Untagged group. Snapshots are
+  it), and untagged tasks land in the host's Unassigned group. Snapshots are
   bounded by the host limits and fail rather than truncate.
 - **Tag combination** is also offered as a page-local `/tasks` Group/Sort
   choice next to **Tag**.
