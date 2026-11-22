@@ -5,11 +5,14 @@ id: "kandev-plugin-tags"
 api_version: 1
 version: "0.18.0"
 # min_kandev_version is set by the newest host contract this manifest uses:
-# `sidebar_groupings` (complete saved-sidebar classification) first ships in
-# kandev 0.103.0, and the host refuses to install a manifest that declares it
-# with a lower floor. That floor also covers the card menu's plugin submenus
-# (kandev v0.96.0, kdlbs/kandev#3874) the quick pick renders through. A dev or
-# nightly build has no release boundary and skips the check.
+# `sidebar_groupings` (complete saved-sidebar classification). Its host side,
+# kdlbs/kandev#5427 (4af9b8216), merged while kandev main was still on the
+# 0.102.0 line (v0.102.0-42), so 0.102.0 and older lack it; the first release
+# that contains it is 0.103.0. The host refuses to install a manifest that
+# declares sidebar_groupings with a lower floor. That floor also covers the card
+# menu's plugin submenus (kandev v0.96.0, kdlbs/kandev#3874) the quick pick
+# renders through. A dev or nightly build has no release boundary and skips the
+# check.
 min_kandev_version: "0.103.0"
 display_name: "Tags"
 description: "Create and apply workspace-shared colored tags from the board or an agent. Humans manage every shared tag; agents manage only agent-created tags, which display a bot marker when applied. A tag created without a color gets one derived from its name, which the plugin's settings can turn off. The Tags box uses a single-select board filter (All, one tag, or Untagged), /tasks gets page-local Tag and Tag combination Sort/Group options, and saved left-sidebar views can be grouped by Tag or Tag combination across the whole workspace. The Create Task dialog also gets a Tags button to tag a task as it is created."

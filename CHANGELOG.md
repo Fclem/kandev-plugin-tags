@@ -57,8 +57,10 @@
   bounded by the host limits and fail rather than truncate.
 - **Tag combination** is also offered as a page-local `/tasks` Group/Sort
   choice next to **Tag**.
-- Requires Kandev 0.103.0 (`min_kandev_version`), the first release with the
-  sidebar grouping contract.
+- Requires Kandev 0.103.0 or later (`min_kandev_version`). The host side,
+  kdlbs/kandev#5427, merged while kandev main was on the 0.102.0 line
+  (v0.102.0-42), so 0.102.0 and older cannot install this version; 0.103.0
+  is the first release that contains the sidebar grouping contract.
 
 ### Changed
 

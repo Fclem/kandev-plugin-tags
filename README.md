@@ -191,7 +191,9 @@ that card. The target must be a task in this workspace.
   recoloring, renaming, and deleting stay available here regardless of tier.
 - **Saved left-sidebar views — Group by Tag / Tag combination**: in the
   sidebar's **Filters and sort → Group by**, choose **Tag** or
-  **Tag combination**. Kandev 0.103.0 or later classifies the *whole*
+  **Tag combination**. Kandev 0.103.0 or later -- the first release after
+  kandev main's 0.102.0 line, where the host contract (kdlbs/kandev#5427)
+  merged; 0.102.0 and older do not have it -- classifies the *whole*
   filtered workspace view server-side through the plugin's
   `sidebar_groupings` actions (`sidebar-tags`, `sidebar-tag-combinations`),
   before the sidebar's page boundary, so grouping does not depend on which
